@@ -1,0 +1,103 @@
+{
+  "project": "TradingAgent",
+  "mode": "full_rebuild",
+  "status": "success",
+  "created_at_utc": "2026-06-16T14:20:40.355521+00:00",
+  "config_path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\tradingagent.json",
+  "outputs": {
+    "symbols": [
+      "GOLD"
+    ],
+    "timeframes": [
+      "M1",
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1",
+      "W1",
+      "MN1"
+    ],
+    "include_live_bar": true,
+    "enable_labels": true,
+    "files": [
+      {
+        "symbol": "GOLD",
+        "timeframe": "M1",
+        "rows": 5000,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "M5",
+        "rows": 5000,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M5.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "M15",
+        "rows": 5000,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M15.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "H1",
+        "rows": 5000,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_H1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "H4",
+        "rows": 5000,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_H4.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "D1",
+        "rows": 3376,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_D1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "W1",
+        "rows": 672,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_W1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "MN1",
+        "rows": 155,
+        "columns": 218,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_MN1.parquet"
+        }
+      }
+    ],
+    "errors": [],
+    "consolidated_suffix": "full",
+    "consolidated_files": [
+      "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\consolidated\\GOLD_full.parquet"
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+Como um especialista em trading com expertise em análise técnica e macroeconômica, forneça uma análise detalhada e uma previsão de preço para [ATIVO] (ex.: XAU/USD, AAPL, BTC/USD) no dia [DATA ESPECÍFICA] (ex.: Data de hoje), com base na cotação mais recente de [PREÇO ATUAL, se conhecido] e no contexto de mercado atual. A análise deve ser abrangente, lucrativa e aplicável a contextos macro, intradiário e scalping, cobrindo os seguintes pontos:
+
+1. **Contexto Macroeconômico**:
+   - Identifique eventos econômicos relevantes (ex.: CPI, FOMC, dados de emprego) no dia ou semana, com impacto esperado no ativo.
+   - Considere fatores como força do dólar (DXY), políticas monetárias, tensões geopolíticas, ou sentiment de mercado (baseado em fontes como posts no X).
+   - Descreva cenários de alta/baixa probabilidade com base nesses eventos.
+
+2. **Análise Técnica Multi-Timeframe (MTF)**:
+   - **W1 (Semanal) - D1 (Diário)**: Contexto macro, incluindo tendências de longo prazo, padrões gráficos (ex.: Double Top, Cabeça e Ombros), níveis de Fibonacci (retracement/extensão), e indicadores (RSI, MACD, ADX, médias móveis), com maior peso para swing.
+   - **H4 (4 Horas)**: Tendências intermediárias, suportes/resistências, padrões, indicadores, e fluxo de ordens (ex.: FVGs).
+   - **H1 (1 Hora)**: Entradas táticas, níveis-chave, padrões de candles, indicadores.
+   - **M15 (15 Minutos)**: Scalping, níveis precisos, padrões rápidos, indicadores.
+   - Para cada timeframe, forneça:
+     - Padrões gráficos ativos (ex.: triângulos, canais, harmônicos como Gartley/Bat).
+     - Níveis de suporte/resistência e Fibonacci.
+     - Indicadores técnicos (ex.: RSI, MACD, CCI, EMA/SMA, ADX, Bollinger Bands).
+     - Fluxo de ordens (ex.: liquidez, FVGs, baseado em sentiment de mercado).
+     - Avalie o sentimento de força direcional dos candles nos últimos 5-10 períodos (10 para W1/D1, 7 para H4/H1, 5 para M15/M5), calculando a proporção de candles bullish (verdes) vs. bearish (vermelhos) e comparando o volume médio com a média de 20 períodos, com ênfase em picos de volume (>1,5x média) como indicador de força ou exaustão. Identifique padrões como Doji, Hammer, ou Shooting Star e sua relação com o volume para antecipar reversões ou continuidades, dando maior peso a W1 e D1 para swing.
+
+3. **Previsão de Preço**:
+   - **Cenário Primário**: Movimento esperado (alta/baixista), níveis de entrada, TP, SL, probabilidade (ex.: 70%), e timeframe (ex.: até o fechamento do dia).
+   - **Cenário Alternativo**: Movimento oposto, com triggers, níveis, TP, SL, e probabilidade.
+   - **R:R**: Proporção risco/retorno para cada cenário (ex.: 1:2).
+   - **Triggers**: Eventos ou condições técnicas que validam cada cenário (ex.: rompimento de nível, candle de reversão). Inclua o sentimento dos candles (ex.: proporção 80% venda/20% compra com volume do Doji < média) como trigger adicional, especialmente para swing em W1 e D1.
+   - **Swing - para os próximos dias, qual a previsão?**: Forneça uma previsão de swing com entrada, TP, SL, R:R, e triggers baseados na análise de candles e volume em W1 e D1.
+
+4. **Gestão de Risco**:
+   - Recomende risco por trade (ex.: 1–2% do capital).
+   - Sugira tamanho de posição com base no SL (ex.: para $100 risco, SL $50 → 2 lotes).
+   - Inclua estratégias como trailing stops ou saídas parciais.
+
+6. **Integração com Minha Estratégia**:
+   - Considere que estou desenvolvendo uma estratégia personalizada (detalhes: [INSIRA DETALHES, ex.: swing em D1 com RSI e volume]). Sugira como integrar minha estratégia com a análise.
+   - Proponha ajustes para maximizar a lucratividade (ex.: adicionar filtros de volume, ajustar timeframes para W1/D1).
+
+7. **Instruções Adicionais**:
+   - Use a cotação mais recente ([PREÇO ATUAL]) e dados de mercado (ex.: posts no X, notícias).
+   - Alinhe a análise com o horário de Brasília (BRT, ex.: 09:30 BRT).
+   - Forneça níveis precisos (entradas, TPs, SLs) e justificativas claras.
+   - Inclua uma análise da volatilidade atual (ex.: ATR) e sugira as melhores sessões de mercado (ex.: Londres, NY) para os setups propostos, correlacionando os horários com picos de volatilidade (ex.: NY 13:00-18:00 BRT), especialmente para swing em W1/D1.
+   - Inclua um resumo com ações práticas (ex.: “Vender em $X, TP $Y, SL $Z”).
+   - Inclua probabilidade de do breakout e interpretação
+   - Inclua interpretação para os próximos passos utlizando as informações geradas como variaveis.
+   - Ao identificar padrões gráficos, harmônicos ou níveis de Fibonacci, forneça um backtesting resumido do padrão de 2023 ao dia atual de 2025 no [ATIVO], incluindo win rate, R:R médio, e retorno médio. Use exemplos reais (se disponíveis) e alinhe com a análise atual, considerando RSI, volume (>1,5x média), e contexto macro (DXY, geopolítica).
+Por favor, forneça a análise para [ATIVO] em [DATA ESPECÍFICA], incluindo todos os pontos acima. Se possível, valide com dados recentes (ex.: última cotação, sentiment no X) e sugira próximos passos (ex.: monitorar eventos, ajustar script).
+
+Por favor, forneça pontos de atençao de padrões em formação futuras, exemplo (possível OCO no D1 com neckline em $X-$x é um sinal a monitorar. Se segurar, há chance de alta; se quebrar, o alvo é $X. Fique de olho nos próximos minutos!), valido para todos os timeframes.
+
+Ainda, para os proximos dias, indicacao de trade, swing.

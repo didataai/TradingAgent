@@ -1,0 +1,170 @@
+{
+  "project": {
+    "name": "TradingAgent",
+    "environment": "dev",
+    "description": "Base quantitativa para agentes independentes de swing e intraday."
+  },
+  "mt5": {
+    "path": "C:\\Program Files\\FBS MetaTrader 5\\terminal64.exe",
+    "account": 6244829,
+    "server": "ActivTrades-Server",
+    "password": "Demoacc2!",
+    "broker_timezone": "Etc/GMT-2",
+    "auto_detect_server": true,
+    "timestamp_source": "broker_wall_clock"
+  },
+  "data": {
+    "data_dir": "data",
+    "consolidated_dir": "data/consolidated",
+    "snapshot_dir": "data/snapshots",
+    "manifest_dir": "data/manifests",
+    "q_candles": 5000,
+    "write_parquet": true,
+    "write_csv": false,
+    "write_consolidated_parquet": true,
+    "write_consolidated_csv": false,
+    "compression": "zstd"
+  },
+  "universe": {
+    "symbols": [
+      "GOLD"
+    ],
+    "timeframes": [
+      "M1",
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1",
+      "W1",
+      "MN1"
+    ]
+  },
+  "features": {
+    "atr_window": 14,
+    "regime_window": 200,
+    "warmup_min": 250,
+    "sentiment_candles": {
+      "M1": 5,
+      "M5": 5,
+      "M15": 5,
+      "H1": 7,
+      "H4": 7,
+      "D1": 10,
+      "W1": 10,
+      "MN1": 10
+    },
+    "structure": {
+      "swing_window": 3
+    },
+    "zigzag": {
+      "depth": 12,
+      "deviation_pct": 0.5
+    },
+    "order_blocks": {
+      "swing_window": 5,
+      "minimum_displacement_atr": 0.8
+    },
+    "fvg": {
+      "minimum_size_atr": 0.1
+    },
+    "live_bar": {
+      "enabled": true,
+      "volume_average_window": 20,
+      "minimum_elapsed_ratio": 0.05
+    }
+  },
+  "labels": {
+    "enabled_by_default": false,
+    "triple_barrier": {
+      "entry_mode": "close_t1",
+      "same_bar_policy": "stop_first_conservative",
+      "default": {
+        "tp_atr": 0.9,
+        "sl_atr": 0.7,
+        "timeout_bars": 8
+      },
+      "compression": {
+        "tp_atr": 0.6,
+        "sl_atr": 0.6,
+        "timeout_bars": 10
+      },
+      "expansion_killzone": {
+        "tp_atr": 1.1,
+        "sl_atr": 0.7,
+        "timeout_bars": 6
+      },
+      "new_york_expansion": {
+        "tp_atr": 1.0,
+        "sl_atr": 0.8,
+        "timeout_bars": 6
+      }
+    }
+  },
+  "pipeline": {
+    "default_mode": "full_rebuild",
+    "continue_on_error": false
+  },
+  "pipeline_modes": {
+    "full_rebuild": {
+      "description": "Reconstrói a base completa com todos os timeframes e labels.",
+      "collect_from_mt5": true,
+      "timeframes": [
+        "M1",
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1",
+        "W1",
+        "MN1"
+      ],
+      "include_live_bar": true,
+      "enable_labels": true,
+      "consolidated_suffix": "full"
+    },
+    "intraday_refresh": {
+      "description": "Atualização leve a cada cinco minutos para o agente intraday.",
+      "collect_from_mt5": true,
+      "timeframes": [
+        "M1",
+        "M5",
+        "M15",
+        "H1"
+      ],
+      "include_live_bar": true,
+      "enable_labels": false,
+      "consolidated_suffix": "intraday"
+    },
+    "daily_refresh": {
+      "description": "Atualiza os timeframes maiores usados pelo fluxo de swing.",
+      "collect_from_mt5": true,
+      "timeframes": [
+        "H4",
+        "D1",
+        "W1",
+        "MN1"
+      ],
+      "include_live_bar": true,
+      "enable_labels": false,
+      "consolidated_suffix": "swing"
+    },
+    "contexts_only": {
+      "description": "Reservado para recriação de contextos sem nova coleta MT5.",
+      "collect_from_mt5": false,
+      "timeframes": [
+        "M1",
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1",
+        "W1",
+        "MN1"
+      ],
+      "include_live_bar": false,
+      "enable_labels": false,
+      "consolidated_suffix": "contexts"
+    }
+  }
+}

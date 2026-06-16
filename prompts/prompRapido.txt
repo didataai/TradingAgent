@@ -1,0 +1,23 @@
+# Gold
+Poderia fazer para o Gold preço 4094 por favor ?
+Mostrar apenas a Ação Imediata, Ação Mais Recomendada Agora, por favor.
+
+# Mini Indice
+Poderia fazer para o mini índice brasileiro WINZ25, preço 146900, por favor ?
+Mostrar apenas a Ação Imediata, Ação Mais Recomendada Agora, por favor.
+
+# Dol
+Poderia fazer para o mini dólar brasileiro WDOV25 preço 5.315,00 por favor ?
+Mostrar apenas a Ação Imediata, Ação Mais Recomendada Agora, por favor.
+
+# UsaInd - Dj30
+Poderia fazer para o índice americano UsaInd ou US30 preço 45842 por favor ?
+Mostrar apenas a Ação Mais Recomendada Agora, por favor.
+
+# Solana
+Poderia fazer para o moeda crypto Solana, preço 235,13 por favor ? 
+Mostrar apenas a Ação Mais Recomendada Agora, por favor.
+
+# Bitcoin
+Poderia fazer para o moeda crypto Bitcoin, preço 113,807.15 por favor ? 
+Mostrar apenas a Ação Mais Recomendada Agora, por favor.
