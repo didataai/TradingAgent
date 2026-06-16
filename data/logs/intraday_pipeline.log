@@ -1,0 +1,46 @@
+[2026-06-16 16:00:44] Pipeline iniciado | run_id=intraday_pipeline_20260616_160044_db5802ab | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-16 16:00:44] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-16 16:00:44] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-16 16:00:44] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh
+    2026-06-16 16:00:44,519 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-06-16 16:00:44,519 - INFO - Projeto=TradingAgent | modo=intraday_refresh
+    2026-06-16 16:00:47,227 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-16 16:00:47,227 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-16 16:00:47,227 - INFO - Coletando GOLD TF=M1
+    2026-06-16 16:00:48,889 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-06-16 16:00:48,889 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-16 16:00:48,889 - INFO - Coletando GOLD TF=M5
+    2026-06-16 16:00:49,642 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-06-16 16:00:49,642 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-16 16:00:49,642 - INFO - Coletando GOLD TF=M15
+    2026-06-16 16:00:50,533 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-06-16 16:00:50,533 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-16 16:00:50,533 - INFO - Coletando GOLD TF=H1
+    2026-06-16 16:00:51,424 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-06-16 16:00:51,424 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-16 16:00:51,424 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-16 16:00:51,717 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-16 16:00:51,733 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260616T190051Z.json
+    2026-06-16 16:00:51,733 - INFO - Conex�o MT5 encerrada
+    2026-06-16 16:00:51,733 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=4 erros=0
+    done
+[2026-06-16 16:00:51] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=7.891s
+[2026-06-16 16:00:51] Símbolo iniciado | symbol=GOLD
+[2026-06-16 16:00:51] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-16 16:00:51] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-16 16:00:53] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=1.932s
+[2026-06-16 16:00:53] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-16 16:00:53] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=76612
+[2026-06-16 16:00:54] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.859s
+[2026-06-16 16:00:54] Etapa iniciada | step=intraday_agent | symbol=GOLD | timeout=1500.0s
+[2026-06-16 16:00:54] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\intraday_agent.py --symbol GOLD
+    [16:00:55] Execu��o iniciada | symbol=GOLD | mode=single
+    [16:00:55] Analistas selecionados: ['analyst_1'] | modo=single
+    [16:00:55] LLM in�cio | role=analyst_1 | model=qwen2.5:7b-instruct | provider=ollama_local | prompt_chars=67954 | timeout=900.0s
+    [16:01:26] LLM role=analyst_1 ainda em execu��o | elapsed=30s
+    [16:01:56] LLM role=analyst_1 ainda em execu��o | elapsed=60s
+    [16:02:26] LLM role=analyst_1 ainda em execu��o | elapsed=90s

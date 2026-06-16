@@ -8,10 +8,11 @@
     "path": "C:\\Program Files\\FBS MetaTrader 5\\terminal64.exe",
     "account": 6244829,
     "server": "ActivTrades-Server",
-    "password": "Demoacc2!",
+    "password": "",
     "broker_timezone": "Etc/GMT-2",
     "auto_detect_server": true,
-    "timestamp_source": "broker_wall_clock"
+    "timestamp_source": "broker_wall_clock",
+    "password_env": "Demoacc2!"
   },
   "data": {
     "data_dir": "data",
@@ -165,6 +166,313 @@
       "include_live_bar": false,
       "enable_labels": false,
       "consolidated_suffix": "contexts"
+    }
+  },
+  "llm": {
+    "enabled": true,
+    "default_provider": "ollama_local",
+    "providers": {
+      "ollama_local": {
+        "enabled": true,
+        "type": "ollama",
+        "base_url": "http://127.0.0.1:11434",
+        "timeout_seconds": 900,
+        "max_retries": 0,
+        "max_parallel_requests": 1,
+        "keep_alive": "10m"
+      },
+      "openrouter": {
+        "enabled": false,
+        "type": "openai_compatible",
+        "base_url": "https://openrouter.ai/api/v1",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "timeout_seconds": 180,
+        "max_retries": 2,
+        "max_parallel_requests": 5
+      },
+      "openai": {
+        "enabled": false,
+        "type": "openai",
+        "base_url": "https://api.openai.com/v1",
+        "api_key_env": "OPENAI_API_KEY",
+        "timeout_seconds": 180,
+        "max_retries": 2,
+        "max_parallel_requests": 5
+      },
+      "anthropic": {
+        "enabled": false,
+        "type": "anthropic",
+        "base_url": "https://api.anthropic.com",
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "timeout_seconds": 180,
+        "max_retries": 2,
+        "max_parallel_requests": 5
+      },
+      "xai": {
+        "enabled": false,
+        "type": "openai_compatible",
+        "base_url": "https://api.x.ai/v1",
+        "api_key_env": "XAI_API_KEY",
+        "timeout_seconds": 180,
+        "max_retries": 2,
+        "max_parallel_requests": 5
+      }
+    },
+    "context_policy": {
+      "model_context_window_tokens": 32768,
+      "reserved_output_tokens": 2048,
+      "max_input_tokens": 28672,
+      "fail_on_context_overflow": false,
+      "allow_automatic_truncation": false
+    },
+    "models": {
+      "qwen_local_analyst_1": {
+        "enabled": true,
+        "provider": "ollama_local",
+        "model": "qwen2.5:7b-instruct",
+        "purpose": "Independent analyst focused on multi-timeframe structure and context.",
+        "focus": [
+          "H1_context",
+          "M15_confirmation",
+          "M5_setup",
+          "M1_timing"
+        ],
+        "temperature": 0.1,
+        "max_output_tokens": 1400,
+        "num_ctx": 32768
+      },
+      "qwen_local_analyst_2": {
+        "enabled": true,
+        "provider": "ollama_local",
+        "model": "qwen2.5:7b-instruct",
+        "purpose": "Independent analyst focused on breakouts, volume, volatility and acceptance.",
+        "focus": [
+          "breakouts",
+          "false_breakouts",
+          "volume",
+          "volatility",
+          "acceptance"
+        ],
+        "temperature": 0.2,
+        "max_output_tokens": 1400,
+        "num_ctx": 32768
+      },
+      "qwen_local_analyst_3": {
+        "enabled": true,
+        "provider": "ollama_local",
+        "model": "qwen2.5:7b-instruct",
+        "purpose": "Independent analyst focused on patterns, Fibonacci, risk and invalidation.",
+        "focus": [
+          "chart_patterns",
+          "candlestick_patterns",
+          "fibonacci",
+          "risk",
+          "invalidation"
+        ],
+        "temperature": 0.3,
+        "max_output_tokens": 1400,
+        "num_ctx": 32768
+      },
+      "qwen_local_critic": {
+        "enabled": true,
+        "provider": "ollama_local",
+        "model": "qwen2.5:7b-instruct",
+        "purpose": "Compare outputs, validate facts and memory.",
+        "focus": [
+          "fact_validation",
+          "comparison",
+          "memory_validation",
+          "hallucination_detection"
+        ],
+        "temperature": 0.0,
+        "max_output_tokens": 1600,
+        "num_ctx": 32768
+      },
+      "qwen_local_arbiter": {
+        "enabled": true,
+        "provider": "ollama_local",
+        "model": "qwen2.5:7b-instruct",
+        "purpose": "Produce final BUY, SELL or WAIT.",
+        "focus": [
+          "final_decision",
+          "conflict_resolution",
+          "risk_control",
+          "thesis_update"
+        ],
+        "temperature": 0.0,
+        "max_output_tokens": 1600,
+        "num_ctx": 32768
+      }
+    },
+    "roles": {
+      "analysts": [
+        {
+          "id": "analyst_1",
+          "enabled": true,
+          "model_ref": "qwen_local_analyst_1",
+          "prompt_path": "prompts/promptIntraday.md"
+        },
+        {
+          "id": "analyst_2",
+          "enabled": true,
+          "model_ref": "qwen_local_analyst_2",
+          "prompt_path": "prompts/promptIntraday.md"
+        },
+        {
+          "id": "analyst_3",
+          "enabled": true,
+          "model_ref": "qwen_local_analyst_3",
+          "prompt_path": "prompts/promptIntraday.md"
+        }
+      ],
+      "critic": {
+        "id": "critic",
+        "enabled": true,
+        "model_ref": "qwen_local_critic",
+        "prompt_path": "prompts/promptCritic.md"
+      },
+      "arbiter": {
+        "id": "arbiter",
+        "enabled": true,
+        "model_ref": "qwen_local_arbiter",
+        "prompt_path": "prompts/promptArbiter.md",
+        "call_mode": "always"
+      }
+    }
+  },
+  "agent": {
+    "framework": "langgraph",
+    "analysis_type": "intraday",
+    "execution_modes": {
+      "ensemble": false,
+      "single": true
+    },
+    "single_mode": {
+      "analyst_id": "analyst_1",
+      "use_memory": true,
+      "call_critic": false,
+      "call_arbiter": false
+    },
+    "ensemble_mode": {
+      "use_memory": true,
+      "calculate_consensus": true,
+      "call_critic": true,
+      "call_arbiter": true,
+      "arbiter_call_mode": "always"
+    },
+    "execution": {
+      "async_enabled": true,
+      "interval_minutes": 5,
+      "round_timeout_seconds": 1200,
+      "continue_on_partial_failure": true,
+      "minimum_successful_analysts": 2,
+      "default_action_on_error": "WAIT",
+      "require_structured_output": true,
+      "heartbeat_seconds": 30
+    },
+    "concurrency": {
+      "max_parallel_symbols": 1,
+      "max_parallel_runs": 1,
+      "global_max_parallel_llm_requests": 3
+    },
+    "paths": {
+      "payload_template": "data/payload/{symbol}_intraday_payload.json",
+      "state_template": "data/state/{symbol}_intraday_state.json",
+      "runs_template": "data/agent_runs/{symbol}_intraday_runs.jsonl",
+      "latest_result_template": "data/agent_results/{symbol}_intraday_latest.json"
+    }
+  },
+  "memory": {
+    "intraday": {
+      "enabled": true,
+      "carry_full_conversation": false,
+      "max_previous_theses": 2,
+      "micro_memory_minutes": 15,
+      "intraday_memory_minutes": 240,
+      "expire_unconfirmed_thesis": true,
+      "allowed_thesis_status": [
+        "CONFIRMED",
+        "PARTIALLY_CONFIRMED",
+        "STILL_DEVELOPING",
+        "INVALIDATED",
+        "EXPIRED",
+        "REPLACED"
+      ]
+    }
+  },
+  "observability": {
+    "jsonl": {
+      "enabled": true,
+      "path_template": "data/agent_runs/{symbol}_intraday_runs.jsonl"
+    },
+    "elasticsearch": {
+      "enabled": false,
+      "url_env": "ELASTICSEARCH_URL",
+      "username_env": "ELASTICSEARCH_USERNAME",
+      "password_env": "ELASTICSEARCH_PASSWORD",
+      "index_pattern": "tradingagent-intraday-runs-{yyyy_mm}",
+      "verify_certs": true
+    },
+    "metrics": {
+      "record_latency": true,
+      "record_token_usage": true,
+      "record_cost": true,
+      "record_requested_model": true,
+      "record_actual_model": true,
+      "record_provider": true,
+      "record_format_validity": true
+    }
+  },
+  "pipeline_intraday": {
+    "enabled": true,
+    "continue_on_symbol_error": false,
+    "lock": {
+      "enabled": true,
+      "path": "data/locks/intraday_pipeline.lock",
+      "stale_after_minutes": 60
+    },
+    "steps": {
+      "base_dados": {
+        "enabled": true,
+        "script": "Base_Dados.py",
+        "arguments": [
+          "--mode",
+          "intraday_refresh"
+        ],
+        "timeout_seconds": 180
+      },
+      "timeframe_context": {
+        "enabled": true,
+        "script": "context/timeframe_context.py",
+        "arguments": [
+          "--symbol",
+          "{symbol}"
+        ],
+        "timeout_seconds": 120
+      },
+      "prompt_payload": {
+        "enabled": true,
+        "script": "context/prompt_payload.py",
+        "arguments": [
+          "--symbol",
+          "{symbol}"
+        ],
+        "timeout_seconds": 120
+      },
+      "intraday_agent": {
+        "enabled": true,
+        "script": "agent/intraday_agent.py",
+        "arguments": [
+          "--symbol",
+          "{symbol}"
+        ],
+        "timeout_seconds": 1500
+      }
+    },
+    "paths": {
+      "latest_result": "data/pipeline_results/intraday_pipeline_latest.json",
+      "runs_jsonl": "data/pipeline_runs/intraday_pipeline_runs.jsonl",
+      "log_file": "data/logs/intraday_pipeline.log"
     }
   }
 }

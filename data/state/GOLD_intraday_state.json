@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "symbol": "GOLD",
+  "updated_at_utc": "2026-06-16T18:27:16.102025+00:00",
+  "last_run_id": "GOLD_20260616_152040_96db3c6e",
+  "previous_action": "WAIT",
+  "previous_price": 4345.27,
+  "previous_thesis_status": "INVALIDATED",
+  "active_thesis": {
+    "scenario": "Espera por confirmação ou invalidação do padrão de bear flag no H1.",
+    "summary": "O cenário atual é de espera, com o mercado em um período de consolidação e pullback. A tendência de alta está em conflito com os timeframes inferiores que indicam possíveis rejeições.",
+    "expiry_minutes": 30
+  },
+  "levels": {
+    "trigger": null,
+    "entry_min": null,
+    "entry_max": null,
+    "invalidation": 4346.68,
+    "target_1": 4340.73,
+    "target_2": 4334.55
+  },
+  "confirmation_conditions": [
+    "H1 deve confirmar a tendência de alta com candles fortes",
+    "M15 e M5 devem mostrar sinais claros de rompimento ou aceitação"
+  ],
+  "invalidation_conditions": [
+    "Qualquer forte candle bullish no H1, M15 ou M5",
+    "Rompimento acima do nível de invalidação (4346.68)"
+  ]
+}

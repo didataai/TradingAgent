@@ -1089,3 +1089,22 @@ sem invenção
 O projeto deve crescer de forma controlada.
 
 Nunca adicionar complexidade apenas porque é possível.
+
+
+# REGRA DE DOCUMENTAÇÃO NO INÍCIO DE CADA ARQUIVO
+
+Todo arquivo novo ou alterado deve começar com um resumo de documentação adequado ao tipo do arquivo.
+
+Para arquivos Python, usar docstring no início contendo, no mínimo:
+
+- nome e finalidade do arquivo;
+- entradas utilizadas;
+- processamento ou responsabilidades principais;
+- saídas geradas;
+- dependências relevantes;
+- exemplos de execução, quando aplicável;
+- limitações ou observações importantes.
+
+Para JSON, Markdown, shell scripts e outros formatos, usar comentário quando o formato permitir. Quando comentários não forem permitidos, como em JSON estrito, documentar os blocos por nomes claros e manter a explicação correspondente no README ou no prompt de continuidade.
+
+O resumo deve facilitar pesquisa, manutenção e entendimento futuro sem exigir leitura completa do arquivo. Não criar documentação falsa: descrever somente comportamentos realmente implementados.
