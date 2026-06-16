@@ -53,6 +53,7 @@ EXEMPLOS
     python pipeline/intraday_pipeline.py --symbol GOLD --agent-only
 
 TRATAMENTO DE ERROS
+    - Ctrl+C encerra o subprocesso filho, registra a interrupção e remove o lock;
     - interrompe a cadeia do símbolo quando uma etapa obrigatória falha;
     - registra stdout/stderr e código de retorno;
     - protege contra duas rodadas simultâneas;
@@ -314,6 +315,16 @@ def run_step(
 
         return_code = process.returncode
 
+    except KeyboardInterrupt:
+        error = "Execução interrompida pelo usuário."
+        return_code = process.returncode if process else None
+        if process and process.poll() is None:
+            process.kill()
+            try:
+                process.wait(timeout=10)
+            except Exception:
+                pass
+        raise
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
         return_code = process.returncode if process else None
@@ -661,6 +672,22 @@ def main() -> int:
                 item["success"] for item in record["symbol_results"]
             )
 
+    except KeyboardInterrupt:
+        error = "KeyboardInterrupt: execução interrompida pelo usuário."
+        if "record" not in locals():
+            record = {
+                "@timestamp": run_started_at,
+                "run_id": run_id,
+                "pipeline": "intraday",
+                "success": False,
+                "started_at_utc": run_started_at,
+                "symbol_results": [],
+            }
+        record["error"] = error
+        if "logger" in locals():
+            logger.write("Pipeline interrompido pelo usuário.")
+        else:
+            print("Pipeline interrompido pelo usuário.", file=sys.stderr)
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
         if "record" not in locals():

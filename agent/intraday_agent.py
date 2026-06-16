@@ -24,6 +24,13 @@ SAÍDAS
 OBSERVAÇÕES
     - O payload deve permanecer factual e sem viés decisório.
     - No modo single, promptCritic.md e promptArbiter.md não são necessários.
+    - A avaliação da tese anterior, a ação imediata e a nova tese são campos
+      separados para evitar ambiguidade entre memória e decisão atual.
+    - A memória operacional usa schema 1.1 e é sobrescrita a cada ciclo.
+    - Estados antigos no schema 1.0 continuam sendo aceitos como entrada.
+    - BUY/SELL passam por validação determinística de integridade:
+      exigem gatilho/entrada, stop e target_1; incoerências rebaixam a ação
+      imediata para WAIT sem apagar a análise original.
     - O primeiro provider implementado é Ollama; outros já podem existir no JSON,
       mas precisam de implementação antes do uso.
 
@@ -113,14 +120,51 @@ def compact_payload(p):
         out['timeframes'][tf]={k:b.get(k) for k in ('current_bar','previous_closed_bar','indicators_exact','derived_metrics_exact','algorithmic_annotations','nearby_level_zones','pattern_geometry','recent_bars')}
     return out
 
-ANALYST_SCHEMA='''\nResponda SOMENTE com JSON válido, sem Markdown:\n{
- "action":"BUY|SELL|WAIT","confidence":"LOW|MODERATE|HIGH",
- "previous_thesis_status":"CONFIRMED|PARTIALLY_CONFIRMED|STILL_DEVELOPING|INVALIDATED|EXPIRED|REPLACED|NO_PREVIOUS_THESIS",
- "summary":"...","timeframes":{"H1":"...","M15":"...","M5":"...","M1":"..."},
- "patterns":[],"levels":{"trigger":null,"entry_min":null,"entry_max":null,"invalidation":null,"target_1":null,"target_2":null},
- "confirmation_conditions":[],"invalidation_conditions":[],"risk_flags":[],
- "current_thesis":{"scenario":"...","summary":"...","expiry_minutes":15}
-}\nNão invente níveis, probabilidades ou fatos ausentes. A memória serve para testar a tese anterior, não para defendê-la.\n'''
+ANALYST_SCHEMA='''
+Responda SOMENTE com JSON válido, sem Markdown:
+{
+  "action": "BUY|SELL|WAIT",
+  "confidence": "LOW|MODERATE|HIGH",
+  "summary": "interpretação da ação imediata",
+  "previous_thesis_evaluation": {
+    "status": "CONFIRMED|PARTIALLY_CONFIRMED|STILL_DEVELOPING|INVALIDATED|EXPIRED|REPLACED|NO_PREVIOUS_THESIS",
+    "reason": "explique objetivamente o que aconteceu com a tese anterior"
+  },
+  "timeframes": {"H1":"...","M15":"...","M5":"...","M1":"somente timing"},
+  "patterns": [],
+  "trade_plan": {
+    "action_now": "BUY|SELL|WAIT",
+    "conditional_bias": "BUY|SELL|NEUTRAL",
+    "trigger": null,
+    "entry_min": null,
+    "entry_max": null,
+    "stop": null,
+    "target_1": null,
+    "target_2": null
+  },
+  "confirmation_conditions": [],
+  "invalidation_conditions": [],
+  "risk_flags": [],
+  "current_thesis": {
+    "scenario": "identificador curto",
+    "action_now": "BUY|SELL|WAIT",
+    "conditional_bias": "BUY|SELL|NEUTRAL",
+    "summary": "nova tese da rodada atual",
+    "trigger": null,
+    "invalidation": null,
+    "expiry_minutes": 15
+  }
+}
+Regras adicionais:
+- previous_thesis_evaluation descreve somente a tese recebida na memória.
+- current_thesis descreve somente a nova tese criada nesta rodada.
+- action é a ação imediata e deve ser igual a trade_plan.action_now.
+- Se action=WAIT, conditional_bias pode ser BUY, SELL ou NEUTRAL.
+- Não use o termo invalidation sem deixar claro se é invalidação da nova tese.
+- Não reutilize a tese anterior como nova tese sem explicar por que ela continua válida.
+- Não invente níveis, probabilidades ou fatos ausentes.
+- A memória serve para testar a tese anterior, não para defendê-la.
+'''
 CRITIC='''Você é o crítico do TradingAgent. Compare os analistas com os fatos e a memória. Detecte invenções. Não decida por maioria simples. Responda SOMENTE JSON:
 {"recommended_action":"BUY|SELL|WAIT","previous_thesis_status":"CONFIRMED|PARTIALLY_CONFIRMED|STILL_DEVELOPING|INVALIDATED|EXPIRED|REPLACED|NO_PREVIOUS_THESIS","agreement_level":"UNANIMOUS|PARTIAL|CONFLICTED|INSUFFICIENT","requires_arbiter":true,"summary":"...","model_evaluations":[],"key_agreements":[],"key_disagreements":[],"hallucination_flags":[],"recommended_levels":{"trigger":null,"invalidation":null,"target_1":null,"target_2":null}}'''
 ARBITER='''Você é o árbitro final. Use os fatos como fonte primária, não apenas a maioria. Se o setup estiver incompleto, WAIT. Responda SOMENTE JSON:
@@ -166,9 +210,69 @@ class Runtime:
                     if attempt<int(pc.get('max_retries',1)): await asyncio.sleep(1.5*(attempt+1))
         return {'success':False,'role_id':role_id,'model_ref':model_ref,'requested_model':mc['model'],'actual_model':None,'provider':pn,'latency_ms':round((time.perf_counter()-started)*1000),'usage':{},'format_valid':False,'content':None,'error':f'{type(last).__name__}: {last}'}
 
-def validate_analyst(c,rid):
-    c['role']='analyst'; c['analyst_id']=rid; c['action']=norm_action(c.get('action')); c['previous_thesis_status']=norm_status(c.get('previous_thesis_status'))
-    for k,d in [('confidence','LOW'),('summary',''),('timeframes',{}),('patterns',[]),('levels',{}),('confirmation_conditions',[]),('invalidation_conditions',[]),('risk_flags',[]),('current_thesis',{})]: c.setdefault(k,d)
+def validate_analyst(c, rid):
+    c['role'] = 'analyst'
+    c['analyst_id'] = rid
+    c['action'] = norm_action(c.get('action'))
+    c.setdefault('confidence', 'LOW')
+    c.setdefault('summary', '')
+    c.setdefault('timeframes', {})
+    c.setdefault('patterns', [])
+    c.setdefault('confirmation_conditions', [])
+    c.setdefault('invalidation_conditions', [])
+    c.setdefault('risk_flags', [])
+
+    previous_eval = c.get('previous_thesis_evaluation')
+    if not isinstance(previous_eval, dict):
+        previous_eval = {
+            'status': norm_status(c.get('previous_thesis_status')),
+            'reason': '',
+        }
+    previous_eval['status'] = norm_status(previous_eval.get('status'))
+    previous_eval.setdefault('reason', '')
+    c['previous_thesis_evaluation'] = previous_eval
+    c['previous_thesis_status'] = previous_eval['status']
+
+    trade_plan = c.get('trade_plan')
+    if not isinstance(trade_plan, dict):
+        old_levels = c.get('levels') if isinstance(c.get('levels'), dict) else {}
+        trade_plan = {
+            'action_now': c['action'],
+            'conditional_bias': 'NEUTRAL',
+            'trigger': old_levels.get('trigger'),
+            'entry_min': old_levels.get('entry_min'),
+            'entry_max': old_levels.get('entry_max'),
+            'stop': old_levels.get('invalidation'),
+            'target_1': old_levels.get('target_1'),
+            'target_2': old_levels.get('target_2'),
+        }
+    trade_plan['action_now'] = c['action']
+    bias = str(trade_plan.get('conditional_bias') or 'NEUTRAL').upper()
+    trade_plan['conditional_bias'] = bias if bias in {'BUY', 'SELL', 'NEUTRAL'} else 'NEUTRAL'
+    for field in ('trigger', 'entry_min', 'entry_max', 'stop', 'target_1', 'target_2'):
+        trade_plan.setdefault(field, None)
+    c['trade_plan'] = trade_plan
+    c['levels'] = {
+        'trigger': trade_plan.get('trigger'),
+        'entry_min': trade_plan.get('entry_min'),
+        'entry_max': trade_plan.get('entry_max'),
+        'invalidation': trade_plan.get('stop'),
+        'target_1': trade_plan.get('target_1'),
+        'target_2': trade_plan.get('target_2'),
+    }
+
+    thesis = c.get('current_thesis')
+    if not isinstance(thesis, dict):
+        thesis = {}
+    thesis.setdefault('scenario', '')
+    thesis['action_now'] = c['action']
+    thesis_bias = str(thesis.get('conditional_bias') or trade_plan.get('conditional_bias') or 'NEUTRAL').upper()
+    thesis['conditional_bias'] = thesis_bias if thesis_bias in {'BUY', 'SELL', 'NEUTRAL'} else 'NEUTRAL'
+    thesis.setdefault('summary', '')
+    thesis.setdefault('trigger', trade_plan.get('trigger'))
+    thesis.setdefault('invalidation', trade_plan.get('stop'))
+    thesis.setdefault('expiry_minutes', 15)
+    c['current_thesis'] = thesis
     return c
 
 async def prepare(s:S): return {}
@@ -214,22 +318,253 @@ async def arbiter(s:S):
         x['content']['final_action']=norm_action(x['content'].get('final_action')); x['content']['previous_thesis_status']=norm_status(x['content'].get('previous_thesis_status'))
     return {'arbiter_result':x}
 
+
+def _number_or_none(value):
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def validate_decision_integrity(final: dict[str, Any], current_price: Any) -> dict[str, Any]:
+    """
+    Valida a executabilidade da decisão final.
+
+    BUY/SELL somente permanecem acionáveis quando existe:
+    - gatilho ou zona de entrada;
+    - stop técnico;
+    - target_1;
+    - relações de preço coerentes com a direção.
+
+    Em caso de inconsistência, a análise é preservada, mas a ação imediata
+    é rebaixada para WAIT.
+    """
+    original_action = norm_action(final.get("action"))
+    trade_plan = final.get("trade_plan")
+    if not isinstance(trade_plan, dict):
+        trade_plan = {}
+
+    trade_plan["action_now"] = original_action
+    trade_plan.setdefault("conditional_bias", "NEUTRAL")
+    for field in ("trigger", "entry_min", "entry_max", "stop", "target_1", "target_2"):
+        trade_plan.setdefault(field, None)
+
+    issues = []
+    price = _number_or_none(current_price)
+    trigger = _number_or_none(trade_plan.get("trigger"))
+    entry_min = _number_or_none(trade_plan.get("entry_min"))
+    entry_max = _number_or_none(trade_plan.get("entry_max"))
+    stop = _number_or_none(trade_plan.get("stop"))
+    target_1 = _number_or_none(trade_plan.get("target_1"))
+
+    has_entry_reference = any(v is not None for v in (trigger, entry_min, entry_max))
+
+    if original_action in {"BUY", "SELL"}:
+        if not has_entry_reference:
+            issues.append("BUY/SELL sem gatilho ou zona de entrada.")
+        if stop is None:
+            issues.append("BUY/SELL sem stop técnico.")
+        if target_1 is None:
+            issues.append("BUY/SELL sem target_1.")
+
+        reference = (
+            trigger if trigger is not None
+            else entry_min if entry_min is not None
+            else entry_max if entry_max is not None
+            else price
+        )
+
+        if stop is not None and reference is not None:
+            if original_action == "BUY" and stop >= reference:
+                issues.append("Stop de BUY deve ficar abaixo do preço de referência.")
+            if original_action == "SELL" and stop <= reference:
+                issues.append("Stop de SELL deve ficar acima do preço de referência.")
+
+        if target_1 is not None and reference is not None:
+            if original_action == "BUY" and target_1 <= reference:
+                issues.append("Target_1 de BUY deve ficar acima do preço de referência.")
+            if original_action == "SELL" and target_1 >= reference:
+                issues.append("Target_1 de SELL deve ficar abaixo do preço de referência.")
+
+    downgraded = original_action in {"BUY", "SELL"} and bool(issues)
+    validated_action = "WAIT" if downgraded else original_action
+
+    if downgraded:
+        trade_plan["conditional_bias"] = original_action
+        trade_plan["action_now"] = "WAIT"
+
+        thesis = final.get("current_thesis")
+        if not isinstance(thesis, dict):
+            thesis = {}
+        thesis["action_now"] = "WAIT"
+        thesis["conditional_bias"] = original_action
+        final["current_thesis"] = thesis
+
+        risk_flags = final.get("risk_flags")
+        if not isinstance(risk_flags, list):
+            risk_flags = []
+        risk_flags.append(
+            "Ação rebaixada para WAIT pela validação determinística do plano."
+        )
+        final["risk_flags"] = list(dict.fromkeys(risk_flags))
+
+        summary = str(final.get("summary") or "").strip()
+        suffix = (
+            " A direção foi preservada como viés condicional, mas a entrada "
+            "não é executável sem gatilho, stop e alvo coerentes."
+        )
+        final["summary"] = (summary + suffix).strip()
+
+    final["action"] = validated_action
+    final["trade_plan"] = trade_plan
+    final["decision_validation"] = {
+        "passed": not issues,
+        "original_action": original_action,
+        "validated_action": validated_action,
+        "downgraded_to_wait": downgraded,
+        "issues": issues,
+    }
+    return final
+
+
 def final_pick(s:S):
-    if s['mode']=='single':
-        ok=[x for x in s.get('analyst_results',[]) if x.get('success')]
-        if not ok: return {'action':'WAIT','confidence':'LOW','summary':'Nenhuma resposta válida.','current_thesis':{},'source':'fallback'}
-        c=ok[0]['content']; return {'action':norm_action(c.get('action')),'confidence':c.get('confidence','LOW'),'summary':c.get('summary',''),'levels':c.get('levels',{}),'confirmation_conditions':c.get('confirmation_conditions',[]),'invalidation_conditions':c.get('invalidation_conditions',[]),'risk_flags':c.get('risk_flags',[]),'previous_thesis_status':c.get('previous_thesis_status','NO_PREVIOUS_THESIS'),'current_thesis':c.get('current_thesis',{}),'source':ok[0]['role_id']}
-    a=s.get('arbiter_result')
+    if s['mode'] == 'single':
+        ok = [x for x in s.get('analyst_results', []) if x.get('success')]
+        if not ok:
+            return {
+                'action': 'WAIT', 'confidence': 'LOW',
+                'summary': 'Nenhuma resposta válida.',
+                'previous_thesis_evaluation': {
+                    'status': 'NO_PREVIOUS_THESIS',
+                    'reason': 'Não houve resposta válida para avaliar a memória.',
+                },
+                'trade_plan': {
+                    'action_now': 'WAIT', 'conditional_bias': 'NEUTRAL',
+                    'trigger': None, 'entry_min': None, 'entry_max': None,
+                    'stop': None, 'target_1': None, 'target_2': None,
+                },
+                'current_thesis': {}, 'source': 'fallback',
+            }
+        c = ok[0]['content']
+        previous_eval = c.get('previous_thesis_evaluation', {
+            'status': 'NO_PREVIOUS_THESIS', 'reason': ''
+        })
+        return {
+            'action': norm_action(c.get('action')),
+            'confidence': c.get('confidence', 'LOW'),
+            'summary': c.get('summary', ''),
+            'previous_thesis_evaluation': previous_eval,
+            'previous_thesis_status': previous_eval.get('status', 'NO_PREVIOUS_THESIS'),
+            'trade_plan': c.get('trade_plan', {}),
+            'levels': c.get('levels', {}),
+            'confirmation_conditions': c.get('confirmation_conditions', []),
+            'invalidation_conditions': c.get('invalidation_conditions', []),
+            'risk_flags': c.get('risk_flags', []),
+            'current_thesis': c.get('current_thesis', {}),
+            'source': ok[0]['role_id'],
+        }
+
+    a = s.get('arbiter_result')
     if a and a.get('success'):
-        c=a['content']; return {'action':norm_action(c.get('final_action')),'confidence':c.get('confidence','LOW'),'summary':c.get('summary',''),'levels':c.get('levels',{}),'confirmation_conditions':c.get('confirmation_conditions',[]),'invalidation_conditions':c.get('invalidation_conditions',[]),'risk_flags':c.get('risk_flags',[]),'previous_thesis_status':c.get('previous_thesis_status','NO_PREVIOUS_THESIS'),'current_thesis':c.get('current_thesis',{}),'source':'arbiter'}
-    c=s.get('critic_result')
+        c = a['content']
+        previous_eval = c.get('previous_thesis_evaluation')
+        if not isinstance(previous_eval, dict):
+            previous_eval = {
+                'status': norm_status(c.get('previous_thesis_status')),
+                'reason': '',
+            }
+        return {
+            'action': norm_action(c.get('final_action')),
+            'confidence': c.get('confidence', 'LOW'),
+            'summary': c.get('summary', ''),
+            'previous_thesis_evaluation': previous_eval,
+            'previous_thesis_status': previous_eval.get('status', 'NO_PREVIOUS_THESIS'),
+            'trade_plan': c.get('trade_plan', {}),
+            'levels': c.get('levels', {}),
+            'confirmation_conditions': c.get('confirmation_conditions', []),
+            'invalidation_conditions': c.get('invalidation_conditions', []),
+            'risk_flags': c.get('risk_flags', []),
+            'current_thesis': c.get('current_thesis', {}),
+            'source': 'arbiter',
+        }
+
+    c = s.get('critic_result')
     if c and c.get('success'):
-        z=c['content']; return {'action':norm_action(z.get('recommended_action')),'confidence':'MODERATE','summary':z.get('summary',''),'levels':z.get('recommended_levels',{}),'previous_thesis_status':z.get('previous_thesis_status','NO_PREVIOUS_THESIS'),'current_thesis':{},'source':'critic'}
-    return {'action':norm_action((s.get('consensus') or {}).get('majority_action','WAIT')),'confidence':'LOW','summary':'Fallback por consenso bruto.','current_thesis':{},'source':'consensus_fallback'}
+        z = c['content']
+        previous_eval = {
+            'status': norm_status(z.get('previous_thesis_status')),
+            'reason': z.get('summary', ''),
+        }
+        levels = z.get('recommended_levels', {})
+        action = norm_action(z.get('recommended_action'))
+        return {
+            'action': action, 'confidence': 'MODERATE',
+            'summary': z.get('summary', ''),
+            'previous_thesis_evaluation': previous_eval,
+            'previous_thesis_status': previous_eval['status'],
+            'trade_plan': {
+                'action_now': action, 'conditional_bias': 'NEUTRAL',
+                'trigger': levels.get('trigger'), 'entry_min': None,
+                'entry_max': None, 'stop': levels.get('invalidation'),
+                'target_1': levels.get('target_1'),
+                'target_2': levels.get('target_2'),
+            },
+            'levels': levels, 'current_thesis': {}, 'source': 'critic',
+        }
+
+    action = norm_action((s.get('consensus') or {}).get('majority_action', 'WAIT'))
+    return {
+        'action': action, 'confidence': 'LOW',
+        'summary': 'Fallback por consenso bruto.',
+        'previous_thesis_evaluation': {
+            'status': 'NO_PREVIOUS_THESIS',
+            'reason': 'Crítico e árbitro indisponíveis.',
+        },
+        'previous_thesis_status': 'NO_PREVIOUS_THESIS',
+        'trade_plan': {
+            'action_now': action, 'conditional_bias': 'NEUTRAL',
+            'trigger': None, 'entry_min': None, 'entry_max': None,
+            'stop': None, 'target_1': None, 'target_2': None,
+        },
+        'current_thesis': {}, 'source': 'consensus_fallback',
+    }
+
 async def finalize(s:S):
-    cfg=s['config']; sym=s['symbol']; f=final_pick(s); ts=now()
+    cfg = s['config']
+    sym = s['symbol']
+    f = final_pick(s)
+    f = validate_decision_integrity(
+        f,
+        s['payload'].get('current_price'),
+    )
+    ts = now()
     rec={'@timestamp':ts,'run_id':s['run_id'],'project':cfg.get('project',{}).get('name','TradingAgent'),'environment':cfg.get('project',{}).get('environment','dev'),'symbol':sym,'analysis_type':'intraday','execution':{'mode':s['mode'],'selected_analyst':s.get('selected_analyst'),'analysts_requested':len(s.get('analyst_results',[])),'analysts_successful':sum(1 for x in s.get('analyst_results',[]) if x.get('success')),'critic_called':bool(s.get('critic_result')),'arbiter_called':bool(s.get('arbiter_result')),'total_latency_ms':round((time.perf_counter()-s['started_perf'])*1000),'success':True,'errors':s.get('errors',[])},'market':{'payload_schema_version':s['payload'].get('payload_schema_version'),'generated_at_utc':s['payload'].get('generated_at_utc'),'current_price':s['payload'].get('current_price'),'market_status':s['payload'].get('market_status')},'memory_before':s.get('memory'),'analyst_results':s.get('analyst_results',[]),'consensus':s.get('consensus'),'critic_result':s.get('critic_result'),'arbiter_result':s.get('arbiter_result'),'final':f}
-    mem={'schema_version':'1.0','symbol':sym,'updated_at_utc':ts,'last_run_id':s['run_id'],'previous_action':f['action'],'previous_price':s['payload'].get('current_price'),'previous_thesis_status':f.get('previous_thesis_status','NO_PREVIOUS_THESIS'),'active_thesis':f.get('current_thesis',{}),'levels':f.get('levels',{}),'confirmation_conditions':f.get('confirmation_conditions',[]),'invalidation_conditions':f.get('invalidation_conditions',[])}
+    previous_eval = f.get('previous_thesis_evaluation', {
+        'status': f.get('previous_thesis_status', 'NO_PREVIOUS_THESIS'),
+        'reason': '',
+    })
+    trade_plan = f.get('trade_plan', {})
+    active_thesis = f.get('current_thesis', {})
+    mem = {
+        'schema_version': '1.1',
+        'symbol': sym,
+        'updated_at_utc': ts,
+        'last_run_id': s['run_id'],
+        'last_action': f['action'],
+        'last_price': s['payload'].get('current_price'),
+        'previous_thesis_evaluation': previous_eval,
+        'active_thesis': active_thesis,
+        'trade_plan': trade_plan,
+        'confirmation_conditions': f.get('confirmation_conditions', []),
+        'invalidation_conditions': f.get('invalidation_conditions', []),
+        # Compatibilidade temporária com consumidores do schema 1.0.
+        'previous_action': f['action'],
+        'previous_price': s['payload'].get('current_price'),
+        'previous_thesis_status': previous_eval.get('status', 'NO_PREVIOUS_THESIS'),
+        'levels': f.get('levels', {}),
+    }
     paths=cfg['agent']['paths']; write_json(path_tpl(paths['state_template'],sym),mem); write_json(path_tpl(paths['latest_result_template'],sym),rec); append_jsonl(path_tpl(paths['runs_template'],sym),rec)
     return {'final_result':rec,'memory':mem}
 def graph():

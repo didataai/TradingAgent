@@ -1,0 +1,85 @@
+{
+  "@timestamp": "2026-06-16T21:16:07.792817+00:00",
+  "run_id": "intraday_pipeline_20260616_181607_a5410d1a",
+  "project": "TradingAgent",
+  "environment": "dev",
+  "pipeline": "intraday",
+  "symbols": [
+    "GOLD"
+  ],
+  "options": {
+    "agent_only": true,
+    "skip_agent": false,
+    "agent_mode_override": "single",
+    "analyst_override": "analyst_1",
+    "lock_enabled": true
+  },
+  "base_dados": null,
+  "symbol_results": [
+    {
+      "symbol": "GOLD",
+      "success": true,
+      "steps": {
+        "intraday_agent": {
+          "name": "intraday_agent",
+          "symbol": "GOLD",
+          "success": true,
+          "started_at_utc": "2026-06-16T21:16:07.792817+00:00",
+          "finished_at_utc": "2026-06-16T21:22:28.605922+00:00",
+          "duration_seconds": 380.806,
+          "return_code": 0,
+          "timed_out": false,
+          "command": [
+            "C:\\Users\\diego\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+            "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\agent\\intraday_agent.py",
+            "--symbol",
+            "GOLD",
+            "--mode",
+            "single",
+            "--analyst",
+            "analyst_1"
+          ],
+          "output_tail": [
+            "[18:16:09] Execução iniciada | symbol=GOLD | mode=single",
+            "[18:16:09] Analistas selecionados: ['analyst_1'] | modo=single",
+            "[18:16:09] LLM início | role=analyst_1 | model=qwen2.5:7b-instruct | provider=ollama_local | prompt_chars=69003 | timeout=900.0s",
+            "[18:16:39] LLM role=analyst_1 ainda em execução | elapsed=30s",
+            "[18:17:09] LLM role=analyst_1 ainda em execução | elapsed=60s",
+            "[18:17:39] LLM role=analyst_1 ainda em execução | elapsed=90s",
+            "[18:18:09] LLM role=analyst_1 ainda em execução | elapsed=120s",
+            "[18:18:39] LLM role=analyst_1 ainda em execução | elapsed=150s",
+            "[18:19:09] LLM role=analyst_1 ainda em execução | elapsed=180s",
+            "[18:19:39] LLM role=analyst_1 ainda em execução | elapsed=210s",
+            "[18:20:09] LLM role=analyst_1 ainda em execução | elapsed=240s",
+            "[18:20:39] LLM role=analyst_1 ainda em execução | elapsed=270s",
+            "[18:21:09] LLM role=analyst_1 ainda em execução | elapsed=300s",
+            "[18:21:39] LLM role=analyst_1 ainda em execução | elapsed=330s",
+            "[18:22:09] LLM role=analyst_1 ainda em execução | elapsed=360s",
+            "[18:22:28] LLM fim | role=analyst_1 | prompt_tokens=26757 | output_tokens=513",
+            "[18:22:28] Crítico ignorado neste modo.",
+            "[18:22:28] Árbitro ignorado neste modo.",
+            "Run concluído | símbolo=GOLD | modo=single | ação=WAIT | fonte=analyst_1 | latency_ms=379067"
+          ],
+          "error": null
+        }
+      },
+      "agent_summary": {
+        "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\agent_results\\GOLD_intraday_latest.json",
+        "run_id": "GOLD_20260616_181609_b540007c",
+        "action": "WAIT",
+        "confidence": "MODERATE",
+        "source": "analyst_1",
+        "summary": "H1 e M5 confirmam uma tendência de alta, enquanto M1 indica um bom timing. O cenário é favorável para uma entrada compradora. A direção foi preservada como viés condicional, mas a entrada não é executável sem gatilho, stop e alvo coerentes.",
+        "agent_mode": "single",
+        "agent_latency_ms": 379067
+      },
+      "duration_seconds": 380.838,
+      "error": null
+    }
+  ],
+  "success": true,
+  "started_at_utc": "2026-06-16T21:16:07.792817+00:00",
+  "finished_at_utc": "2026-06-16T21:22:28.638763+00:00",
+  "duration_seconds": 380.843,
+  "error": null
+}
