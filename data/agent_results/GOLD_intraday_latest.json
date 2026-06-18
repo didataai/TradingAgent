@@ -1,50 +1,43 @@
 {
-  "@timestamp": "2026-06-16T21:22:28.331677+00:00",
-  "run_id": "GOLD_20260616_181609_b540007c",
+  "@timestamp": "2026-06-18T20:23:48.162771+00:00",
+  "run_id": "GOLD_20260618_171901_79e7f8d3",
   "project": "TradingAgent",
   "environment": "dev",
   "symbol": "GOLD",
   "analysis_type": "intraday",
   "execution": {
     "mode": "single",
+    "profile": "quick",
     "selected_analyst": "analyst_1",
     "analysts_requested": 1,
     "analysts_successful": 1,
     "critic_called": false,
     "arbiter_called": false,
-    "total_latency_ms": 379067,
+    "total_latency_ms": 286326,
     "success": true,
     "errors": []
   },
   "market": {
     "payload_schema_version": "2.1",
-    "generated_at_utc": "2026-06-16T19:23:57.079367+00:00",
-    "current_price": 4339.31,
+    "generated_at_utc": "2026-06-18T20:19:00.232470+00:00",
+    "current_price": 4215.7,
     "market_status": "LIVE"
   },
   "memory_before": {
     "schema_version": "1.1",
     "symbol": "GOLD",
-    "updated_at_utc": "2026-06-16T19:29:42.129603+00:00",
-    "last_run_id": "GOLD_20260616_162358_fc53bec4",
-    "last_action": "BUY",
-    "last_price": 4339.31,
+    "updated_at_utc": "2026-06-18T20:10:54.037196+00:00",
+    "last_run_id": "GOLD_20260618_170508_fec66767",
+    "last_action": "WAIT",
+    "last_price": 4216.92,
     "previous_thesis_evaluation": {
-      "status": "INVALIDATED",
-      "reason": "A tese anterior estava em espera por confirmação do padrão bear flag, mas o H1 mostrou candles fortes de alta."
+      "status": "NO_PREVIOUS_THESIS",
+      "reason": "Memória não enviada à LLM no perfil quick."
     },
-    "active_thesis": {
-      "scenario": "Espera por confirmação da tendência de alta.",
-      "action_now": "BUY",
-      "conditional_bias": "BUY",
-      "summary": "H1 e M5 confirmam a tendência de alta, enquanto M1 indica timing adequado. O cenário é favorável para uma entrada compradora.",
-      "trigger": null,
-      "invalidation": 4346.68,
-      "expiry_minutes": 15
-    },
+    "active_thesis": {},
     "trade_plan": {
-      "action_now": "BUY",
-      "conditional_bias": "BUY",
+      "action_now": "WAIT",
+      "conditional_bias": "NEUTRAL",
       "trigger": null,
       "entry_min": null,
       "entry_max": null,
@@ -53,21 +46,11 @@
       "target_2": null
     },
     "confirmation_conditions": [],
-    "invalidation_conditions": [
-      "Qualquer forte candle bullish no H1, M15 ou M5",
-      "Rompimento acima do nível de invalidação (4346.68)"
-    ],
-    "previous_action": "BUY",
-    "previous_price": 4339.31,
-    "previous_thesis_status": "INVALIDATED",
-    "levels": {
-      "trigger": null,
-      "entry_min": null,
-      "entry_max": null,
-      "invalidation": null,
-      "target_1": null,
-      "target_2": null
-    }
+    "invalidation_conditions": [],
+    "previous_action": "WAIT",
+    "previous_price": 4216.92,
+    "previous_thesis_status": "NO_PREVIOUS_THESIS",
+    "levels": {}
   },
   "analyst_results": [
     {
@@ -77,40 +60,52 @@
       "requested_model": "qwen2.5:7b-instruct",
       "actual_model": "qwen2.5:7b-instruct",
       "provider": "ollama_local",
-      "latency_ms": 379030,
+      "latency_ms": 286297,
       "usage": {
-        "prompt_tokens": 26757,
-        "output_tokens": 513,
-        "total_duration_ns": 378680899400
+        "prompt_tokens": 28089,
+        "output_tokens": 355,
+        "total_duration_ns": 285992530500
       },
       "format_valid": true,
       "content": {
-        "action": "BUY",
+        "action": "WAIT",
         "confidence": "MODERATE",
-        "summary": "H1 e M5 confirmam uma tendência de alta, enquanto M1 indica um bom timing. O cenário é favorável para uma entrada compradora.",
-        "previous_thesis_evaluation": {
-          "status": "INVALIDATED",
-          "reason": "A tese anterior estava em espera por confirmação do padrão bear flag, mas o H1 mostrou candles fortes de alta."
-        },
-        "timeframes": {
-          "H1": "estrutura predominante de alta com candles fortes e volume coerente. O M5 apresenta setup real de alta.",
-          "M15": "confirma a tendência de alta com candles fortes e volume elevado, apesar do M15 estar em transição.",
-          "M5": "setup operacional favorável para entrada compradora com padrões confirmados como bull flag e symmetrical triangle.",
-          "M1": "timing adequado para entrar na tendência de alta."
-        },
-        "patterns": [
-          {
-            "name": "BULL_FLAG",
-            "status": "FORMING_OR_TESTING"
-          },
-          {
-            "name": "SYMMETRICAL_TRIANGLE",
-            "status": "FORMING"
-          }
+        "key_points": [
+          "Preço atual está em uma zona de suporte forte (4201.23)",
+          "H4 apresenta tendência de baixa com breakout recente, mas H1 e M5 mostram reversão possível",
+          "M5 indica formação de um padrão de topo duplo com potencial para rompimento"
         ],
+        "attention_points": [
+          "Monitorar volume e wick ratios nos próximos minutos",
+          "Esperar confirmação do breakout em H1 ou M5 antes de entrar"
+        ],
+        "timeframe_summary": {
+          "H4": "Tendência de baixa com recente breakout, mas ainda dentro da zona de suporte",
+          "H1": "Consolidação com reversão possível, wick ratios indicam pressão vendedora",
+          "M15": "Formação de padrão de topo duplo, wick ratios sugerem potencial rompimento",
+          "M5": "Padrão de topo duplo formando, wick ratios e volume indicam forte pressão vendedora"
+        },
+        "immediate_action": "Esperar confirmação do breakout em H1 ou M5 antes de entrar",
+        "recommended_action_now": {
+          "action": "WAIT",
+          "description": "O preço está formando um padrão de topo duplo no M5, mas ainda não há confirmação de rompimento. É recomendável esperar por uma confirmação em H1 ou M5 antes de tomar uma posição."
+        },
+        "role": "analyst",
+        "analyst_id": "analyst_1",
+        "summary": "O preço está formando um padrão de topo duplo no M5, mas ainda não há confirmação de rompimento. É recomendável esperar por uma confirmação em H1 ou M5 antes de tomar uma posição.",
+        "timeframes": {},
+        "patterns": [],
+        "confirmation_conditions": [],
+        "invalidation_conditions": [],
+        "risk_flags": [],
+        "previous_thesis_evaluation": {
+          "status": "NO_PREVIOUS_THESIS",
+          "reason": "Memória não enviada à LLM no perfil quick."
+        },
+        "previous_thesis_status": "NO_PREVIOUS_THESIS",
         "trade_plan": {
           "action_now": "WAIT",
-          "conditional_bias": "BUY",
+          "conditional_bias": "NEUTRAL",
           "trigger": null,
           "entry_min": null,
           "entry_max": null,
@@ -118,35 +113,10 @@
           "target_1": null,
           "target_2": null
         },
-        "confirmation_conditions": [],
-        "invalidation_conditions": [
-          "Qualquer forte candle bullish no H1, M15 ou M5",
-          "Rompimento acima do nível de invalidação (4346.68)"
-        ],
-        "risk_flags": [
-          "Ação rebaixada para WAIT pela validação determinística do plano."
-        ],
-        "current_thesis": {
-          "scenario": "Espera por confirmação da tendência de alta.",
-          "action_now": "WAIT",
-          "conditional_bias": "BUY",
-          "summary": "H1 e M5 confirmam a tendência de alta, enquanto M1 indica timing adequado. O cenário é favorável para uma entrada compradora.",
-          "trigger": null,
-          "invalidation": 4346.68,
-          "expiry_minutes": 15
-        },
-        "role": "analyst",
-        "analyst_id": "analyst_1",
-        "previous_thesis_status": "INVALIDATED",
-        "levels": {
-          "trigger": null,
-          "entry_min": null,
-          "entry_max": null,
-          "invalidation": null,
-          "target_1": null,
-          "target_2": null
-        }
+        "levels": {},
+        "current_thesis": {}
       },
+      "raw_response": "{\n  \"action\": \"WAIT\",\n  \"confidence\": \"MODERATE\",\n  \"key_points\": [\n    \"Preço atual está em uma zona de suporte forte (4201.23)\",\n    \"H4 apresenta tendência de baixa com breakout recente, mas H1 e M5 mostram reversão possível\",\n    \"M5 indica formação de um padrão de topo duplo com potencial para rompimento\"\n  ],\n  \"attention_points\": [\n    \"Monitorar volume e wick ratios nos próximos minutos\",\n    \"Esperar confirmação do breakout em H1 ou M5 antes de entrar\"\n  ],\n  \"timeframe_summary\": {\n    \"H4\": \"Tendência de baixa com recente breakout, mas ainda dentro da zona de suporte\",\n    \"H1\": \"Consolidação com reversão possível, wick ratios indicam pressão vendedora\",\n    \"M15\": \"Formação de padrão de topo duplo, wick ratios sugerem potencial rompimento\",\n    \"M5\": \"Padrão de topo duplo formando, wick ratios e volume indicam forte pressão vendedora\"\n  },\n  \"immediate_action\": \"Esperar confirmação do breakout em H1 ou M5 antes de entrar\",\n  \"recommended_action_now\": {\n    \"action\": \"WAIT\",\n    \"description\": \"O preço está formando um padrão de topo duplo no M5, mas ainda não há confirmação de rompimento. É recomendável esperar por uma confirmação em H1 ou M5 antes de tomar uma posição.\"\n  }\n}",
       "error": null
     }
   ],
@@ -154,11 +124,11 @@
     "successful_analysts": 1,
     "failed_analysts": 0,
     "votes": {
-      "BUY": 1,
+      "BUY": 0,
       "SELL": 0,
-      "WAIT": 0
+      "WAIT": 1
     },
-    "majority_action": "BUY",
+    "majority_action": "WAIT",
     "unanimous": true,
     "agreement_ratio": 1.0
   },
@@ -167,15 +137,40 @@
   "final": {
     "action": "WAIT",
     "confidence": "MODERATE",
-    "summary": "H1 e M5 confirmam uma tendência de alta, enquanto M1 indica um bom timing. O cenário é favorável para uma entrada compradora. A direção foi preservada como viés condicional, mas a entrada não é executável sem gatilho, stop e alvo coerentes.",
-    "previous_thesis_evaluation": {
-      "status": "INVALIDATED",
-      "reason": "A tese anterior estava em espera por confirmação do padrão bear flag, mas o H1 mostrou candles fortes de alta."
+    "summary": "O preço está formando um padrão de topo duplo no M5, mas ainda não há confirmação de rompimento. É recomendável esperar por uma confirmação em H1 ou M5 antes de tomar uma posição.",
+    "market_read": "NEUTRAL",
+    "preferred_scenario": "NONE",
+    "buy_scenario": {},
+    "sell_scenario": {},
+    "scenario_comparison": {},
+    "key_points": [
+      "Preço atual está em uma zona de suporte forte (4201.23)",
+      "H4 apresenta tendência de baixa com breakout recente, mas H1 e M5 mostram reversão possível",
+      "M5 indica formação de um padrão de topo duplo com potencial para rompimento"
+    ],
+    "attention_points": [
+      "Monitorar volume e wick ratios nos próximos minutos",
+      "Esperar confirmação do breakout em H1 ou M5 antes de entrar"
+    ],
+    "timeframe_summary": {
+      "H4": "Tendência de baixa com recente breakout, mas ainda dentro da zona de suporte",
+      "H1": "Consolidação com reversão possível, wick ratios indicam pressão vendedora",
+      "M15": "Formação de padrão de topo duplo, wick ratios sugerem potencial rompimento",
+      "M5": "Padrão de topo duplo formando, wick ratios e volume indicam forte pressão vendedora"
     },
-    "previous_thesis_status": "INVALIDATED",
+    "immediate_action": "Esperar confirmação do breakout em H1 ou M5 antes de entrar",
+    "recommended_action_now": {
+      "action": "WAIT",
+      "description": "O preço está formando um padrão de topo duplo no M5, mas ainda não há confirmação de rompimento. É recomendável esperar por uma confirmação em H1 ou M5 antes de tomar uma posição."
+    },
+    "previous_thesis_evaluation": {
+      "status": "NO_PREVIOUS_THESIS",
+      "reason": "Memória não enviada à LLM no perfil quick."
+    },
+    "previous_thesis_status": "NO_PREVIOUS_THESIS",
     "trade_plan": {
       "action_now": "WAIT",
-      "conditional_bias": "BUY",
+      "conditional_bias": "NEUTRAL",
       "trigger": null,
       "entry_min": null,
       "entry_max": null,
@@ -183,42 +178,19 @@
       "target_1": null,
       "target_2": null
     },
-    "levels": {
-      "trigger": null,
-      "entry_min": null,
-      "entry_max": null,
-      "invalidation": null,
-      "target_1": null,
-      "target_2": null
-    },
+    "levels": {},
     "confirmation_conditions": [],
-    "invalidation_conditions": [
-      "Qualquer forte candle bullish no H1, M15 ou M5",
-      "Rompimento acima do nível de invalidação (4346.68)"
-    ],
-    "risk_flags": [
-      "Ação rebaixada para WAIT pela validação determinística do plano."
-    ],
-    "current_thesis": {
-      "scenario": "Espera por confirmação da tendência de alta.",
-      "action_now": "WAIT",
-      "conditional_bias": "BUY",
-      "summary": "H1 e M5 confirmam a tendência de alta, enquanto M1 indica timing adequado. O cenário é favorável para uma entrada compradora.",
-      "trigger": null,
-      "invalidation": 4346.68,
-      "expiry_minutes": 15
-    },
+    "invalidation_conditions": [],
+    "risk_flags": [],
+    "current_thesis": {},
     "source": "analyst_1",
     "decision_validation": {
-      "passed": false,
-      "original_action": "BUY",
+      "passed": true,
+      "original_action": "WAIT",
       "validated_action": "WAIT",
-      "downgraded_to_wait": true,
-      "issues": [
-        "BUY/SELL sem gatilho ou zona de entrada.",
-        "BUY/SELL sem stop técnico.",
-        "BUY/SELL sem target_1."
-      ]
+      "downgraded_to_wait": false,
+      "issues": [],
+      "mode": "llm_free_decision"
     }
   }
 }

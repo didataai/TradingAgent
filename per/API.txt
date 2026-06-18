@@ -1,0 +1,5 @@
+Deepseek
+
+sk-330d839ad5574301bb67f5c7bb79d568
+
+https://api-docs.deepseek.com/quick_start/pricing

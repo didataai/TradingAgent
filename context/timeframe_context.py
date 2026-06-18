@@ -24,9 +24,9 @@ from typing import Any, Iterable
 import numpy as np
 import pandas as pd
 
-DEFAULT_TFS = ("H1", "M15", "M5", "M1")
-TF_MINUTES = {"M1": 1, "M5": 5, "M15": 15, "H1": 60}
-RECENT_BAR_COUNTS = {"H1": 5, "M15": 8, "M5": 10, "M1": 6}
+DEFAULT_TFS = ("H4", "H1", "M15", "M5", "M1")
+TF_MINUTES = {"M1": 1, "M5": 5, "M15": 15, "H1": 60, "H4": 240}
+RECENT_BAR_COUNTS = {"H4": 5, "H1": 5, "M15": 8, "M5": 10, "M1": 6}
 
 
 def finite(value: Any, default: Any = None) -> Any:
@@ -484,7 +484,7 @@ def build_tf_context(tf: str, tf_df: pd.DataFrame) -> dict[str, Any]:
 
 
 def aggregate_market(timeframes: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    weights = {"H1": 4, "M15": 3, "M5": 2, "M1": 1}
+    weights = {"H4": 5, "H1": 4, "M15": 3, "M5": 2, "M1": 1}
     score = 0
     total = 0
     conflicts: list[str] = []

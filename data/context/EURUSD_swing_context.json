@@ -1,0 +1,1323 @@
+{
+  "schema_version": "1.3-swing",
+  "generated_at_utc": "2026-06-18T21:51:32.091997+00:00",
+  "symbol": "EURUSD",
+  "source_file": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\consolidated\\EURUSD_swing.parquet",
+  "current_price": 1.14578,
+  "market_summary": {
+    "market_status": "LIVE",
+    "directional_state": "BEARISH",
+    "weighted_structure_score": -20,
+    "volume_confirmation": "MODERATE",
+    "participation_strength": "MODERATE",
+    "directional_volume_confirmation": "MIXED",
+    "conflicts": [],
+    "trace_compact": [
+      "W1:BEARISH/FALSE_BREAKOUT_UP/NEAR_EXPECTED",
+      "D1:BEARISH/BREAKOUT_DOWN_LIVE/ABOVE_EXPECTED",
+      "H4:BEARISH/BREAKOUT_DOWN_LIVE/BELOW_EXPECTED",
+      "H1:BEARISH/FALSE_BREAKOUT_UP/VERY_LOW",
+      "M15:BEARISH/FALSE_BREAKOUT_DOWN/VERY_LOW"
+    ],
+    "trace_narrative": [
+      "W1 define o contexto estrutural: BEARISH, momentum BEARISH_WEAK e volume NEAR_EXPECTED.",
+      "D1 define o viés principal: BEARISH, estado BREAKOUT_DOWN_LIVE e volume ABOVE_EXPECTED.",
+      "H4 mostra a estrutura intermediária: BEARISH, momentum BEARISH_STRONG_OVERSOLD e volume BELOW_EXPECTED.",
+      "H1 refina a entrada: BEARISH, estado FALSE_BREAKOUT_UP e volume VERY_LOW.",
+      "M15 é apoio de timing: BEARISH, estado FALSE_BREAKOUT_DOWN e volume VERY_LOW.",
+      "Barras paradas/defasadas em W1, D1; tratar como provisórias ou fechamento de sessão."
+    ],
+    "immediate_action": "SELL_ON_CONFIRMATION",
+    "preferred_setup": "SELL_PULLBACK_OR_CONFIRMED_BREAKDOWN"
+  },
+  "timeframes": {
+    "W1": {
+      "timeframe": "W1",
+      "bar_time_brt": "2026-06-13 19:00:00",
+      "is_live_bar": true,
+      "bar_status": "STALE_LAST_BAR",
+      "ohlc": {
+        "open": 1.15741,
+        "high": 1.16217,
+        "low": 1.145,
+        "close": 1.14578
+      },
+      "state": {
+        "structure": "BEARISH",
+        "momentum": "BEARISH_WEAK",
+        "live_bar": "FALSE_BREAKOUT_UP",
+        "volume": "NEAR_EXPECTED",
+        "volatility": "NORMAL",
+        "location": "NEAR_BAR_LOW",
+        "session": "OFF_SESSION"
+      },
+      "metrics": {
+        "rsi": 41.95,
+        "adx": 11.74,
+        "adx_positive": 15.11,
+        "adx_negative": 21.59,
+        "atr": 0.01495,
+        "range_atr": 1.148,
+        "elapsed_bar_ratio": 0.7134,
+        "volume_pace_ratio": 1.017,
+        "projected_volume_ratio_20": 1.017,
+        "bull_ratio_5": null,
+        "bear_ratio_5": null
+      },
+      "events": [
+        "BREAKOUT_DOWN",
+        "FALSE_BREAKOUT_UP",
+        "SWEEP_HIGH"
+      ],
+      "recent_closed_range_20": {
+        "high": 1.20827,
+        "low": 1.14103
+      },
+      "levels": {
+        "supports": [
+          {
+            "zone_low": 1.1395,
+            "zone_high": 1.145,
+            "center": 1.14164,
+            "strength": "HIGH",
+            "reasons": [
+              "BB_LOW",
+              "SESSION_LOW",
+              "SWING_LOW",
+              "ZIGZAG_LOW"
+            ],
+            "distance_atr": 0.052
+          },
+          {
+            "zone_low": 1.09839,
+            "zone_high": 1.09839,
+            "center": 1.09839,
+            "strength": "LOW",
+            "reasons": [
+              "SMA200"
+            ],
+            "distance_atr": 3.17
+          }
+        ],
+        "resistances": [
+          {
+            "zone_low": 1.15294,
+            "zone_high": 1.1698,
+            "center": 1.16125,
+            "strength": "HIGH",
+            "reasons": [
+              "BEAR_OB_LOW",
+              "BULL_OB_HIGH",
+              "BULL_OB_LOW",
+              "EMA20",
+              "EMA50",
+              "FIB_382",
+              "FIB_500",
+              "FIB_618",
+              "SESSION_HIGH"
+            ],
+            "distance_atr": 0.479
+          },
+          {
+            "zone_low": 1.17955,
+            "zone_high": 1.19073,
+            "center": 1.18501,
+            "strength": "HIGH",
+            "reasons": [
+              "BB_HIGH",
+              "BEAR_OB_HIGH",
+              "SWING_HIGH",
+              "ZIGZAG_HIGH"
+            ],
+            "distance_atr": 2.259
+          },
+          {
+            "zone_low": 1.19679,
+            "zone_high": 1.19679,
+            "center": 1.19679,
+            "strength": "LOW",
+            "reasons": [
+              "FIB_1272"
+            ],
+            "distance_atr": 3.412
+          },
+          {
+            "zone_low": 1.21196,
+            "zone_high": 1.21196,
+            "center": 1.21196,
+            "strength": "LOW",
+            "reasons": [
+              "FIB_1618"
+            ],
+            "distance_atr": 4.427
+          }
+        ]
+      },
+      "entry_assessment": {
+        "directional_setup": "SELL",
+        "quality": "LOW",
+        "reason": "DIRECAO_BAIXISTA_MAS_ENTRADA_ESTICADA"
+      },
+      "recent_bars": [
+        {
+          "time_brt": "2026-05-09 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.17454,
+            "high": 1.17876,
+            "low": 1.16161,
+            "close": 1.16228
+          },
+          "direction": "BEARISH",
+          "range_atr": 1.058,
+          "body_atr": 0.756,
+          "body_to_range": 0.715,
+          "upper_wick_ratio": 0.246,
+          "lower_wick_ratio": 0.039,
+          "close_position": 0.039,
+          "volume_ratio": 0.936,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN"
+          ]
+        },
+        {
+          "time_brt": "2026-05-16 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.16179,
+            "high": 1.16616,
+            "low": 1.15748,
+            "close": 1.16003
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.554,
+          "body_atr": 0.112,
+          "body_to_range": 0.203,
+          "upper_wick_ratio": 0.503,
+          "lower_wick_ratio": 0.294,
+          "close_position": 0.294,
+          "volume_ratio": 1.09,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN"
+          ]
+        },
+        {
+          "time_brt": "2026-05-23 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.16376,
+            "high": 1.16851,
+            "low": 1.15856,
+            "close": 1.16574
+          },
+          "direction": "BULLISH",
+          "range_atr": 0.652,
+          "body_atr": 0.13,
+          "body_to_range": 0.199,
+          "upper_wick_ratio": 0.278,
+          "lower_wick_ratio": 0.523,
+          "close_position": 0.722,
+          "volume_ratio": 0.77,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH"
+          ]
+        },
+        {
+          "time_brt": "2026-05-30 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.16517,
+            "high": 1.16645,
+            "low": 1.15173,
+            "close": 1.1521
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.967,
+          "body_atr": 0.859,
+          "body_to_range": 0.888,
+          "upper_wick_ratio": 0.087,
+          "lower_wick_ratio": 0.025,
+          "close_position": 0.025,
+          "volume_ratio": 0.802,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN"
+          ]
+        },
+        {
+          "time_brt": "2026-06-06 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.15079,
+            "high": 1.15894,
+            "low": 1.14991,
+            "close": 1.15656
+          },
+          "direction": "BULLISH",
+          "range_atr": 0.611,
+          "body_atr": 0.39,
+          "body_to_range": 0.639,
+          "upper_wick_ratio": 0.264,
+          "lower_wick_ratio": 0.097,
+          "close_position": 0.736,
+          "volume_ratio": 1.086,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_DOWN",
+            "SWEEP_LOW"
+          ]
+        },
+        {
+          "time_brt": "2026-06-13 19:00:00",
+          "is_live_bar": true,
+          "bar_status": "STALE_LAST_BAR",
+          "ohlc": {
+            "open": 1.15741,
+            "high": 1.16217,
+            "low": 1.145,
+            "close": 1.14578
+          },
+          "direction": "BEARISH",
+          "range_atr": 1.148,
+          "body_atr": 0.778,
+          "body_to_range": 0.677,
+          "upper_wick_ratio": 0.277,
+          "lower_wick_ratio": 0.045,
+          "close_position": 0.045,
+          "volume_ratio": 0.742,
+          "volume_pace_ratio": 1.017,
+          "structure_state": "BEARISH",
+          "live_state": "FALSE_BREAKOUT_UP",
+          "events": [
+            "BREAKOUT_DOWN",
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH"
+          ]
+        }
+      ]
+    },
+    "D1": {
+      "timeframe": "D1",
+      "bar_time_brt": "2026-06-17 19:00:00",
+      "is_live_bar": true,
+      "bar_status": "STALE_LAST_BAR",
+      "ohlc": {
+        "open": 1.15015,
+        "high": 1.1528,
+        "low": 1.145,
+        "close": 1.14575
+      },
+      "state": {
+        "structure": "BEARISH",
+        "momentum": "BEARISH_WEAK",
+        "live_bar": "BREAKOUT_DOWN_LIVE",
+        "volume": "ABOVE_EXPECTED",
+        "volatility": "NORMAL",
+        "location": "NEAR_BAR_LOW",
+        "session": "OFF_SESSION"
+      },
+      "metrics": {
+        "rsi": 33.25,
+        "adx": 17.28,
+        "adx_positive": 13.38,
+        "adx_negative": 30.23,
+        "atr": 0.00578,
+        "range_atr": 1.349,
+        "elapsed_bar_ratio": 0.9936,
+        "volume_pace_ratio": 1.494,
+        "projected_volume_ratio_20": 1.494,
+        "bull_ratio_5": null,
+        "bear_ratio_5": null
+      },
+      "events": [
+        "BREAKOUT_DOWN_LIVE",
+        "BOS_DOWN",
+        "BREAKOUT_DOWN",
+        "FVG_DOWN"
+      ],
+      "recent_closed_range_20": {
+        "high": 1.16851,
+        "low": 1.14773
+      },
+      "levels": {
+        "supports": [
+          {
+            "zone_low": 1.145,
+            "zone_high": 1.145,
+            "center": 1.145,
+            "strength": "LOW",
+            "reasons": [
+              "SESSION_LOW"
+            ],
+            "distance_atr": 0.13
+          }
+        ],
+        "resistances": [
+          {
+            "zone_low": 1.1468,
+            "zone_high": 1.16674,
+            "center": 1.15737,
+            "strength": "HIGH",
+            "reasons": [
+              "BB_LOW",
+              "BEAR_OB_HIGH",
+              "BEAR_OB_LOW",
+              "BULL_OB_HIGH",
+              "BULL_OB_LOW",
+              "EMA20",
+              "EMA50",
+              "FIB_1272",
+              "FIB_382",
+              "FIB_500",
+              "FIB_618",
+              "FVG_DOWN_HIGH",
+              "FVG_DOWN_LOW",
+              "SESSION_HIGH",
+              "SMA200",
+              "SWING_HIGH",
+              "SWING_LOW",
+              "ZIGZAG_HIGH",
+              "ZIGZAG_LOW"
+            ],
+            "distance_atr": 0.182
+          },
+          {
+            "zone_low": 1.16915,
+            "zone_high": 1.16975,
+            "center": 1.16945,
+            "strength": "MEDIUM",
+            "reasons": [
+              "BB_HIGH",
+              "FIB_1618"
+            ],
+            "distance_atr": 4.046
+          }
+        ]
+      },
+      "entry_assessment": {
+        "directional_setup": "SELL",
+        "quality": "LOW",
+        "reason": "DIRECAO_BAIXISTA_MAS_ENTRADA_ESTICADA"
+      },
+      "recent_bars": [
+        {
+          "time_brt": "2026-06-11 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.15745,
+            "high": 1.1589,
+            "low": 1.15565,
+            "close": 1.15656
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.625,
+          "body_atr": 0.171,
+          "body_to_range": 0.274,
+          "upper_wick_ratio": 0.446,
+          "lower_wick_ratio": 0.28,
+          "close_position": 0.28,
+          "volume_ratio": 1.457,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": []
+        },
+        {
+          "time_brt": "2026-06-13 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.15741,
+            "high": 1.16054,
+            "low": 1.15652,
+            "close": 1.16046
+          },
+          "direction": "BULLISH",
+          "range_atr": 0.785,
+          "body_atr": 0.596,
+          "body_to_range": 0.759,
+          "upper_wick_ratio": 0.02,
+          "lower_wick_ratio": 0.221,
+          "close_position": 0.98,
+          "volume_ratio": 0.005,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_UP"
+          ]
+        },
+        {
+          "time_brt": "2026-06-14 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.16005,
+            "high": 1.16217,
+            "low": 1.15832,
+            "close": 1.15881
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.766,
+          "body_atr": 0.247,
+          "body_to_range": 0.322,
+          "upper_wick_ratio": 0.551,
+          "lower_wick_ratio": 0.127,
+          "close_position": 0.127,
+          "volume_ratio": 1.153,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH"
+          ]
+        },
+        {
+          "time_brt": "2026-06-15 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.15898,
+            "high": 1.16192,
+            "low": 1.15741,
+            "close": 1.16082
+          },
+          "direction": "BULLISH",
+          "range_atr": 0.904,
+          "body_atr": 0.369,
+          "body_to_range": 0.408,
+          "upper_wick_ratio": 0.244,
+          "lower_wick_ratio": 0.348,
+          "close_position": 0.756,
+          "volume_ratio": 1.068,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_DOWN",
+            "SWEEP_LOW"
+          ]
+        },
+        {
+          "time_brt": "2026-06-16 19:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.16083,
+            "high": 1.16164,
+            "low": 1.14773,
+            "close": 1.15032
+          },
+          "direction": "BEARISH",
+          "range_atr": 2.472,
+          "body_atr": 1.867,
+          "body_to_range": 0.756,
+          "upper_wick_ratio": 0.058,
+          "lower_wick_ratio": 0.186,
+          "close_position": 0.186,
+          "volume_ratio": 1.228,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN",
+            "SWING_SWEEP_LOW"
+          ]
+        },
+        {
+          "time_brt": "2026-06-17 19:00:00",
+          "is_live_bar": true,
+          "bar_status": "STALE_LAST_BAR",
+          "ohlc": {
+            "open": 1.15015,
+            "high": 1.1528,
+            "low": 1.145,
+            "close": 1.14575
+          },
+          "direction": "BEARISH",
+          "range_atr": 1.349,
+          "body_atr": 0.761,
+          "body_to_range": 0.564,
+          "upper_wick_ratio": 0.34,
+          "lower_wick_ratio": 0.096,
+          "close_position": 0.096,
+          "volume_ratio": 1.441,
+          "volume_pace_ratio": 1.494,
+          "structure_state": "BEARISH",
+          "live_state": "BREAKOUT_DOWN_LIVE",
+          "events": [
+            "BREAKOUT_DOWN_LIVE",
+            "BOS_DOWN",
+            "BREAKOUT_DOWN",
+            "FVG_DOWN"
+          ]
+        }
+      ]
+    },
+    "H4": {
+      "timeframe": "H4",
+      "bar_time_brt": "2026-06-18 15:00:00",
+      "is_live_bar": true,
+      "bar_status": "LIVE",
+      "ohlc": {
+        "open": 1.1462,
+        "high": 1.14654,
+        "low": 1.145,
+        "close": 1.14578
+      },
+      "state": {
+        "structure": "BEARISH",
+        "momentum": "BEARISH_STRONG_OVERSOLD",
+        "live_bar": "BREAKOUT_DOWN_LIVE",
+        "volume": "BELOW_EXPECTED",
+        "volatility": "EXPANSION",
+        "location": "MID_RANGE",
+        "session": "NEW_YORK"
+      },
+      "metrics": {
+        "rsi": 26.2,
+        "adx": 35.55,
+        "adx_positive": 9.58,
+        "adx_negative": 39.99,
+        "atr": 0.00277,
+        "range_atr": 0.557,
+        "elapsed_bar_ratio": 0.9608,
+        "volume_pace_ratio": 0.752,
+        "projected_volume_ratio_20": 0.752,
+        "bull_ratio_5": null,
+        "bear_ratio_5": null
+      },
+      "events": [
+        "BREAKOUT_DOWN_LIVE",
+        "BREAKOUT_DOWN",
+        "EXPANSION"
+      ],
+      "recent_closed_range_20": {
+        "high": 1.16202,
+        "low": 1.14525
+      },
+      "levels": {
+        "supports": [
+          {
+            "zone_low": 1.14464,
+            "zone_high": 1.145,
+            "center": 1.14482,
+            "strength": "MEDIUM",
+            "reasons": [
+              "BB_LOW",
+              "SESSION_LOW"
+            ],
+            "distance_atr": 0.282
+          }
+        ],
+        "resistances": [
+          {
+            "zone_low": 1.15022,
+            "zone_high": 1.15802,
+            "center": 1.15556,
+            "strength": "HIGH",
+            "reasons": [
+              "BEAR_OB_LOW",
+              "BULL_OB_HIGH",
+              "BULL_OB_LOW",
+              "EMA20",
+              "EMA50",
+              "FIB_382",
+              "FIB_500",
+              "FIB_618",
+              "SESSION_HIGH",
+              "SWING_LOW",
+              "ZIGZAG_LOW"
+            ],
+            "distance_atr": 1.605
+          }
+        ]
+      },
+      "entry_assessment": {
+        "directional_setup": "SELL",
+        "quality": "MEDIUM",
+        "reason": "CONFLUENCIA_BAIXISTA_SEM_CONFIRMACAO_DE_VOLUME"
+      },
+      "recent_bars": [
+        {
+          "time_brt": "2026-06-17 23:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.15161,
+            "high": 1.1526,
+            "low": 1.15099,
+            "close": 1.15103
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.604,
+          "body_atr": 0.218,
+          "body_to_range": 0.36,
+          "upper_wick_ratio": 0.615,
+          "lower_wick_ratio": 0.025,
+          "close_position": 0.025,
+          "volume_ratio": 0.716,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 03:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.15103,
+            "high": 1.1528,
+            "low": 1.14739,
+            "close": 1.14761
+          },
+          "direction": "BEARISH",
+          "range_atr": 1.892,
+          "body_atr": 1.196,
+          "body_to_range": 0.632,
+          "upper_wick_ratio": 0.327,
+          "lower_wick_ratio": 0.041,
+          "close_position": 0.041,
+          "volume_ratio": 1.757,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN",
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 07:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.1476,
+            "high": 1.14836,
+            "low": 1.14525,
+            "close": 1.14713
+          },
+          "direction": "BEARISH",
+          "range_atr": 1.081,
+          "body_atr": 0.163,
+          "body_to_range": 0.151,
+          "upper_wick_ratio": 0.244,
+          "lower_wick_ratio": 0.605,
+          "close_position": 0.605,
+          "volume_ratio": 1.907,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN",
+            "FVG_DOWN",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 11:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14711,
+            "high": 1.14871,
+            "low": 1.14608,
+            "close": 1.14623
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.92,
+          "body_atr": 0.308,
+          "body_to_range": 0.335,
+          "upper_wick_ratio": 0.608,
+          "lower_wick_ratio": 0.057,
+          "close_position": 0.057,
+          "volume_ratio": 1.612,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 15:00:00",
+          "is_live_bar": true,
+          "bar_status": "LIVE",
+          "ohlc": {
+            "open": 1.1462,
+            "high": 1.14654,
+            "low": 1.145,
+            "close": 1.14578
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.557,
+          "body_atr": 0.152,
+          "body_to_range": 0.273,
+          "upper_wick_ratio": 0.221,
+          "lower_wick_ratio": 0.506,
+          "close_position": 0.506,
+          "volume_ratio": 0.736,
+          "volume_pace_ratio": 0.752,
+          "structure_state": "BEARISH",
+          "live_state": "BREAKOUT_DOWN_LIVE",
+          "events": [
+            "BREAKOUT_DOWN_LIVE",
+            "BREAKOUT_DOWN",
+            "EXPANSION"
+          ]
+        }
+      ]
+    },
+    "H1": {
+      "timeframe": "H1",
+      "bar_time_brt": "2026-06-18 18:00:00",
+      "is_live_bar": true,
+      "bar_status": "LIVE",
+      "ohlc": {
+        "open": 1.1457,
+        "high": 1.14632,
+        "low": 1.14524,
+        "close": 1.14578
+      },
+      "state": {
+        "structure": "BEARISH",
+        "momentum": "BEARISH_STRONG",
+        "live_bar": "FALSE_BREAKOUT_UP",
+        "volume": "VERY_LOW",
+        "volatility": "EXPANSION",
+        "location": "MID_RANGE",
+        "session": "OFF_SESSION"
+      },
+      "metrics": {
+        "rsi": 30.94,
+        "adx": 48.8,
+        "adx_positive": 10.65,
+        "adx_negative": 32.29,
+        "atr": 0.00141,
+        "range_atr": 0.765,
+        "elapsed_bar_ratio": 0.8421,
+        "volume_pace_ratio": 0.024,
+        "projected_volume_ratio_20": 0.024,
+        "bull_ratio_5": null,
+        "bear_ratio_5": null
+      },
+      "events": [
+        "FALSE_BREAKOUT_UP",
+        "FALSE_BREAKOUT_DOWN",
+        "SWEEP_HIGH",
+        "SWEEP_LOW",
+        "SWING_SWEEP_LOW",
+        "EXPANSION"
+      ],
+      "recent_closed_range_20": {
+        "high": 1.1528,
+        "low": 1.145
+      },
+      "levels": {
+        "supports": [
+          {
+            "zone_low": 1.14162,
+            "zone_high": 1.14525,
+            "center": 1.14406,
+            "strength": "HIGH",
+            "reasons": [
+              "BB_LOW",
+              "FIB_1272",
+              "SESSION_LOW",
+              "SWING_LOW",
+              "ZIGZAG_LOW"
+            ],
+            "distance_atr": 0.375
+          }
+        ],
+        "resistances": [
+          {
+            "zone_low": 1.1467,
+            "zone_high": 1.15351,
+            "center": 1.1506,
+            "strength": "HIGH",
+            "reasons": [
+              "BB_HIGH",
+              "BEAR_OB_HIGH",
+              "BEAR_OB_LOW",
+              "EMA20",
+              "EMA50",
+              "FIB_382",
+              "FIB_500",
+              "FIB_618",
+              "SESSION_HIGH",
+              "SWING_HIGH"
+            ],
+            "distance_atr": 0.652
+          }
+        ]
+      },
+      "entry_assessment": {
+        "directional_setup": "SELL",
+        "quality": "MEDIUM",
+        "reason": "CONFLUENCIA_BAIXISTA_SEM_CONFIRMACAO_DE_VOLUME"
+      },
+      "recent_bars": [
+        {
+          "time_brt": "2026-06-18 14:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.1465,
+            "high": 1.14731,
+            "low": 1.14617,
+            "close": 1.14623
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.727,
+          "body_atr": 0.172,
+          "body_to_range": 0.237,
+          "upper_wick_ratio": 0.711,
+          "lower_wick_ratio": 0.053,
+          "close_position": 0.053,
+          "volume_ratio": 0.825,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 15:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.1462,
+            "high": 1.14654,
+            "low": 1.14583,
+            "close": 1.14586
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.471,
+          "body_atr": 0.226,
+          "body_to_range": 0.479,
+          "upper_wick_ratio": 0.479,
+          "lower_wick_ratio": 0.042,
+          "close_position": 0.042,
+          "volume_ratio": 0.788,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 16:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14594,
+            "high": 1.14624,
+            "low": 1.145,
+            "close": 1.14571
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.834,
+          "body_atr": 0.155,
+          "body_to_range": 0.185,
+          "upper_wick_ratio": 0.242,
+          "lower_wick_ratio": 0.573,
+          "close_position": 0.573,
+          "volume_ratio": 1.048,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN",
+            "SWING_SWEEP_LOW",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 17:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14573,
+            "high": 1.14628,
+            "low": 1.14549,
+            "close": 1.14556
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.55,
+          "body_atr": 0.118,
+          "body_to_range": 0.215,
+          "upper_wick_ratio": 0.696,
+          "lower_wick_ratio": 0.089,
+          "close_position": 0.089,
+          "volume_ratio": 0.301,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH",
+            "EXPANSION"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 18:00:00",
+          "is_live_bar": true,
+          "bar_status": "LIVE",
+          "ohlc": {
+            "open": 1.1457,
+            "high": 1.14632,
+            "low": 1.14524,
+            "close": 1.14578
+          },
+          "direction": "BULLISH",
+          "range_atr": 0.765,
+          "body_atr": 0.057,
+          "body_to_range": 0.074,
+          "upper_wick_ratio": 0.5,
+          "lower_wick_ratio": 0.426,
+          "close_position": 0.5,
+          "volume_ratio": 0.021,
+          "volume_pace_ratio": 0.024,
+          "structure_state": "BEARISH",
+          "live_state": "FALSE_BREAKOUT_UP",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "FALSE_BREAKOUT_DOWN",
+            "SWEEP_HIGH",
+            "SWEEP_LOW",
+            "SWING_SWEEP_LOW",
+            "EXPANSION"
+          ]
+        }
+      ]
+    },
+    "M15": {
+      "timeframe": "M15",
+      "bar_time_brt": "2026-06-18 18:45:00",
+      "is_live_bar": true,
+      "bar_status": "LIVE",
+      "ohlc": {
+        "open": 1.14623,
+        "high": 1.14623,
+        "low": 1.14575,
+        "close": 1.14578
+      },
+      "state": {
+        "structure": "BEARISH",
+        "momentum": "BEARISH_MODERATE",
+        "live_bar": "FALSE_BREAKOUT_DOWN",
+        "volume": "VERY_LOW",
+        "volatility": "NORMAL",
+        "location": "NEAR_BAR_LOW",
+        "session": "OFF_SESSION"
+      },
+      "metrics": {
+        "rsi": 43.38,
+        "adx": 21.91,
+        "adx_positive": 16.43,
+        "adx_negative": 24.46,
+        "atr": 0.0006,
+        "range_atr": 0.801,
+        "elapsed_bar_ratio": 0.3669,
+        "volume_pace_ratio": 0.02,
+        "projected_volume_ratio_20": 0.02,
+        "bull_ratio_5": 0.4,
+        "bear_ratio_5": 0.6
+      },
+      "events": [
+        "FALSE_BREAKOUT_DOWN",
+        "SWEEP_LOW"
+      ],
+      "recent_closed_range_20": {
+        "high": 1.14731,
+        "low": 1.145
+      },
+      "levels": {
+        "supports": [
+          {
+            "zone_low": 1.145,
+            "zone_high": 1.14525,
+            "center": 1.14516,
+            "strength": "HIGH",
+            "reasons": [
+              "BB_LOW",
+              "SESSION_LOW",
+              "SWING_LOW",
+              "ZIGZAG_LOW"
+            ],
+            "distance_atr": 0.884
+          }
+        ],
+        "resistances": [
+          {
+            "zone_low": 1.14612,
+            "zone_high": 1.1475,
+            "center": 1.14682,
+            "strength": "HIGH",
+            "reasons": [
+              "BB_HIGH",
+              "BULL_OB_HIGH",
+              "BULL_OB_LOW",
+              "EMA20",
+              "EMA50",
+              "SWING_HIGH"
+            ],
+            "distance_atr": 0.575
+          }
+        ]
+      },
+      "entry_assessment": {
+        "directional_setup": "SELL",
+        "quality": "LOW",
+        "reason": "DIRECAO_BAIXISTA_MAS_ENTRADA_ESTICADA"
+      },
+      "recent_bars": [
+        {
+          "time_brt": "2026-06-18 17:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14573,
+            "high": 1.14624,
+            "low": 1.14549,
+            "close": 1.14619
+          },
+          "direction": "BULLISH",
+          "range_atr": 1.084,
+          "body_atr": 0.665,
+          "body_to_range": 0.613,
+          "upper_wick_ratio": 0.067,
+          "lower_wick_ratio": 0.32,
+          "close_position": 0.933,
+          "volume_ratio": 0.429,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_DOWN",
+            "SWEEP_LOW",
+            "SWING_SWEEP_LOW"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 17:15:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14618,
+            "high": 1.14628,
+            "low": 1.14598,
+            "close": 1.14618
+          },
+          "direction": "DOJI",
+          "range_atr": 0.452,
+          "body_atr": 0.0,
+          "body_to_range": 0.0,
+          "upper_wick_ratio": 0.333,
+          "lower_wick_ratio": 0.667,
+          "close_position": 0.667,
+          "volume_ratio": 0.271,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP",
+            "SWEEP_HIGH"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 17:30:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14618,
+            "high": 1.1462,
+            "low": 1.14583,
+            "close": 1.14585
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.575,
+          "body_atr": 0.513,
+          "body_to_range": 0.892,
+          "upper_wick_ratio": 0.054,
+          "lower_wick_ratio": 0.054,
+          "close_position": 0.054,
+          "volume_ratio": 0.314,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 17:45:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14585,
+            "high": 1.14587,
+            "low": 1.14554,
+            "close": 1.14556
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.532,
+          "body_atr": 0.467,
+          "body_to_range": 0.879,
+          "upper_wick_ratio": 0.061,
+          "lower_wick_ratio": 0.061,
+          "close_position": 0.061,
+          "volume_ratio": 0.323,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_DOWN",
+            "FVG_DOWN"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 18:00:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.1457,
+            "high": 1.14591,
+            "low": 1.14524,
+            "close": 1.14591
+          },
+          "direction": "BULLISH",
+          "range_atr": 1.073,
+          "body_atr": 0.336,
+          "body_to_range": 0.313,
+          "upper_wick_ratio": 0.0,
+          "lower_wick_ratio": 0.687,
+          "close_position": 1.0,
+          "volume_ratio": 0.044,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_UP",
+            "FALSE_BREAKOUT_DOWN",
+            "SWEEP_LOW"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 18:15:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14595,
+            "high": 1.146,
+            "low": 1.14554,
+            "close": 1.14591
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.751,
+          "body_atr": 0.065,
+          "body_to_range": 0.087,
+          "upper_wick_ratio": 0.109,
+          "lower_wick_ratio": 0.804,
+          "close_position": 0.804,
+          "volume_ratio": 0.021,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "FALSE_BREAKOUT_UP"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 18:30:00",
+          "is_live_bar": false,
+          "bar_status": "CLOSED",
+          "ohlc": {
+            "open": 1.14595,
+            "high": 1.14632,
+            "low": 1.14576,
+            "close": 1.14619
+          },
+          "direction": "BULLISH",
+          "range_atr": 0.92,
+          "body_atr": 0.394,
+          "body_to_range": 0.429,
+          "upper_wick_ratio": 0.232,
+          "lower_wick_ratio": 0.339,
+          "close_position": 0.768,
+          "volume_ratio": 0.043,
+          "volume_pace_ratio": null,
+          "structure_state": "BEARISH",
+          "live_state": "NOT_LIVE",
+          "events": [
+            "BREAKOUT_UP",
+            "SWING_SWEEP_HIGH"
+          ]
+        },
+        {
+          "time_brt": "2026-06-18 18:45:00",
+          "is_live_bar": true,
+          "bar_status": "LIVE",
+          "ohlc": {
+            "open": 1.14623,
+            "high": 1.14623,
+            "low": 1.14575,
+            "close": 1.14578
+          },
+          "direction": "BEARISH",
+          "range_atr": 0.801,
+          "body_atr": 0.751,
+          "body_to_range": 0.938,
+          "upper_wick_ratio": 0.0,
+          "lower_wick_ratio": 0.062,
+          "close_position": 0.062,
+          "volume_ratio": 0.008,
+          "volume_pace_ratio": 0.02,
+          "structure_state": "BEARISH",
+          "live_state": "FALSE_BREAKOUT_DOWN",
+          "events": [
+            "FALSE_BREAKOUT_DOWN",
+            "SWEEP_LOW"
+          ]
+        }
+      ]
+    }
+  },
+  "data_scope_note": "Pressão e order flow são inferidos por OHLC, tick volume, spread e estrutura; não representam delta/footprint de bolsa."
+}

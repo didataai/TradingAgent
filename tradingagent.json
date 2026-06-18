@@ -1,4 +1,4 @@
-{
+﻿{
   "project": {
     "name": "TradingAgent",
     "environment": "dev",
@@ -8,11 +8,11 @@
     "path": "C:\\Program Files\\FBS MetaTrader 5\\terminal64.exe",
     "account": 6244829,
     "server": "ActivTrades-Server",
-    "password": "",
+    "password": "Demoacc2!",
     "broker_timezone": "Etc/GMT-2",
     "auto_detect_server": true,
     "timestamp_source": "broker_wall_clock",
-    "password_env": "Demoacc2!"
+    "password_env": ""
   },
   "data": {
     "data_dir": "data",
@@ -27,9 +27,7 @@
     "compression": "zstd"
   },
   "universe": {
-    "symbols": [
-      "GOLD"
-    ],
+  "symbols": ["GOLD"],
     "timeframes": [
       "M1",
       "M5",
@@ -131,7 +129,8 @@
         "M1",
         "M5",
         "M15",
-        "H1"
+        "H1",
+        "H4"
       ],
       "include_live_bar": true,
       "enable_labels": false,
@@ -238,7 +237,7 @@
           "M1_timing"
         ],
         "temperature": 0.1,
-        "max_output_tokens": 1400,
+        "max_output_tokens": 2000,
         "num_ctx": 32768
       },
       "qwen_local_analyst_2": {
@@ -254,7 +253,7 @@
           "acceptance"
         ],
         "temperature": 0.2,
-        "max_output_tokens": 1400,
+        "max_output_tokens": 700,
         "num_ctx": 32768
       },
       "qwen_local_analyst_3": {
@@ -270,7 +269,7 @@
           "invalidation"
         ],
         "temperature": 0.3,
-        "max_output_tokens": 1400,
+        "max_output_tokens": 700,
         "num_ctx": 32768
       },
       "qwen_local_critic": {
@@ -349,12 +348,12 @@
     },
     "single_mode": {
       "analyst_id": "analyst_1",
-      "use_memory": true,
+      "use_memory": false,
       "call_critic": false,
       "call_arbiter": false
     },
     "ensemble_mode": {
-      "use_memory": true,
+      "use_memory": false,
       "calculate_consensus": true,
       "call_critic": true,
       "call_arbiter": true,
@@ -380,6 +379,35 @@
       "state_template": "data/state/{symbol}_intraday_state.json",
       "runs_template": "data/agent_runs/{symbol}_intraday_runs.jsonl",
       "latest_result_template": "data/agent_results/{symbol}_intraday_latest.json"
+    },
+    "analysis_profiles": {
+      "quick": true,
+      "detailed": false
+    },
+    "quick_profile": {
+      "prompt_path": "prompts/promptIntraday.md",
+      "send_full_factual_payload": true,
+      "include_timeframes": [
+        "H4",
+        "H1",
+        "M15",
+        "M5",
+        "M1"
+      ],
+      "visible_timeframes": [
+        "H4",
+        "H1",
+        "M15",
+        "M5"
+      ],
+      "target_output_tokens": 2000,
+      "send_memory_to_llm": false,
+      "decision_method": "free_llm_prompt_executor"
+    },
+    "detailed_profile": {
+      "prompt_path": "prompts/promptIntraday.md",
+      "send_full_factual_payload": true,
+      "send_memory_to_llm": false
     }
   },
   "memory": {

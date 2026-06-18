@@ -1,85 +1,158 @@
 {
-  "@timestamp": "2026-06-16T21:16:07.792817+00:00",
-  "run_id": "intraday_pipeline_20260616_181607_a5410d1a",
+  "@timestamp": "2026-06-18T21:48:00.300865+00:00",
+  "run_id": "intraday_pipeline_20260618_184800_233a9f76",
   "project": "TradingAgent",
   "environment": "dev",
   "pipeline": "intraday",
   "symbols": [
-    "GOLD"
+    "EURUSD"
   ],
   "options": {
-    "agent_only": true,
+    "agent_only": false,
     "skip_agent": false,
-    "agent_mode_override": "single",
+    "web_agent": true,
+    "agent_mode_override": null,
     "analyst_override": "analyst_1",
     "lock_enabled": true
   },
-  "base_dados": null,
+  "base_dados": {
+    "name": "base_dados",
+    "symbol": null,
+    "success": true,
+    "started_at_utc": "2026-06-18T21:48:00.301856+00:00",
+    "finished_at_utc": "2026-06-18T21:48:08.360887+00:00",
+    "duration_seconds": 8.058,
+    "return_code": 0,
+    "timed_out": false,
+    "command": [
+      "C:\\Users\\diego\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+      "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\Base_Dados.py",
+      "--mode",
+      "intraday_refresh"
+    ],
+    "output_tail": [
+      "2026-06-18 18:48:00,734 - INFO - Projeto=TradingAgent | modo=intraday_refresh",
+      "2026-06-18 18:48:00,737 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server",
+      "2026-06-18 18:48:00,737 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock",
+      "2026-06-18 18:48:00,737 - INFO - Coletando GOLD TF=M1",
+      "2026-06-18 18:48:01,458 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M1.parquet",
+      "2026-06-18 18:48:01,458 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:01,458 - INFO - Coletando EURUSD TF=M1",
+      "2026-06-18 18:48:02,134 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\EURUSD_M1.parquet",
+      "2026-06-18 18:48:02,134 - INFO - OK EURUSD M1 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:02,134 - INFO - Coletando GOLD TF=M5",
+      "2026-06-18 18:48:02,829 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M5.parquet",
+      "2026-06-18 18:48:02,829 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:02,829 - INFO - Coletando EURUSD TF=M5",
+      "2026-06-18 18:48:03,602 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\EURUSD_M5.parquet",
+      "2026-06-18 18:48:03,602 - INFO - OK EURUSD M5 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:03,602 - INFO - Coletando GOLD TF=M15",
+      "2026-06-18 18:48:04,269 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M15.parquet",
+      "2026-06-18 18:48:04,269 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:04,269 - INFO - Coletando EURUSD TF=M15",
+      "2026-06-18 18:48:05,032 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\EURUSD_M15.parquet",
+      "2026-06-18 18:48:05,032 - INFO - OK EURUSD M15 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:05,032 - INFO - Coletando GOLD TF=H1",
+      "2026-06-18 18:48:05,700 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_H1.parquet",
+      "2026-06-18 18:48:05,700 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:05,700 - INFO - Coletando EURUSD TF=H1",
+      "2026-06-18 18:48:06,381 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\EURUSD_H1.parquet",
+      "2026-06-18 18:48:06,381 - INFO - OK EURUSD H1 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:06,381 - INFO - Coletando GOLD TF=H4",
+      "2026-06-18 18:48:07,052 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_H4.parquet",
+      "2026-06-18 18:48:07,052 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:07,052 - INFO - Coletando EURUSD TF=H4",
+      "2026-06-18 18:48:07,760 - INFO - Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\EURUSD_H4.parquet",
+      "2026-06-18 18:48:07,760 - INFO - OK EURUSD H4 | rows=5000 cols=212 live=True",
+      "2026-06-18 18:48:07,760 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\consolidated s�mbolos=['EURUSD', 'GOLD']",
+      "2026-06-18 18:48:07,978 - INFO - Consolidado Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\consolidated\\EURUSD_intraday.parquet",
+      "2026-06-18 18:48:08,198 - INFO - Consolidado Parquet salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\consolidated\\GOLD_intraday.parquet",
+      "2026-06-18 18:48:08,206 - INFO - Manifest salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\manifests\\base_dados_intraday_refresh_20260618T214808Z.json",
+      "2026-06-18 18:48:08,206 - INFO - Conex�o MT5 encerrada",
+      "2026-06-18 18:48:08,212 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=10 erros=0",
+      "done"
+    ],
+    "error": null
+  },
   "symbol_results": [
     {
-      "symbol": "GOLD",
+      "symbol": "EURUSD",
       "success": true,
       "steps": {
-        "intraday_agent": {
-          "name": "intraday_agent",
-          "symbol": "GOLD",
+        "timeframe_context": {
+          "name": "timeframe_context",
+          "symbol": "EURUSD",
           "success": true,
-          "started_at_utc": "2026-06-16T21:16:07.792817+00:00",
-          "finished_at_utc": "2026-06-16T21:22:28.605922+00:00",
-          "duration_seconds": 380.806,
+          "started_at_utc": "2026-06-18T21:48:08.361904+00:00",
+          "finished_at_utc": "2026-06-18T21:48:09.217877+00:00",
+          "duration_seconds": 0.855,
           "return_code": 0,
           "timed_out": false,
           "command": [
             "C:\\Users\\diego\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
-            "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\agent\\intraday_agent.py",
+            "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\context\\timeframe_context.py",
             "--symbol",
-            "GOLD",
-            "--mode",
-            "single",
+            "EURUSD"
+          ],
+          "output_tail": [
+            "Contexto salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\EURUSD_intraday_context.json",
+            "S�mbolo=EURUSD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT"
+          ],
+          "error": null
+        },
+        "prompt_payload": {
+          "name": "prompt_payload",
+          "symbol": "EURUSD",
+          "success": true,
+          "started_at_utc": "2026-06-18T21:48:09.218414+00:00",
+          "finished_at_utc": "2026-06-18T21:48:10.023738+00:00",
+          "duration_seconds": 0.805,
+          "return_code": 0,
+          "timed_out": false,
+          "command": [
+            "C:\\Users\\diego\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+            "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\context\\prompt_payload.py",
+            "--symbol",
+            "EURUSD"
+          ],
+          "output_tail": [
+            "Payload factual salvo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\payload\\EURUSD_intraday_payload.json",
+            "S�mbolo=EURUSD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=88018"
+          ],
+          "error": null
+        },
+        "web_input_agent": {
+          "name": "web_input_agent",
+          "symbol": "EURUSD",
+          "success": true,
+          "started_at_utc": "2026-06-18T21:48:10.024255+00:00",
+          "finished_at_utc": "2026-06-18T21:48:10.196935+00:00",
+          "duration_seconds": 0.172,
+          "return_code": 0,
+          "timed_out": false,
+          "command": [
+            "C:\\Users\\diego\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+            "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\agent\\web_input_agent.py",
+            "--symbol",
+            "EURUSD",
             "--analyst",
             "analyst_1"
           ],
           "output_tail": [
-            "[18:16:09] Execução iniciada | symbol=GOLD | mode=single",
-            "[18:16:09] Analistas selecionados: ['analyst_1'] | modo=single",
-            "[18:16:09] LLM início | role=analyst_1 | model=qwen2.5:7b-instruct | provider=ollama_local | prompt_chars=69003 | timeout=900.0s",
-            "[18:16:39] LLM role=analyst_1 ainda em execução | elapsed=30s",
-            "[18:17:09] LLM role=analyst_1 ainda em execução | elapsed=60s",
-            "[18:17:39] LLM role=analyst_1 ainda em execução | elapsed=90s",
-            "[18:18:09] LLM role=analyst_1 ainda em execução | elapsed=120s",
-            "[18:18:39] LLM role=analyst_1 ainda em execução | elapsed=150s",
-            "[18:19:09] LLM role=analyst_1 ainda em execução | elapsed=180s",
-            "[18:19:39] LLM role=analyst_1 ainda em execução | elapsed=210s",
-            "[18:20:09] LLM role=analyst_1 ainda em execução | elapsed=240s",
-            "[18:20:39] LLM role=analyst_1 ainda em execução | elapsed=270s",
-            "[18:21:09] LLM role=analyst_1 ainda em execução | elapsed=300s",
-            "[18:21:39] LLM role=analyst_1 ainda em execução | elapsed=330s",
-            "[18:22:09] LLM role=analyst_1 ainda em execução | elapsed=360s",
-            "[18:22:28] LLM fim | role=analyst_1 | prompt_tokens=26757 | output_tokens=513",
-            "[18:22:28] Crítico ignorado neste modo.",
-            "[18:22:28] Árbitro ignorado neste modo.",
-            "Run concluído | símbolo=GOLD | modo=single | ação=WAIT | fonte=analyst_1 | latency_ms=379067"
+            "Web input gerado | symbol=EURUSD | analyst=analyst_1 | profile=quick | chars=65108 | llm_called=False",
+            "Arquivo gerado: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\debug_llm\\EURUSD_analyst_1_latest_input.txt"
           ],
           "error": null
         }
       },
-      "agent_summary": {
-        "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\agent_results\\GOLD_intraday_latest.json",
-        "run_id": "GOLD_20260616_181609_b540007c",
-        "action": "WAIT",
-        "confidence": "MODERATE",
-        "source": "analyst_1",
-        "summary": "H1 e M5 confirmam uma tendência de alta, enquanto M1 indica um bom timing. O cenário é favorável para uma entrada compradora. A direção foi preservada como viés condicional, mas a entrada não é executável sem gatilho, stop e alvo coerentes.",
-        "agent_mode": "single",
-        "agent_latency_ms": 379067
-      },
-      "duration_seconds": 380.838,
+      "agent_summary": null,
+      "duration_seconds": 1.836,
       "error": null
     }
   ],
   "success": true,
-  "started_at_utc": "2026-06-16T21:16:07.792817+00:00",
-  "finished_at_utc": "2026-06-16T21:22:28.638763+00:00",
-  "duration_seconds": 380.843,
+  "started_at_utc": "2026-06-18T21:48:00.300865+00:00",
+  "finished_at_utc": "2026-06-18T21:48:10.198947+00:00",
+  "duration_seconds": 9.899,
   "error": null
 }

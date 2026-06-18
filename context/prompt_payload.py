@@ -26,10 +26,10 @@ from typing import Any
 import pandas as pd
 import numpy as np
 
-TF_ORDER = ("H1", "M15", "M5", "M1")
-RECENT_LIMITS = {"H1": 5, "M15": 8, "M5": 10, "M1": 6}
-LEVEL_LIMITS = {"H1": 4, "M15": 4, "M5": 4, "M1": 3}
-PATTERN_LOOKBACK = {"H1": 24, "M15": 32, "M5": 40, "M1": 30}
+TF_ORDER = ("H4", "H1", "M15", "M5", "M1")
+RECENT_LIMITS = {"H4": 5, "H1": 5, "M15": 8, "M5": 10, "M1": 6}
+LEVEL_LIMITS = {"H4": 4, "H1": 4, "M15": 4, "M5": 4, "M1": 3}
+PATTERN_LOOKBACK = {"H4": 20, "H1": 24, "M15": 32, "M5": 40, "M1": 30}
 
 # Campos numéricos que ajudam a LLM a fazer a própria leitura.
 INDICATOR_FIELDS = (

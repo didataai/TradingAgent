@@ -1,76 +1,123 @@
 # TradingAgent
 
-Base quantitativa e pipeline de contexto para agentes de análise **intraday** e **swing**, com coleta de dados do MetaTrader 5, engenharia de features multi-timeframe, consolidação em Parquet, geração de contexto e montagem de payload factual para LLM.
-
-> Estado atual: a coleta, os consolidados, o contexto intraday e o payload factual estão funcionais. A etapa de chamada da LLM e persistência da decisão ainda será implementada.
-
----
-
-## 1. Objetivo
-
-O TradingAgent foi projetado para separar claramente três responsabilidades:
-
-1. **Python coleta e calcula fatos**
-   - candles;
-   - indicadores;
-   - volume;
-   - volatilidade;
-   - estrutura;
-   - eventos;
-   - níveis;
-   - geometria de padrões.
-
-2. **O prompt define o método de análise**
-   - prioridade entre timeframes;
-   - regras de confirmação;
-   - critérios para BUY, SELL ou WAIT;
-   - prevenção de alucinações;
-   - formato obrigatório da resposta.
-
-3. **A LLM interpreta e decide**
-   - não recebe viés pré-calculado;
-   - não recebe ação determinística;
-   - cruza H1, M15, M5 e M1;
-   - decide BUY, SELL ou WAIT conforme os dados.
-
-O projeto evita colocar uma recomendação pronta dentro do payload. A intenção é permitir que a LLM faça a leitura técnica a partir dos valores exatos.
+> **FINALIDADE**  
+> Documentar a arquitetura, configuração, execução, auditoria, limitações e próximos passos do TradingAgent.
+>
+> **ENTRADAS**  
+> Configuração em `tradingagent.json`, dados do MetaTrader 5, prompts Markdown e arquivos Parquet/JSON produzidos pelo pipeline.
+>
+> **PROCESSAMENTO / ETAPAS**  
+> Coleta MT5 → engenharia de features → consolidação multi-timeframe → contexto → payload factual → montagem do prompt → execução da LLM → validação → persistência e auditoria.
+>
+> **SAÍDAS**  
+> Parquets, contexto, payload, input exato da LLM, resposta bruta, resultado estruturado do agente, estado, logs e resultados do pipeline.
+>
+> **DEPENDÊNCIAS**  
+> Python 3.10+, MetaTrader 5, pandas, numpy, pyarrow, biblioteca `ta`, Ollama ou provedor de LLM via API.
+>
+> **EXEMPLOS**  
+> `python pipeline/intraday_pipeline.py --symbol GOLD --agent-mode single --analyst analyst_1`
+>
+> **TRATAMENTO DE ERROS**  
+> Lock de execução, timeouts por etapa, fallback seguro para `WAIT`, validação de JSON e persistência de logs.
+>
+> **LIMITAÇÕES / OBSERVAÇÕES**  
+> O volume é tick volume do MT5. O modelo local atual não possui web search nativo. Candidatos algorítmicos não são confirmação nem probabilidade.
 
 ---
 
-## 2. Princípios de arquitetura
+## 1. Visão geral
 
-### 2.1 Separação entre intraday e swing
+O **TradingAgent** é uma base quantitativa e um pipeline de análise de mercado com LLM, inicialmente focado em:
 
-Os fluxos são independentes.
+- intraday;
+- scalping;
+- swing;
+- múltiplos ativos;
+- múltiplos timeframes;
+- MetaTrader 5;
+- execução local com Ollama;
+- futura execução por APIs externas;
+- rastreabilidade completa do que foi enviado e recebido da LLM.
 
-- **Intraday:** M1, M5, M15 e H1.
-- **Swing:** H4, D1, W1 e MN1.
-- **Full:** todos os timeframes.
+Princípio central:
 
-O viés do swing não deve ser injetado automaticamente no agente intraday.
+```text
+Python coleta, calcula e organiza fatos
+→ o prompt define o método de análise
+→ a LLM interpreta os fatos
+→ a LLM decide BUY, SELL ou WAIT
+```
 
-### 2.2 Fonte oficial de dados
+O Python não deve inserir uma recomendação pronta dentro do payload factual.
 
-Os arquivos Parquet são a fonte principal.
+---
 
-- arquivos individuais por ativo/timeframe funcionam como cache operacional;
-- consolidados são os produtos oficiais de cada fluxo;
-- CSV é opcional e voltado para inspeção humana.
+## 2. Estado atual validado
 
-### 2.3 Barra atual e barras fechadas
+O fluxo intraday está funcional de ponta a ponta:
 
-- `is_live_bar = true`: barra atual em formação;
-- `bar_status = LIVE`: barra recebendo atualizações;
-- `bar_status = CLOSED`: barra encerrada;
-- `bar_status = STALE_LAST_BAR`: última barra marcada como atual pelo MT5, mas sem atualização recente.
+```text
+MetaTrader 5
+→ Base_Dados.py
+→ Parquets individuais
+→ consolidado intraday
+→ timeframe_context.py
+→ prompt_payload.py
+→ intraday_agent.py
+→ LLM
+→ resultado estruturado
+→ persistência e auditoria
+```
 
-Barras fechadas têm maior peso para confirmação. A barra live serve para antecipação, leitura de ritmo e timing.
+Componentes já funcionando:
 
-### 2.4 Sem vazamento de futuro
+- coleta MT5 de M1, M5, M15, H1 e H4;
+- aproximadamente 212 colunas por timeframe;
+- consolidação intraday;
+- contexto multi-timeframe;
+- payload factual schema `2.1`;
+- execução com Ollama;
+- modelo local `qwen2.5:7b-instruct`;
+- modo `single`;
+- perfil `quick`;
+- prompt oficial `prompts/promptIntraday.md`;
+- saída estruturada;
+- decisão `BUY`, `SELL` ou `WAIT`;
+- auditoria do input exato enviado à LLM;
+- auditoria da resposta bruta;
+- resultado final do agente;
+- resultado consolidado do pipeline;
+- lock de execução;
+- logs;
+- manifestos.
 
-Labels e resultados futuros não entram no payload da LLM.
+A arquitetura atual preserva a decisão livre da LLM no perfil quick:
 
-O payload factual declara:
+```text
+decision_method = free_llm_prompt_executor
+send_memory_to_llm = false
+```
+
+---
+
+## 3. Princípios de arquitetura
+
+### 3.1 Payload factual sem viés
+
+O payload não deve conter:
+
+- BUY;
+- SELL;
+- WAIT;
+- ação recomendada;
+- viés decisório pronto;
+- qualidade de entrada pronta;
+- probabilidade inventada;
+- narrativa interpretativa fechada;
+- labels futuros.
+
+O payload deve declarar:
 
 ```json
 {
@@ -79,27 +126,90 @@ O payload factual declara:
 }
 ```
 
-### 2.5 Multiativo e multiplataforma
+O contexto pode calcular classificações auxiliares para inspeção e diagnóstico, mas elas não devem ser tratadas como decisão final da LLM.
 
-A lista de ativos é definida uma única vez em:
+### 3.2 Intraday e swing independentes
 
-```json
-"universe": {
-  "symbols": ["GOLD", "EURUSD", "GBPUSD"]
-}
+Fluxo intraday atual:
+
+```text
+H4, H1, M15, M5, M1
 ```
 
-Os caminhos são construídos com `pathlib.Path`, funcionando em Windows e Linux.
+Prioridade analítica:
 
-Observação importante:
+```text
+H1, M15 e M5
+```
 
-- a camada de contexto e payload funciona nativamente em Windows e Linux;
-- a coleta direta pelo pacote Python `MetaTrader5` depende de um ambiente compatível com o terminal MT5;
-- em Linux, os módulos de contexto podem consumir Parquet/CSV produzidos por outro coletor, por uma máquina Windows, por Wine ou por integração remota.
+Uso complementar:
+
+```text
+H4 = contexto estrutural
+M1 = timing
+```
+
+Fluxo swing:
+
+```text
+H4, D1, W1, MN1
+```
+
+O fluxo swing não deve contaminar automaticamente o intraday.
+
+### 3.3 Barra live versus barra fechada
+
+- `LIVE`: barra em formação;
+- `CLOSED`: barra encerrada;
+- `STALE_LAST_BAR`: última barra sem atualização recente;
+- `is_live_bar = true`: barra ainda pode mudar.
+
+A barra live serve para:
+
+- ritmo;
+- antecipação;
+- timing;
+- volume pace;
+- posição dentro do range.
+
+A barra fechada tem maior peso para confirmação.
+
+### 3.4 Candidatos algorítmicos são hipóteses
+
+Campos como:
+
+```text
+BULL_FLAG
+BEAR_FLAG
+DOUBLE_TOP
+DOUBLE_BOTTOM
+ASCENDING_TRIANGLE
+DESCENDING_TRIANGLE
+```
+
+são candidatos geométricos.
+
+```text
+algorithmic_score != probabilidade
+candidate != confirmação
+candidate != recomendação
+```
+
+A LLM deve validar o candidato usando:
+
+- estrutura;
+- sequência de candles;
+- volume;
+- volatilidade;
+- pivôs;
+- rompimento;
+- aceitação;
+- fechamento;
+- invalidação.
 
 ---
 
-## 3. Estrutura do projeto
+## 4. Estrutura atual do projeto
 
 ```text
 TradingAgent/
@@ -107,44 +217,47 @@ TradingAgent/
 ├── tradingagent.json
 ├── README.md
 │
+├── agent/
+│   └── intraday_agent.py
+│
 ├── context/
 │   ├── timeframe_context.py
 │   └── prompt_payload.py
 │
+├── pipeline/
+│   └── intraday_pipeline.py
+│
 ├── prompts/
 │   ├── promptIntraday.md
-│   ├── prompRapido.txt
-│   ├── PromptPrevIntra-2.txt
-│   └── PromptPrevisao.txt
+│   ├── promptCritic.md
+│   ├── promptArbiter.md
+│   └── prompts antigos de referência
 │
-├── data/
-│   ├── GOLD_M1.parquet
-│   ├── GOLD_M5.parquet
-│   ├── GOLD_M15.parquet
-│   ├── GOLD_H1.parquet
-│   ├── GOLD_H4.parquet
-│   ├── GOLD_D1.parquet
-│   ├── GOLD_W1.parquet
-│   ├── GOLD_MN1.parquet
-│   │
-│   ├── consolidated/
-│   │   ├── GOLD_full.parquet
-│   │   ├── GOLD_intraday.parquet
-│   │   └── GOLD_swing.parquet
-│   │
-│   ├── context/
-│   │   └── GOLD_intraday_context.json
-│   │
-│   ├── payload/
-│   │   └── GOLD_intraday_payload.json
-│   │
-│   └── manifests/
-│       └── base_dados_<modo>_<timestamp>.json
-│
-└── logs/                         # futuro
+└── data/
+    ├── <ATIVO>_M1.parquet
+    ├── <ATIVO>_M5.parquet
+    ├── <ATIVO>_M15.parquet
+    ├── <ATIVO>_H1.parquet
+    ├── <ATIVO>_H4.parquet
+    ├── <ATIVO>_D1.parquet
+    ├── <ATIVO>_W1.parquet
+    ├── <ATIVO>_MN1.parquet
+    │
+    ├── consolidated/
+    ├── context/
+    ├── payload/
+    ├── agent_results/
+    ├── agent_runs/
+    ├── pipeline_results/
+    ├── pipeline_runs/
+    ├── state/
+    ├── debug_llm/
+    ├── locks/
+    ├── logs/
+    └── manifests/
 ```
 
-Os prompts antigos permanecem apenas como referência. O prompt intraday ativo é:
+Prompt intraday ativo:
 
 ```text
 prompts/promptIntraday.md
@@ -152,32 +265,34 @@ prompts/promptIntraday.md
 
 ---
 
-## 4. Componentes
+## 5. Responsabilidade de cada componente
 
-## 4.1 `Base_Dados.py`
+### 5.1 `Base_Dados.py`
 
 Responsável por:
 
-- ler `tradingagent.json`;
+- carregar `tradingagent.json`;
 - conectar ao MT5;
 - coletar candles;
-- converter horários;
-- marcar a barra live;
+- converter timestamps;
+- marcar barra live;
 - calcular indicadores;
 - calcular estrutura causal;
-- calcular volume, ritmo e projeção;
+- calcular volume;
+- calcular ritmo e projeção de volume;
+- calcular volatilidade;
 - detectar eventos;
-- gerar Parquets individuais;
-- gerar consolidados por modo;
+- gerar Parquets;
+- gerar consolidado;
 - gerar manifestos.
 
-### Timeframes suportados
+Timeframes suportados:
 
 ```text
 M1, M5, M15, H1, H4, D1, W1, MN1
 ```
 
-### Principais grupos de features
+Principais grupos de features:
 
 - OHLC;
 - tick volume;
@@ -186,8 +301,8 @@ M1, M5, M15, H1, H4, D1, W1, MN1
 - ATR;
 - RSI;
 - MACD;
-- médias móveis;
-- ADX e DI;
+- SMA e EMA;
+- ADX, DI+ e DI−;
 - Bollinger Bands;
 - Stochastic;
 - Ichimoku;
@@ -204,32 +319,24 @@ M1, M5, M15, H1, H4, D1, W1, MN1
 - CHOCH;
 - sweeps;
 - FVG;
-- candidatos a Order Block;
+- Order Blocks candidatos;
 - Fibonacci;
 - sessões;
 - kill zones;
 - volume relativo;
 - volume pace;
-- volume final projetado;
-- compressão e expansão;
-- contexto da barra live.
+- volume projetado;
+- compressão;
+- expansão;
+- corpo, pavios e posição do fechamento;
+- geometria de padrões.
 
----
+### 5.2 `context/timeframe_context.py`
 
-## 4.2 `context/timeframe_context.py`
-
-Lê o consolidado intraday e cria um contexto resumido por timeframe.
-
-Entrada padrão:
+Entrada:
 
 ```text
 data/consolidated/<ATIVO>_intraday.parquet
-```
-
-Fallback:
-
-```text
-data/consolidated/<ATIVO>_full.parquet
 ```
 
 Saída:
@@ -238,118 +345,451 @@ Saída:
 data/context/<ATIVO>_intraday_context.json
 ```
 
-### Conteúdo
+Responsabilidades:
 
-- status do mercado;
-- status da barra;
-- OHLC atual;
-- estado estrutural;
-- métricas principais;
-- eventos;
-- níveis próximos;
-- últimas barras;
-- corpo e pavios;
-- volume;
-- trace multi-timeframe;
-- dados para diagnóstico.
+- resumir dados por timeframe;
+- classificar status de mercado e barra;
+- organizar níveis;
+- organizar eventos;
+- organizar candles recentes;
+- produzir diagnóstico;
+- produzir trace multi-timeframe;
+- manter classificações auxiliares para auditoria.
 
-O contexto pode conter classificações determinísticas para auditoria, mas essas classificações não são usadas como decisão final no payload factual.
+### 5.3 `context/prompt_payload.py`
 
----
+Entrada:
 
-## 4.3 `context/prompt_payload.py`
+- consolidado intraday;
+- contexto intraday;
+- valores exatos mais recentes.
 
-Lê:
-
-- o contexto;
-- o consolidado intraday;
-- os valores exatos do mercado.
-
-Gera:
+Saída:
 
 ```text
 data/payload/<ATIVO>_intraday_payload.json
 ```
 
-### Objetivo
-
-Entregar à LLM um pacote factual, sem:
-
-- BUY;
-- SELL;
-- WAIT;
-- viés;
-- setup recomendado;
-- qualidade de entrada;
-- probabilidade inventada;
-- narrativa decisória pronta.
-
-### Schema atual
+Schema atual:
 
 ```text
 2.1
 ```
 
-### Conteúdo principal
-
-- preço atual;
-- status de mercado;
-- candle atual por timeframe;
-- últimos candles;
-- indicadores exatos;
-- métricas derivadas;
-- flags de eventos;
-- níveis exatos;
-- zonas próximas;
-- geometria de padrões;
-- candidatos algorítmicos;
-- limitações dos dados.
-
----
-
-## 4.4 `prompts/promptIntraday.md`
-
-Prompt oficial do agente intraday.
-
-Ele orienta a LLM a:
-
-- priorizar H1, M15 e M5;
-- usar M1 somente para timing;
-- analisar sequência de candles;
-- interpretar volume e volatilidade;
-- validar BOS, CHOCH, sweeps e FVG;
-- validar padrões de candles;
-- analisar bull flag, bear flag, canais e triângulos;
-- usar Fibonacci apenas com âncoras presentes;
-- separar direção de qualidade da entrada;
-- escolher BUY, SELL ou WAIT;
-- não inventar probabilidades, notícias ou backtests;
-- não aceitar `pattern_candidates` automaticamente.
-
-O placeholder esperado é:
+Tipo:
 
 ```text
-{{MARKET_DATA}}
+FACTUAL_INTRADAY_MARKET_DATA
 ```
 
-Na etapa de execução da LLM, esse placeholder será substituído pelo JSON do payload.
+Conteúdo:
+
+- preço atual;
+- status do mercado;
+- H4, H1, M15, M5 e M1;
+- candle atual;
+- candle anterior fechado;
+- indicadores;
+- métricas derivadas;
+- eventos;
+- padrões;
+- níveis exatos;
+- zonas próximas;
+- Fibonacci;
+- geometria;
+- candles recentes;
+- semântica dos campos;
+- limitações dos dados.
+
+### 5.4 `agent/intraday_agent.py`
+
+Responsável por:
+
+- carregar configuração;
+- selecionar perfil;
+- selecionar analista;
+- ler prompt oficial;
+- ler payload factual;
+- montar o prompt final;
+- salvar o input exato da LLM;
+- chamar o provedor;
+- salvar a resposta bruta;
+- extrair JSON;
+- validar estrutura;
+- preencher fallback de apresentação para `Ação Imediata`;
+- preservar a decisão livre da LLM;
+- salvar resultado final;
+- atualizar estado e histórico.
+
+No perfil quick atual:
+
+```text
+single = true
+ensemble = false
+quick = true
+detailed = false
+send_memory_to_llm = false
+decision_method = free_llm_prompt_executor
+```
+
+### 5.5 `pipeline/intraday_pipeline.py`
+
+Orquestra:
+
+1. `Base_Dados.py`;
+2. `timeframe_context.py`;
+3. `prompt_payload.py`;
+4. `intraday_agent.py`.
+
+Também controla:
+
+- lock;
+- timeout;
+- logs;
+- sucesso/falha;
+- resultado mais recente;
+- histórico do pipeline.
 
 ---
 
-## 5. Modos do pipeline de dados
+## 6. Fluxo intraday completo
 
-## 5.1 `full_rebuild`
+```text
+MT5
+  ↓
+data/<ATIVO>_M1.parquet
+data/<ATIVO>_M5.parquet
+data/<ATIVO>_M15.parquet
+data/<ATIVO>_H1.parquet
+data/<ATIVO>_H4.parquet
+  ↓
+data/consolidated/<ATIVO>_intraday.parquet
+  ↓
+data/context/<ATIVO>_intraday_context.json
+  ↓
+data/payload/<ATIVO>_intraday_payload.json
+  ↓
+prompts/promptIntraday.md + MARKET_DATA + schema de transporte
+  ↓
+LLM
+  ↓
+data/debug_llm/<ATIVO>_<ANALISTA>_latest_input.txt
+data/debug_llm/<ATIVO>_<ANALISTA>_latest_raw_response.txt
+  ↓
+data/agent_results/<ATIVO>_intraday_latest.json
+  ↓
+data/pipeline_results/intraday_pipeline_latest.json
+```
 
-Executa todos os timeframes e labels configurados.
+---
+
+## 7. Pastas de dados
+
+### Essenciais para o fluxo intraday
+
+```text
+consolidated/
+context/
+payload/
+agent_results/
+pipeline_results/
+locks/
+```
+
+### Histórico e auditoria
+
+```text
+agent_runs/
+pipeline_runs/
+logs/
+manifests/
+state/
+debug_llm/
+```
+
+### Outros modos
+
+```text
+<ATIVO>_D1.parquet
+<ATIVO>_W1.parquet
+<ATIVO>_MN1.parquet
+```
+
+Esses arquivos maiores são usados em `full_rebuild`, `daily_refresh` e futuros fluxos swing.
+
+### Política para `debug_llm`
+
+A configuração atual usa nomes `latest`:
+
+```text
+<ATIVO>_<ANALISTA>_latest_input.txt
+<ATIVO>_<ANALISTA>_latest_raw_response.txt
+```
+
+Esses arquivos são sobrescritos a cada execução. Não acumulam histórico.
+
+Eles permitem auditar exatamente:
+
+- o prompt enviado;
+- o payload enviado;
+- o schema solicitado;
+- a resposta bruta antes do tratamento.
+
+---
+
+## 8. Volume e volatilidade
+
+### 8.1 Natureza do volume
+
+O volume disponível é:
+
+```text
+MT5_TICK_VOLUME
+```
+
+Ele permite inferir:
+
+- participação relativa;
+- aumento ou redução de atividade;
+- confirmação aproximada;
+- exaustão;
+- ritmo da barra;
+- distorção em fechamento;
+- expansão e compressão.
+
+Ele não representa:
+
+- delta real;
+- footprint;
+- agressão bid/ask de bolsa;
+- livro de ofertas completo;
+- fluxo institucional confirmado.
+
+### 8.2 Campos de volume
+
+Principais campos:
+
+```text
+tick_volume
+volume_ratio
+volume_pace_ratio
+projected_final_volume
+projected_volume_ratio_20
+expected_volume_at_elapsed
+Volume_Spike
+vol_spike_1p5
+vol_spike_2p0
+```
+
+### 8.3 Interpretação correta
+
+`volume_ratio = 3.05`:
+
+```text
+o candle teve aproximadamente 3,05 vezes a média de volume de referência
+```
+
+`volume_pace_ratio = 0.39`:
+
+```text
+o candle live está com cerca de 39% do ritmo historicamente esperado para aquele ponto da barra
+```
+
+A LLM deve cruzar volume com:
+
+- direção do candle;
+- corpo;
+- pavios;
+- posição do fechamento;
+- estrutura;
+- rompimento;
+- sequência de candles.
+
+### 8.4 Limitação atual da LLM local
+
+O payload contém os dados de volume, mas o modelo local de 7B pode não sintetizar corretamente:
+
+- volume crescente;
+- volume decrescente;
+- dominância de volume comprador ou vendedor;
+- diferença entre pico anterior e baixa participação atual.
+
+Melhoria futura planejada:
+
+```text
+volume_analysis_summary
+```
+
+Esse bloco deve ser factual, compacto e sem viés decisório.
+
+---
+
+## 9. Configuração da LLM
+
+Configuração atual:
+
+```text
+provider = ollama_local
+model = qwen2.5:7b-instruct
+temperature = 0.1
+num_ctx = 32768
+max_output_tokens = 2000
+```
+
+O prompt real observado utiliza aproximadamente:
+
+```text
+27k a 28k tokens de entrada
+```
+
+Tempo observado na máquina local:
+
+```text
+aproximadamente 4 a 5 minutos por análise
+```
+
+Limitações observadas:
+
+- síntese inconsistente em payload longo;
+- dificuldade de priorizar estrutura sobre candidatos;
+- leitura incompleta de volume;
+- contradições ocasionais entre H4/H1 e resumo final;
+- baixa profundidade em níveis, stop, alvo e relação risco-retorno.
+
+Essas limitações parecem estar relacionadas principalmente à capacidade do modelo local, não à falta de dados.
+
+Próximo teste planejado:
+
+- modelo local mais forte; ou
+- LLM via API;
+- mesmo prompt;
+- mesmo payload;
+- mesma saída estruturada;
+- comparação controlada de qualidade, latência e custo.
+
+---
+
+## 10. Prompt oficial
+
+Arquivo:
+
+```text
+prompts/promptIntraday.md
+```
+
+O prompt atual:
+
+- preserva o prompt intraday original;
+- adiciona H4;
+- usa M1 como apoio;
+- solicita apenas cinco seções;
+- exige JSON válido;
+- não envia memória;
+- não injeta direção;
+- não usa guard de BUY/SELL;
+- exige `immediate_action`;
+- pede `recommended_action_now`.
+
+Saída exibida:
+
+1. Pontos-chave;
+2. Pontos de atenção;
+3. Resumo por timeframe;
+4. Ação Imediata;
+5. Ação Mais Recomendada Agora.
+
+O JSON é formato de transporte, não regra decisória.
+
+---
+
+## 11. Execução
+
+### Pipeline completo
+
+```powershell
+python pipeline/intraday_pipeline.py `
+  --symbol GOLD `
+  --agent-mode single `
+  --analyst analyst_1
+```
+
+### Apenas coleta intraday
+
+```powershell
+python Base_Dados.py --mode intraday_refresh
+```
+
+### Apenas contexto
+
+```powershell
+python context/timeframe_context.py --symbol GOLD
+```
+
+### Apenas payload
+
+```powershell
+python context/prompt_payload.py --symbol GOLD
+```
+
+---
+
+## 12. Validação
+
+### Validar configuração JSON
+
+```powershell
+python -c "import json; json.load(open('tradingagent.json', encoding='utf-8')); print('JSON OK')"
+```
+
+### Conferir perfil ativo
+
+```powershell
+$config = Get-Content `
+  .\tradingagent.json `
+  -Raw -Encoding UTF8 |
+  ConvertFrom-Json
+
+[PSCustomObject]@{
+  QuickPrompt      = $config.agent.quick_profile.prompt_path
+  AnalystPrompt    = $config.llm.roles.analysts[0].prompt_path
+  ModelMaxOutput   = $config.llm.models.qwen_local_analyst_1.max_output_tokens
+  QuickTarget      = $config.agent.quick_profile.target_output_tokens
+  SendMemoryToLLM = $config.agent.quick_profile.send_memory_to_llm
+  DecisionMethod   = $config.agent.quick_profile.decision_method
+}
+```
+
+Esperado:
+
+```text
+QuickPrompt      : prompts/promptIntraday.md
+AnalystPrompt    : prompts/promptIntraday.md
+ModelMaxOutput   : 2000
+QuickTarget      : 2000
+SendMemoryToLLM : False
+DecisionMethod   : free_llm_prompt_executor
+```
+
+### Abrir o input exato da última execução
+
+```powershell
+notepad .\data\debug_llm\GOLD_analyst_1_latest_input.txt
+```
+
+### Abrir a resposta bruta
+
+```powershell
+notepad .\data\debug_llm\GOLD_analyst_1_latest_raw_response.txt
+```
+
+---
+
+## 13. Modos de dados
+
+### `full_rebuild`
 
 ```powershell
 python Base_Dados.py --mode full_rebuild
-```
-
-Gera:
-
-```text
-data/consolidated/GOLD_full.parquet
 ```
 
 Timeframes:
@@ -358,61 +798,22 @@ Timeframes:
 M1, M5, M15, H1, H4, D1, W1, MN1
 ```
 
-Uso recomendado:
-
-- reconstrução da base;
-- backtest;
-- treino;
-- pesquisa;
-- auditoria;
-- atualização completa.
-
----
-
-## 5.2 `intraday_refresh`
-
-Atualiza apenas os timeframes intraday.
+### `intraday_refresh`
 
 ```powershell
 python Base_Dados.py --mode intraday_refresh
 ```
 
-Gera:
-
-```text
-data/consolidated/GOLD_intraday.parquet
-```
-
 Timeframes:
 
 ```text
-M1, M5, M15, H1
+M1, M5, M15, H1, H4
 ```
 
-Labels futuros ficam desabilitados.
-
-Uso recomendado:
-
-- execução recorrente;
-- análise a cada poucos minutos;
-- alimentação do contexto;
-- alimentação do payload;
-- agente intraday.
-
----
-
-## 5.3 `daily_refresh`
-
-Atualiza o bloco de swing.
+### `daily_refresh`
 
 ```powershell
 python Base_Dados.py --mode daily_refresh
-```
-
-Gera:
-
-```text
-data/consolidated/GOLD_swing.parquet
 ```
 
 Timeframes:
@@ -421,486 +822,36 @@ Timeframes:
 H4, D1, W1, MN1
 ```
 
-Uso recomendado:
+### `contexts_only`
 
-- análise swing;
-- atualização diária;
-- contexto de longo prazo independente.
+Usado para recriação de contexto sem nova coleta.
 
 ---
 
-## 5.4 `contexts_only`
+## 14. Segurança
 
-Valida os arquivos existentes sem coletar do MT5.
+Não versionar:
 
-```powershell
-python Base_Dados.py --mode contexts_only
-```
+- senhas;
+- tokens;
+- chaves de API;
+- conta real;
+- servidor privado;
+- payload real;
+- input real da LLM;
+- resposta bruta;
+- Parquets;
+- logs;
+- estado operacional.
 
-Uso planejado:
-
-- ambientes sem MT5;
-- Linux;
-- pipelines que recebem Parquet de outro coletor;
-- processamento offline.
-
-> Observação: a versão atual de `Base_Dados.py` importa o pacote `MetaTrader5` no carregamento do arquivo. Para uso nativo em Linux sem o pacote, essa importação deverá ser tornada opcional em uma melhoria futura.
-
----
-
-## 6. Instalação
-
-## 6.1 Windows
-
-### Pré-requisitos
-
-- Python 3.10 ou superior;
-- MetaTrader 5 instalado;
-- terminal configurado;
-- conta com acesso ao ativo;
-- Git opcional.
-
-### Ambiente virtual
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-### Dependências
-
-```powershell
-pip install --upgrade pip
-pip install MetaTrader5 pandas numpy ta pyarrow
-```
-
----
-
-## 6.2 Linux
-
-Para processar Parquet, contexto e payload:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install pandas numpy ta pyarrow
-```
-
-A coleta MT5 deve ser feita por uma das estratégias:
-
-- coletor em Windows;
-- MT5 via Wine;
-- serviço remoto;
-- exportação de Parquet/CSV;
-- API alternativa.
-
----
-
-## 7. Configuração
-
-Arquivo:
+Recomendação:
 
 ```text
-tradingagent.json
+.env
+variáveis de ambiente
+tradingagent.local.json
+.gitignore
 ```
-
-## 7.1 Projeto
-
-```json
-{
-  "project": {
-    "name": "TradingAgent",
-    "environment": "dev"
-  }
-}
-```
-
-## 7.2 MT5
-
-```json
-{
-  "mt5": {
-    "path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe",
-    "account": 123456,
-    "server": "Broker-Server",
-    "password": "",
-    "broker_timezone": "Etc/GMT-2",
-    "timestamp_source": "broker_wall_clock"
-  }
-}
-```
-
-### Segurança
-
-Não publique credenciais no GitHub.
-
-Recomendado:
-
-- manter senha fora do JSON;
-- usar variável de ambiente;
-- usar arquivo local ignorado pelo Git;
-- adicionar `tradingagent.local.json` ao `.gitignore`;
-- nunca versionar conta, senha ou token real.
-
----
-
-## 7.3 Universo de ativos
-
-```json
-{
-  "universe": {
-    "symbols": ["GOLD", "EURUSD", "GBPUSD"]
-  }
-}
-```
-
-Para cada ativo serão gerados arquivos independentes:
-
-```text
-GOLD_intraday.parquet
-EURUSD_intraday.parquet
-GBPUSD_intraday.parquet
-```
-
----
-
-## 7.4 Saída de arquivos
-
-```json
-{
-  "data": {
-    "data_dir": "data",
-    "consolidated_dir": "data/consolidated",
-    "manifest_dir": "data/manifests",
-    "q_candles": 5000,
-    "write_parquet": true,
-    "write_csv": false,
-    "write_consolidated_parquet": true,
-    "write_consolidated_csv": false,
-    "compression": "zstd"
-  }
-}
-```
-
-Parquet é recomendado para operação. CSV pode ser ativado para inspeção.
-
----
-
-## 8. Execução intraday completa
-
-### Windows
-
-```powershell
-python Base_Dados.py --mode intraday_refresh
-python context/timeframe_context.py --symbol GOLD
-python context/prompt_payload.py --symbol GOLD
-```
-
-### Linux
-
-```bash
-python3 context/timeframe_context.py --symbol GOLD
-python3 context/prompt_payload.py --symbol GOLD
-```
-
-No Linux, o consolidado deve existir previamente.
-
----
-
-## 9. Validação dos resultados
-
-## 9.1 Contexto
-
-```powershell
-$context = Get-Content `
-  .\data\context\GOLD_intraday_context.json `
-  -Raw -Encoding UTF8 |
-  ConvertFrom-Json
-
-$context.schema_version
-$context.market_summary.market_status
-$context.timeframes.M5.recent_bars[-1] | ConvertTo-Json -Depth 10
-```
-
-## 9.2 Payload
-
-```powershell
-$payload = Get-Content `
-  .\data\payload\GOLD_intraday_payload.json `
-  -Raw -Encoding UTF8 |
-  ConvertFrom-Json
-
-$payload.payload_schema_version
-$payload.payload_type
-$payload.data_limitations.decision_or_bias_included
-$payload.timeframes.M5.pattern_geometry | ConvertTo-Json -Depth 15
-```
-
-Esperado:
-
-```text
-payload_schema_version = 2.1
-payload_type = FACTUAL_INTRADAY_MARKET_DATA
-decision_or_bias_included = False
-```
-
----
-
-## 10. Interpretação dos dados
-
-## 10.1 Volume
-
-O volume do MT5 é tick volume.
-
-Ele permite inferir:
-
-- participação relativa;
-- aumento de atividade;
-- enfraquecimento;
-- ritmo da barra;
-- confirmação aproximada;
-- possíveis distorções.
-
-Ele não representa:
-
-- delta real;
-- footprint;
-- agressão bid/ask de bolsa;
-- fluxo institucional confirmado.
-
----
-
-## 10.2 `volume_pace_ratio`
-
-Compara o volume atual da barra com o volume historicamente esperado para o percentual já transcorrido.
-
-Exemplo:
-
-```text
-volume_pace_ratio = 1.30
-```
-
-Interpretação factual:
-
-```text
-o volume está 30% acima do ritmo histórico esperado naquele instante da barra
-```
-
-Isso não significa automaticamente compra ou venda.
-
----
-
-## 10.3 Geometria de padrões
-
-O payload pode gerar candidatos como:
-
-- BULL_FLAG;
-- BEAR_FLAG;
-- ASCENDING_CHANNEL;
-- DESCENDING_CHANNEL;
-- ASCENDING_TRIANGLE;
-- DESCENDING_TRIANGLE;
-- DOUBLE_TOP;
-- DOUBLE_BOTTOM.
-
-Esses candidatos são hipóteses.
-
-```text
-algorithmic_score != probabilidade
-```
-
-A LLM deve validar:
-
-- impulso;
-- consolidação;
-- slopes;
-- compressão;
-- volume;
-- pivôs;
-- breakout;
-- fechamento;
-- aceitação;
-- invalidação.
-
----
-
-## 10.4 Fibonacci
-
-O payload inclui:
-
-- direção;
-- swing high;
-- swing low;
-- ZigZag;
-- retrações;
-- extensões.
-
-A LLM não deve criar âncoras novas. Deve utilizar somente as fornecidas.
-
----
-
-## 11. Fluxo de dados
-
-```text
-MetaTrader 5
-    ↓
-Base_Dados.py
-    ↓
-Parquets individuais
-    ↓
-Consolidado intraday
-    ↓
-timeframe_context.py
-    ↓
-Contexto por timeframe
-    ↓
-prompt_payload.py
-    ↓
-Payload factual
-    ↓
-promptIntraday.md
-    ↓
-LLM
-    ↓
-BUY / SELL / WAIT
-```
-
----
-
-## 12. O que já está implementado
-
-- [x] Configuração por JSON;
-- [x] coleta multiativo;
-- [x] coleta multi-timeframe;
-- [x] barra live;
-- [x] timestamps broker/UTC/BRT;
-- [x] indicadores técnicos;
-- [x] padrões de candles;
-- [x] estrutura causal;
-- [x] BOS e CHOCH;
-- [x] sweeps;
-- [x] FVG;
-- [x] candidatos a Order Block;
-- [x] Fibonacci;
-- [x] sessões;
-- [x] volume pace;
-- [x] projeção de volume;
-- [x] consolidados separados;
-- [x] contexto intraday;
-- [x] últimos candles;
-- [x] níveis;
-- [x] geometria de padrões;
-- [x] payload factual sem viés;
-- [x] prompt intraday.
-
----
-
-## 13. Próximas etapas
-
-### Curto prazo
-
-- [ ] criar `run_intraday_agent.py`;
-- [ ] carregar `prompts/promptIntraday.md`;
-- [ ] substituir `{{MARKET_DATA}}`;
-- [ ] chamar a LLM;
-- [ ] salvar a resposta;
-- [ ] extrair BUY, SELL ou WAIT;
-- [ ] registrar horário, preço e decisão;
-- [ ] implementar logs estruturados;
-- [ ] validar saída obrigatória.
-
-### Médio prazo
-
-- [ ] criar prompt e payload swing;
-- [ ] auditoria de decisões;
-- [ ] comparar decisão com movimentos futuros;
-- [ ] registrar MFE e MAE após a decisão;
-- [ ] backtest real de setups;
-- [ ] estatísticas por ativo, sessão e timeframe;
-- [ ] GARCH;
-- [ ] regimes de volatilidade;
-- [ ] HMM;
-- [ ] DXY e ativos correlacionados;
-- [ ] notícias e calendário econômico;
-- [ ] execução agendada.
-
-### Longo prazo
-
-- [ ] orquestração multiagente;
-- [ ] agente técnico;
-- [ ] agente de risco;
-- [ ] agente de macro;
-- [ ] agente crítico;
-- [ ] agregador final;
-- [ ] backtesting e replay;
-- [ ] integração com execução;
-- [ ] monitoramento em Grafana;
-- [ ] avaliação contínua da qualidade das decisões.
-
----
-
-## 14. Troubleshooting
-
-## Erro: `GOLD_intraday.parquet` não encontrado
-
-Execute:
-
-```powershell
-python Base_Dados.py --mode intraday_refresh
-```
-
-Depois:
-
-```powershell
-python context/timeframe_context.py --symbol GOLD
-```
-
----
-
-## Erro: acentos aparecem como `PressÃ£o`
-
-Use:
-
-```powershell
-Get-Content arquivo.json -Raw -Encoding UTF8
-```
-
----
-
-## Erro: `truth value of an empty array is ambiguous`
-
-Confirme que está usando a versão corrigida de `prompt_payload.py`.
-
-```powershell
-Select-String `
-  -Path .\context\prompt_payload.py `
-  -Pattern 'item == \{\}|item == \[\]'
-```
-
-O comando não deve retornar resultado.
-
----
-
-## Mercado fechado, mas `is_live_bar = true`
-
-Consulte:
-
-```json
-"bar_status": "STALE_LAST_BAR"
-```
-
-e:
-
-```json
-"market_status": "CLOSED_OR_STALE"
-```
-
-O MT5 pode manter a última barra como corrente mesmo após parar de receber ticks.
-
----
-
-## 15. Recomendações de Git
 
 `.gitignore` sugerido:
 
@@ -911,51 +862,204 @@ __pycache__/
 .env
 tradingagent.local.json
 
-data/*.csv
 data/*.parquet
 data/consolidated/
 data/context/
 data/payload/
+data/agent_results/
+data/agent_runs/
+data/pipeline_results/
+data/pipeline_runs/
+data/state/
+data/debug_llm/
+data/locks/
+data/logs/
 data/manifests/
-logs/
 ```
-
-Evite versionar:
-
-- credenciais;
-- dados de corretora;
-- arquivos grandes;
-- Parquets;
-- CSVs;
-- logs;
-- payloads reais;
-- respostas com dados sensíveis.
 
 ---
 
-## 16. Aviso
+## 15. Próximas etapas
 
-Este projeto é voltado a pesquisa, automação e apoio à análise.
+### Próximo passo imediato
+
+Comparar o mesmo fluxo usando outra LLM:
+
+- API externa; ou
+- modelo local mais forte.
+
+Objetivo da comparação:
+
+- coerência H4/H1/M15/M5;
+- leitura de volume;
+- leitura de volatilidade;
+- uso correto de níveis;
+- capacidade de distinguir direção de qualidade de entrada;
+- consistência entre `action` e justificativa;
+- latência;
+- custo;
+- estabilidade do JSON.
+
+### Melhorias futuras
+
+- `volume_analysis_summary` factual;
+- resumo de volatilidade;
+- substituição automática de placeholders;
+- suporte a OpenAI;
+- suporte a OpenRouter;
+- suporte a Anthropic;
+- suporte a xAI;
+- comparação entre modelos;
+- dataset de inputs e respostas;
+- agente crítico especializado;
+- avaliação histórica;
+- MFE/MAE;
+- backtest real;
+- métricas por sessão;
+- integração DXY;
+- calendário econômico;
+- notícias;
+- monitoramento em Grafana;
+- agente de risco;
+- agente macro;
+- multiagente;
+- execução automatizada, somente após validação robusta.
+
+---
+
+## 16. Uso futuro dos arquivos de auditoria
+
+Os arquivos de auditoria podem futuramente apoiar:
+
+- criação de dataset;
+- avaliação de modelos;
+- prompt optimization;
+- classificação de erros;
+- fine-tuning;
+- RAG de casos históricos;
+- agente crítico;
+- comparação entre recomendações e resultado futuro.
+
+Para treinamento real, será necessário adicionar rótulos posteriores, por exemplo:
+
+- preço após N minutos;
+- preço após N candles;
+- MFE;
+- MAE;
+- direção realizada;
+- acerto/erro;
+- qualidade da justificativa;
+- aderência aos dados;
+- erro factual;
+- erro de volume;
+- erro de estrutura;
+- erro de nível;
+- ação mais segura retrospectivamente.
+
+Os arquivos `latest` atuais são úteis para auditoria manual, mas não mantêm histórico. Para dataset, deverá existir um modo separado de retenção versionada.
+
+---
+
+## 17. Troubleshooting
+
+### `Unexpected UTF-8 BOM`
+
+Corrigir o JSON para UTF-8 sem BOM:
+
+```powershell
+$content = Get-Content `
+  .\tradingagent.json `
+  -Raw -Encoding UTF8
+
+[System.IO.File]::WriteAllText(
+  (Resolve-Path .\tradingagent.json),
+  $content,
+  (New-Object System.Text.UTF8Encoding($false))
+)
+```
+
+### Prompt não encontrado
+
+Confirmar:
+
+```powershell
+Test-Path .\prompts\promptIntraday.md
+```
+
+E verificar:
+
+```text
+agent.quick_profile.prompt_path
+llm.roles.analysts[0].prompt_path
+```
+
+Ambos devem apontar para:
+
+```text
+prompts/promptIntraday.md
+```
+
+### `Ação Imediata` vazia
+
+A versão atual exige `immediate_action`. Caso a LLM ainda retorne vazio, o agente usa a própria descrição da recomendação como fallback de apresentação, sem alterar `BUY`, `SELL` ou `WAIT`.
+
+### Resposta contraditória
+
+Verificar:
+
+```text
+data/debug_llm/<ATIVO>_<ANALISTA>_latest_input.txt
+data/debug_llm/<ATIVO>_<ANALISTA>_latest_raw_response.txt
+```
+
+Comparar a resposta com:
+
+- `structure_state`;
+- eventos;
+- volume;
+- candles recentes;
+- médias;
+- MACD;
+- ADX;
+- Vortex;
+- candidatos não confirmados.
+
+---
+
+## 18. Aviso
+
+Este projeto é voltado para pesquisa, automação e apoio à análise.
 
 Ele não garante lucro e não substitui:
 
+- supervisão humana;
 - validação;
 - gerenciamento de risco;
-- supervisão humana;
 - testes históricos;
 - testes em conta demo;
-- avaliação das condições de mercado.
+- controle de exposição;
+- avaliação de mercado;
+- responsabilidade do operador.
 
-Decisões automatizadas devem ser validadas antes de qualquer uso em ambiente real.
+Não habilitar execução automática de ordens antes de:
+
+- validação histórica;
+- avaliação estatística;
+- testes robustos;
+- tratamento de falhas;
+- limites de risco;
+- kill switch;
+- observabilidade;
+- supervisão humana.
 
 ---
 
-## 17. Licença
+## 19. Licença
 
-Definir a licença do projeto antes de distribuição pública.
+Definir antes de distribuição pública.
 
-Sugestões:
+Possibilidades:
 
-- MIT para uso aberto e simples;
-- Apache-2.0 para proteção adicional de patentes;
-- licença privada enquanto o projeto estiver em desenvolvimento.
+- MIT;
+- Apache-2.0;
+- licença privada durante o desenvolvimento.

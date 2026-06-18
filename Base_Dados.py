@@ -205,7 +205,7 @@ def load_tradingagent_config(path: str | Path = "tradingagent.json") -> Dict[str
         raise FileNotFoundError(f"Arquivo de configuração não encontrado: {cfg_path}")
 
     try:
-        with cfg_path.open("r", encoding="utf-8") as handle:
+        with cfg_path.open("r", encoding="utf-8-sig") as handle:
             config = json.load(handle)
     except json.JSONDecodeError as exc:
         raise ValueError(f"JSON inválido em {cfg_path}: {exc}") from exc

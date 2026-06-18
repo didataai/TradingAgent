@@ -69,7 +69,7 @@ async def await_with_heartbeat(task, label: str, heartbeat_seconds: int):
         log(f'{label} ainda em execução | elapsed={elapsed}s')
 
 class S(TypedDict, total=False):
-    run_id:str; symbol:str; mode:str; selected_analyst:str|None
+    run_id:str; symbol:str; mode:str; profile:str; selected_analyst:str|None
     config:dict[str,Any]; payload:dict[str,Any]; memory:dict[str,Any]|None
     analyst_results:list[dict[str,Any]]; consensus:dict[str,Any]|None
     critic_result:dict[str,Any]|None; arbiter_result:dict[str,Any]|None
@@ -165,6 +165,38 @@ Regras adicionais:
 - Não invente níveis, probabilidades ou fatos ausentes.
 - A memória serve para testar a tese anterior, não para defendê-la.
 '''
+
+QUICK_ANALYST_SCHEMA='''
+
+Retorne SOMENTE JSON válido, sem Markdown e sem texto fora do JSON:
+{
+  "action": "BUY|SELL|WAIT",
+  "confidence": "LOW|MODERATE|HIGH",
+  "key_points": [],
+  "attention_points": [],
+  "timeframe_summary": {
+    "H4": "",
+    "H1": "",
+    "M15": "",
+    "M5": ""
+  },
+  "immediate_action": "",
+  "recommended_action_now": {
+    "action": "BUY|SELL|WAIT",
+    "description": ""
+  }
+}
+
+O JSON é apenas o formato de transporte.
+A análise, direção e recomendação devem ser definidas livremente pela LLM
+a partir do prompt original e do MARKET_DATA.
+
+Regras de preenchimento:
+- immediate_action é obrigatório e não pode ser vazio.
+- immediate_action deve ser uma instrução objetiva, por exemplo:
+  "Esperar confirmação", "Comprar após rompimento" ou "Vender após rejeição".
+- recommended_action_now.description deve explicar resumidamente a decisão.
+'''
 CRITIC='''Você é o crítico do TradingAgent. Compare os analistas com os fatos e a memória. Detecte invenções. Não decida por maioria simples. Responda SOMENTE JSON:
 {"recommended_action":"BUY|SELL|WAIT","previous_thesis_status":"CONFIRMED|PARTIALLY_CONFIRMED|STILL_DEVELOPING|INVALIDATED|EXPIRED|REPLACED|NO_PREVIOUS_THESIS","agreement_level":"UNANIMOUS|PARTIAL|CONFLICTED|INSUFFICIENT","requires_arbiter":true,"summary":"...","model_evaluations":[],"key_agreements":[],"key_disagreements":[],"hallucination_flags":[],"recommended_levels":{"trigger":null,"invalidation":null,"target_1":null,"target_2":null}}'''
 ARBITER='''Você é o árbitro final. Use os fatos como fonte primária, não apenas a maioria. Se o setup estiver incompleto, WAIT. Responda SOMENTE JSON:
@@ -204,87 +236,217 @@ class Runtime:
                         f'LLM fim | role={role_id} | prompt_tokens={raw.get("prompt_eval_count")} '
                         f'| output_tokens={raw.get("eval_count")}'
                     )
-                    return {'success':True,'role_id':role_id,'model_ref':model_ref,'requested_model':mc['model'],'actual_model':raw.get('model'),'provider':pn,'latency_ms':round((time.perf_counter()-started)*1000),'usage':{'prompt_tokens':raw.get('prompt_eval_count'),'output_tokens':raw.get('eval_count'),'total_duration_ns':raw.get('total_duration')},'format_valid':True,'content':extract_json(str(raw.get('response',''))),'error':None}
+                    raw_response = str(raw.get('response',''))
+                    return {'success':True,'role_id':role_id,'model_ref':model_ref,'requested_model':mc['model'],'actual_model':raw.get('model'),'provider':pn,'latency_ms':round((time.perf_counter()-started)*1000),'usage':{'prompt_tokens':raw.get('prompt_eval_count'),'output_tokens':raw.get('eval_count'),'total_duration_ns':raw.get('total_duration')},'format_valid':True,'content':extract_json(raw_response),'raw_response':raw_response,'error':None}
                 except Exception as e:
                     last=e
                     if attempt<int(pc.get('max_retries',1)): await asyncio.sleep(1.5*(attempt+1))
-        return {'success':False,'role_id':role_id,'model_ref':model_ref,'requested_model':mc['model'],'actual_model':None,'provider':pn,'latency_ms':round((time.perf_counter()-started)*1000),'usage':{},'format_valid':False,'content':None,'error':f'{type(last).__name__}: {last}'}
+        return {'success':False,'role_id':role_id,'model_ref':model_ref,'requested_model':mc['model'],'actual_model':None,'provider':pn,'latency_ms':round((time.perf_counter()-started)*1000),'usage':{},'format_valid':False,'content':None,'raw_response':None,'error':f'{type(last).__name__}: {last}'}
+
+def norm_market_read(value):
+    value = str(value or 'NEUTRAL').upper()
+    return value if value in {'BULLISH', 'BEARISH', 'NEUTRAL'} else 'NEUTRAL'
+
+
+def norm_preferred_scenario(value):
+    value = str(value or 'NONE').upper()
+    return value if value in {'BUY', 'SELL', 'NONE'} else 'NONE'
+
+
+def normalize_scenario(value):
+    if not isinstance(value, dict):
+        value = {}
+    status = str(value.get('status') or 'WEAK').upper()
+    value['status'] = status if status in {'ACTIVE','CONDITIONAL','WEAK','INVALID'} else 'WEAK'
+    for field in ('trigger','entry_min','entry_max','stop','target_1','target_2'):
+        value.setdefault(field, None)
+    for field in ('confirmations','weaknesses'):
+        if not isinstance(value.get(field), list):
+            value[field] = []
+    value.setdefault('summary', '')
+    return value
+
 
 def validate_analyst(c, rid):
+    if not isinstance(c, dict):
+        c = {}
+
     c['role'] = 'analyst'
     c['analyst_id'] = rid
     c['action'] = norm_action(c.get('action'))
     c.setdefault('confidence', 'LOW')
-    c.setdefault('summary', '')
+
+    key_points = c.get('key_points')
+    c['key_points'] = key_points if isinstance(key_points, list) else []
+
+    attention_points = c.get('attention_points')
+    c['attention_points'] = (
+        attention_points if isinstance(attention_points, list) else []
+    )
+
+    timeframe_summary = c.get('timeframe_summary')
+    if not isinstance(timeframe_summary, dict):
+        timeframe_summary = {}
+    for timeframe in ('H4', 'H1', 'M15', 'M5'):
+        timeframe_summary.setdefault(timeframe, '')
+    c['timeframe_summary'] = timeframe_summary
+
+    c.setdefault('immediate_action', '')
+
+    recommended = c.get('recommended_action_now')
+    if not isinstance(recommended, dict):
+        recommended = {}
+    recommended['action'] = norm_action(
+        recommended.get('action') or c.get('action')
+    )
+    recommended.setdefault('description', '')
+    c['recommended_action_now'] = recommended
+
+    if not str(c.get('immediate_action') or '').strip():
+        c['immediate_action'] = str(
+            recommended.get('description') or ''
+        ).strip()
+
+    c.setdefault('summary', recommended.get('description', ''))
     c.setdefault('timeframes', {})
     c.setdefault('patterns', [])
     c.setdefault('confirmation_conditions', [])
     c.setdefault('invalidation_conditions', [])
     c.setdefault('risk_flags', [])
-
-    previous_eval = c.get('previous_thesis_evaluation')
-    if not isinstance(previous_eval, dict):
-        previous_eval = {
-            'status': norm_status(c.get('previous_thesis_status')),
-            'reason': '',
-        }
-    previous_eval['status'] = norm_status(previous_eval.get('status'))
-    previous_eval.setdefault('reason', '')
-    c['previous_thesis_evaluation'] = previous_eval
-    c['previous_thesis_status'] = previous_eval['status']
-
-    trade_plan = c.get('trade_plan')
-    if not isinstance(trade_plan, dict):
-        old_levels = c.get('levels') if isinstance(c.get('levels'), dict) else {}
-        trade_plan = {
-            'action_now': c['action'],
-            'conditional_bias': 'NEUTRAL',
-            'trigger': old_levels.get('trigger'),
-            'entry_min': old_levels.get('entry_min'),
-            'entry_max': old_levels.get('entry_max'),
-            'stop': old_levels.get('invalidation'),
-            'target_1': old_levels.get('target_1'),
-            'target_2': old_levels.get('target_2'),
-        }
-    trade_plan['action_now'] = c['action']
-    bias = str(trade_plan.get('conditional_bias') or 'NEUTRAL').upper()
-    trade_plan['conditional_bias'] = bias if bias in {'BUY', 'SELL', 'NEUTRAL'} else 'NEUTRAL'
-    for field in ('trigger', 'entry_min', 'entry_max', 'stop', 'target_1', 'target_2'):
-        trade_plan.setdefault(field, None)
-    c['trade_plan'] = trade_plan
-    c['levels'] = {
-        'trigger': trade_plan.get('trigger'),
-        'entry_min': trade_plan.get('entry_min'),
-        'entry_max': trade_plan.get('entry_max'),
-        'invalidation': trade_plan.get('stop'),
-        'target_1': trade_plan.get('target_1'),
-        'target_2': trade_plan.get('target_2'),
+    c['previous_thesis_evaluation'] = {
+        'status': 'NO_PREVIOUS_THESIS',
+        'reason': 'Memória não enviada à LLM no perfil quick.',
     }
-
-    thesis = c.get('current_thesis')
-    if not isinstance(thesis, dict):
-        thesis = {}
-    thesis.setdefault('scenario', '')
-    thesis['action_now'] = c['action']
-    thesis_bias = str(thesis.get('conditional_bias') or trade_plan.get('conditional_bias') or 'NEUTRAL').upper()
-    thesis['conditional_bias'] = thesis_bias if thesis_bias in {'BUY', 'SELL', 'NEUTRAL'} else 'NEUTRAL'
-    thesis.setdefault('summary', '')
-    thesis.setdefault('trigger', trade_plan.get('trigger'))
-    thesis.setdefault('invalidation', trade_plan.get('stop'))
-    thesis.setdefault('expiry_minutes', 15)
-    c['current_thesis'] = thesis
+    c['previous_thesis_status'] = 'NO_PREVIOUS_THESIS'
+    c['trade_plan'] = {
+        'action_now': c['action'],
+        'conditional_bias': 'NEUTRAL',
+        'trigger': None,
+        'entry_min': None,
+        'entry_max': None,
+        'stop': None,
+        'target_1': None,
+        'target_2': None,
+    }
+    c['levels'] = {}
+    c['current_thesis'] = {}
     return c
+
+
+def effective_profile(cfg, cli_profile):
+    if cli_profile:
+        return cli_profile
+    profiles = cfg.get('agent', {}).get('analysis_profiles', {})
+    enabled = [x for x in ('quick','detailed') if profiles.get(x) is True]
+    if len(enabled) != 1:
+        raise ValueError("Exatamente um perfil deve estar True: quick ou detailed.")
+    return enabled[0]
+
+def prompt_for_profile(cfg, role, profile):
+    if profile == 'quick':
+        return cfg['agent'].get('quick_profile', {}).get(
+            'prompt_path', 'prompts/promptIntradayQuick.md'
+        )
+    return role['prompt_path']
+
+def schema_for_profile(profile):
+    return QUICK_ANALYST_SCHEMA if profile == 'quick' else ANALYST_SCHEMA
+
+def send_memory_to_llm(cfg, profile):
+    profile_cfg = cfg.get('agent', {}).get(f'{profile}_profile', {})
+    return bool(profile_cfg.get('send_memory_to_llm', profile == 'detailed'))
+
+def render_quick_report(final, symbol, price):
+    lines = [
+        "",
+        "===== TRADING AGENT — RESULTADO RÁPIDO =====",
+        f"Ativo: {symbol} | Preço: {price}",
+        "",
+        "Pontos-chave",
+    ]
+
+    key_points = final.get('key_points', [])
+    lines += (
+        [f"- {item}" for item in key_points]
+        if key_points
+        else ["- Não retornado pelo modelo nesta rodada."]
+    )
+
+    lines += ["", "Pontos de atenção"]
+    attention_points = final.get('attention_points', [])
+    lines += (
+        [f"- {item}" for item in attention_points]
+        if attention_points
+        else ["- Não retornado pelo modelo nesta rodada."]
+    )
+
+    lines += ["", "Resumo por timeframe"]
+    timeframe_summary = final.get('timeframe_summary', {})
+    for timeframe in ('H4', 'H1', 'M15', 'M5'):
+        value = timeframe_summary.get(timeframe) or 'Não retornado pelo modelo.'
+        lines.append(f"{timeframe}: {value}")
+
+    lines += [
+        "",
+        "Ação Imediata",
+        str(
+            final.get('immediate_action')
+            or final.get('recommended_action_now', {}).get('description')
+            or 'Aguardar nova confirmação técnica.'
+        ),
+        "",
+        "Ação Mais Recomendada Agora",
+    ]
+
+    recommended = final.get('recommended_action_now', {})
+    action = norm_action(
+        recommended.get('action') or final.get('action')
+    )
+    lines.append(action)
+    description = str(recommended.get('description') or '').strip()
+    if description:
+        lines.append(description)
+
+    return "\n".join(lines)
+
 
 async def prepare(s:S): return {}
 async def analysts(s:S):
     cfg=s['config']; rt=Runtime(cfg); roles=[role_by_id(cfg,s['selected_analyst'] or 'analyst_1')] if s['mode']=='single' else enabled_roles(cfg)
     async def one(r):
         mc=cfg['llm']['models'][r['model_ref']]
-        prompt=load_prompt(r['prompt_path']).replace('{{MARKET_DATA}}',json.dumps(s['payload'],ensure_ascii=False,separators=(',',':')))
-        prompt+='\n\nMEMÓRIA:\n'+json.dumps(s.get('memory') or {},ensure_ascii=False,separators=(',',':'))
-        prompt+=f"\n\nVocê é {r['id']}. Propósito: {mc.get('purpose','')}. Foco: {mc.get('focus',[])}."+ANALYST_SCHEMA
+        pp = prompt_for_profile(cfg, r, s['profile'])
+        prompt=load_prompt(pp).replace('{{MARKET_DATA}}',json.dumps(s['payload'],ensure_ascii=False,separators=(',',':')))
+        if s['profile'] == 'quick':
+            prompt += schema_for_profile(s['profile'])
+        else:
+            if send_memory_to_llm(cfg, s['profile']):
+                prompt+='\n\nMEMÓRIA OPERACIONAL ANTERIOR:\n'+json.dumps(s.get('memory') or {},ensure_ascii=False,separators=(',',':'))
+            prompt+=f"\n\nVocê é {r['id']}. Propósito: {mc.get('purpose','')}. Foco: {mc.get('focus',[])}."+schema_for_profile(s['profile'])
+        debug_dir = ROOT / 'data' / 'debug_llm'
+        debug_dir.mkdir(parents=True, exist_ok=True)
+        debug_base = f"{s['symbol']}_{r['id']}_latest"
+        input_path = debug_dir / f"{debug_base}_input.txt"
+        input_path.write_text(prompt, encoding='utf-8')
+        log(
+            f'Input LLM salvo | role={r["id"]} | path={input_path} '
+            f'| chars={len(prompt)}'
+        )
+
         x=await rt.call(r['model_ref'],prompt,r['id'])
-        if x['success']: x['content']=validate_analyst(x['content'],r['id'])
+
+        if x.get('raw_response') is not None:
+            raw_path = debug_dir / f"{debug_base}_raw_response.txt"
+            raw_path.write_text(
+                str(x.get('raw_response') or ''),
+                encoding='utf-8',
+            )
+            log(
+                f'Resposta bruta salva | role={r["id"]} | path={raw_path}'
+            )
+
+        if x['success']:
+            x['content']=validate_analyst(x['content'],r['id'])
         return x
     log(f'Analistas selecionados: {[r["id"] for r in roles]} | modo={s["mode"]}')
     results=await asyncio.gather(*(one(r) for r in roles))
@@ -388,6 +550,16 @@ def validate_decision_integrity(final: dict[str, Any], current_price: Any) -> di
             if original_action == "SELL" and target_1 >= reference:
                 issues.append("Target_1 de SELL deve ficar abaixo do preço de referência.")
 
+        if trigger is not None and price is not None:
+            if original_action == "BUY" and price < trigger:
+                issues.append(
+                    "Trigger de BUY ainda não foi atingido pelo preço atual."
+                )
+            if original_action == "SELL" and price > trigger:
+                issues.append(
+                    "Trigger de SELL ainda não foi atingido pelo preço atual."
+                )
+
     downgraded = original_action in {"BUY", "SELL"} and bool(issues)
     validated_action = "WAIT" if downgraded else original_action
 
@@ -426,6 +598,57 @@ def validate_decision_integrity(final: dict[str, Any], current_price: Any) -> di
         "downgraded_to_wait": downgraded,
         "issues": issues,
     }
+
+    recommended = final.get("recommended_action_now")
+    if not isinstance(recommended, dict):
+        recommended = {}
+    recommended["action"] = validated_action
+    recommended["market_read"] = norm_market_read(
+        final.get("market_read") or recommended.get("market_read")
+    )
+    recommended["preferred_scenario"] = norm_preferred_scenario(
+        final.get("preferred_scenario") or recommended.get("preferred_scenario")
+    )
+    recommended["conditional_bias"] = trade_plan.get(
+        "conditional_bias", "NEUTRAL"
+    )
+    if not recommended.get("description"):
+        recommended["description"] = final.get("summary", "")
+    final["recommended_action_now"] = recommended
+
+    bias = trade_plan.get("conditional_bias", "NEUTRAL")
+
+    if downgraded:
+        preferred = norm_preferred_scenario(
+            final.get("preferred_scenario")
+        )
+        final["immediate_action"] = (
+            f"Aguardar a confirmação do cenário {preferred} antes de entrar."
+            if preferred in {"BUY", "SELL"}
+            else "Aguardar confirmação técnica antes de entrar."
+        )
+        previous_description = str(
+            recommended.get("description") or final.get("summary", "")
+        ).strip()
+        recommended["description"] = (
+            f"Aguardar confirmação do gatilho. Viés condicional {bias}. "
+            f"{previous_description}"
+        ).strip()
+        final["recommended_action_now"] = recommended
+    elif validated_action == "WAIT":
+        preferred = norm_preferred_scenario(
+            final.get("preferred_scenario")
+        )
+        final["immediate_action"] = (
+            f"Aguardar a confirmação do cenário {preferred} antes de entrar."
+            if preferred in {"BUY", "SELL"}
+            else "Aguardar confirmação técnica antes de entrar."
+        )
+    else:
+        final["immediate_action"] = (
+            f"Executar {validated_action} conforme o plano técnico validado."
+        )
+
     return final
 
 
@@ -436,6 +659,14 @@ def final_pick(s:S):
             return {
                 'action': 'WAIT', 'confidence': 'LOW',
                 'summary': 'Nenhuma resposta válida.',
+                'market_read': 'NEUTRAL',
+                'preferred_scenario': 'NONE',
+                'buy_scenario': {},
+                'sell_scenario': {},
+                'scenario_comparison': {
+                    'closer_to_activation': 'NONE',
+                    'reason': 'Nenhuma resposta válida.',
+                },
                 'previous_thesis_evaluation': {
                     'status': 'NO_PREVIOUS_THESIS',
                     'reason': 'Não houve resposta válida para avaliar a memória.',
@@ -455,6 +686,16 @@ def final_pick(s:S):
             'action': norm_action(c.get('action')),
             'confidence': c.get('confidence', 'LOW'),
             'summary': c.get('summary', ''),
+            'market_read': c.get('market_read', 'NEUTRAL'),
+            'preferred_scenario': c.get('preferred_scenario', 'NONE'),
+            'buy_scenario': c.get('buy_scenario', {}),
+            'sell_scenario': c.get('sell_scenario', {}),
+            'scenario_comparison': c.get('scenario_comparison', {}),
+            'key_points': c.get('key_points', []),
+            'attention_points': c.get('attention_points', []),
+            'timeframe_summary': c.get('timeframe_summary', {}),
+            'immediate_action': c.get('immediate_action', ''),
+            'recommended_action_now': c.get('recommended_action_now', {}),
             'previous_thesis_evaluation': previous_eval,
             'previous_thesis_status': previous_eval.get('status', 'NO_PREVIOUS_THESIS'),
             'trade_plan': c.get('trade_plan', {}),
@@ -535,12 +776,22 @@ async def finalize(s:S):
     cfg = s['config']
     sym = s['symbol']
     f = final_pick(s)
-    f = validate_decision_integrity(
-        f,
-        s['payload'].get('current_price'),
-    )
+    if s.get('profile') != 'quick':
+        f = validate_decision_integrity(
+            f,
+            s['payload'].get('current_price'),
+        )
+    else:
+        f['decision_validation'] = {
+            'passed': True,
+            'original_action': f.get('action', 'WAIT'),
+            'validated_action': f.get('action', 'WAIT'),
+            'downgraded_to_wait': False,
+            'issues': [],
+            'mode': 'llm_free_decision',
+        }
     ts = now()
-    rec={'@timestamp':ts,'run_id':s['run_id'],'project':cfg.get('project',{}).get('name','TradingAgent'),'environment':cfg.get('project',{}).get('environment','dev'),'symbol':sym,'analysis_type':'intraday','execution':{'mode':s['mode'],'selected_analyst':s.get('selected_analyst'),'analysts_requested':len(s.get('analyst_results',[])),'analysts_successful':sum(1 for x in s.get('analyst_results',[]) if x.get('success')),'critic_called':bool(s.get('critic_result')),'arbiter_called':bool(s.get('arbiter_result')),'total_latency_ms':round((time.perf_counter()-s['started_perf'])*1000),'success':True,'errors':s.get('errors',[])},'market':{'payload_schema_version':s['payload'].get('payload_schema_version'),'generated_at_utc':s['payload'].get('generated_at_utc'),'current_price':s['payload'].get('current_price'),'market_status':s['payload'].get('market_status')},'memory_before':s.get('memory'),'analyst_results':s.get('analyst_results',[]),'consensus':s.get('consensus'),'critic_result':s.get('critic_result'),'arbiter_result':s.get('arbiter_result'),'final':f}
+    rec={'@timestamp':ts,'run_id':s['run_id'],'project':cfg.get('project',{}).get('name','TradingAgent'),'environment':cfg.get('project',{}).get('environment','dev'),'symbol':sym,'analysis_type':'intraday','execution':{'mode':s['mode'],'profile':s.get('profile'),'selected_analyst':s.get('selected_analyst'),'analysts_requested':len(s.get('analyst_results',[])),'analysts_successful':sum(1 for x in s.get('analyst_results',[]) if x.get('success')),'critic_called':bool(s.get('critic_result')),'arbiter_called':bool(s.get('arbiter_result')),'total_latency_ms':round((time.perf_counter()-s['started_perf'])*1000),'success':True,'errors':s.get('errors',[])},'market':{'payload_schema_version':s['payload'].get('payload_schema_version'),'generated_at_utc':s['payload'].get('generated_at_utc'),'current_price':s['payload'].get('current_price'),'market_status':s['payload'].get('market_status')},'memory_before':s.get('memory'),'analyst_results':s.get('analyst_results',[]),'consensus':s.get('consensus'),'critic_result':s.get('critic_result'),'arbiter_result':s.get('arbiter_result'),'final':f}
     previous_eval = f.get('previous_thesis_evaluation', {
         'status': f.get('previous_thesis_status', 'NO_PREVIOUS_THESIS'),
         'reason': '',
@@ -573,11 +824,11 @@ def graph():
     g.add_edge(START,'prepare'); g.add_edge('prepare','analysts'); g.add_edge('analysts','consensus'); g.add_edge('consensus','critic'); g.add_edge('critic','arbiter'); g.add_edge('arbiter','finalize'); g.add_edge('finalize',END)
     return g.compile()
 async def run(args):
-    cfg=read_json(CONFIG); mode=mode_from(cfg,args.mode); sym=args.symbol.upper(); sel=None
-    log(f'Execução iniciada | symbol={sym} | mode={mode}')
+    cfg=read_json(CONFIG); mode=mode_from(cfg,args.mode); profile=effective_profile(cfg,args.profile); sym=args.symbol.upper(); sel=None
+    log(f'Execução iniciada | symbol={sym} | mode={mode} | profile={profile}')
     if mode=='single': sel=args.analyst or cfg['agent']['single_mode'].get('analyst_id','analyst_1'); role_by_id(cfg,sel)
     payload=read_json(path_tpl(cfg['agent']['paths']['payload_template'],sym)); sp=path_tpl(cfg['agent']['paths']['state_template'],sym); mem=read_json(sp) if sp.exists() else None
-    init:S={'run_id':f"{sym}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}",'symbol':sym,'mode':mode,'selected_analyst':sel,'config':cfg,'payload':payload,'memory':mem,'analyst_results':[],'consensus':None,'critic_result':None,'arbiter_result':None,'final_result':None,'errors':[],'started_perf':time.perf_counter()}
+    init:S={'run_id':f"{sym}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}",'symbol':sym,'mode':mode,'profile':profile,'selected_analyst':sel,'config':cfg,'payload':payload,'memory':mem,'analyst_results':[],'consensus':None,'critic_result':None,'arbiter_result':None,'final_result':None,'errors':[],'started_perf':time.perf_counter()}
     round_timeout = float(cfg['agent']['execution']['round_timeout_seconds'])
     try:
         out = await asyncio.wait_for(graph().ainvoke(init), timeout=round_timeout)
@@ -588,10 +839,17 @@ async def run(args):
         ) from exc
     return out['final_result']
 def args():
-    p=argparse.ArgumentParser(); p.add_argument('--symbol',required=True); p.add_argument('--mode',choices=['single','ensemble']); p.add_argument('--analyst'); return p.parse_args()
+    p=argparse.ArgumentParser()
+    p.add_argument('--symbol',required=True)
+    p.add_argument('--mode',choices=['single','ensemble'])
+    p.add_argument('--analyst')
+    p.add_argument('--profile',choices=['quick','detailed'])
+    return p.parse_args()
 def main():
     try: r=asyncio.run(run(args()))
     except Exception as e: print(f'ERRO: {type(e).__name__}: {e}',file=sys.stderr); return 1
-    print(f"Run concluído | símbolo={r['symbol']} | modo={r['execution']['mode']} | ação={r['final']['action']} | fonte={r['final']['source']} | latency_ms={r['execution']['total_latency_ms']}")
+    print(f"Run concluído | símbolo={r['symbol']} | modo={r['execution']['mode']} | profile={r['execution'].get('profile')} | ação={r['final']['action']} | fonte={r['final']['source']} | latency_ms={r['execution']['total_latency_ms']}")
+    if r['execution'].get('profile') == 'quick':
+        print(render_quick_report(r['final'], r['symbol'], r['market'].get('current_price')))
     return 0
 if __name__=='__main__': raise SystemExit(main())

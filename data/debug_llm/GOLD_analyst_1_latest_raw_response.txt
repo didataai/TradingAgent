@@ -1,0 +1,24 @@
+{
+  "action": "WAIT",
+  "confidence": "MODERATE",
+  "key_points": [
+    "Preço atual está em uma zona de suporte forte (4201.23)",
+    "H4 apresenta tendência de baixa com breakout recente, mas H1 e M5 mostram reversão possível",
+    "M5 indica formação de um padrão de topo duplo com potencial para rompimento"
+  ],
+  "attention_points": [
+    "Monitorar volume e wick ratios nos próximos minutos",
+    "Esperar confirmação do breakout em H1 ou M5 antes de entrar"
+  ],
+  "timeframe_summary": {
+    "H4": "Tendência de baixa com recente breakout, mas ainda dentro da zona de suporte",
+    "H1": "Consolidação com reversão possível, wick ratios indicam pressão vendedora",
+    "M15": "Formação de padrão de topo duplo, wick ratios sugerem potencial rompimento",
+    "M5": "Padrão de topo duplo formando, wick ratios e volume indicam forte pressão vendedora"
+  },
+  "immediate_action": "Esperar confirmação do breakout em H1 ou M5 antes de entrar",
+  "recommended_action_now": {
+    "action": "WAIT",
+    "description": "O preço está formando um padrão de topo duplo no M5, mas ainda não há confirmação de rompimento. É recomendável esperar por uma confirmação em H1 ou M5 antes de tomar uma posição."
+  }
+}

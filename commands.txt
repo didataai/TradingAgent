@@ -1,0 +1,61 @@
+cd C:\Users\diego\Desktop\Python\TradingAgent
+GOLD — Intraday
+python pipeline/intraday_pipeline_web.py --symbol GOLD --web-agent --analyst analyst_1
+
+Arquivo gerado:
+
+data\debug_llm\GOLD_analyst_1_latest_input.txt
+GOLD — Swing completo
+
+Atualiza H1/M15 e também H4/D1/W1:
+
+python pipeline/swing_pipeline_web.py --symbol GOLD
+
+Arquivo gerado:
+
+data\debug_llm\GOLD_swing_latest_input.txt
+GOLD — Swing rápido
+
+Usa H1/M15 já coletados anteriormente e atualiza apenas os timeframes maiores:
+
+python pipeline/swing_pipeline_web.py --symbol GOLD --skip-intraday-refresh
+EURUSD — Intraday
+
+Primeiro, deixe EURUSD habilitado no tradingagent.json:
+
+python pipeline/intraday_pipeline_web.py --symbol EURUSD --web-agent --analyst analyst_1
+
+Arquivo:
+
+data\debug_llm\EURUSD_analyst_1_latest_input.txt
+EURUSD — Swing
+python pipeline/swing_pipeline_web.py --symbol EURUSD
+
+Ou rápido:
+
+python pipeline/swing_pipeline_web.py --symbol EURUSD --skip-intraday-refresh
+
+Arquivo:
+
+data\debug_llm\EURUSD_swing_latest_input.txt
+Validação do JSON
+
+Quando alterar os símbolos:
+
+python -m json.tool .\tradingagent.json
+Resumo mais rápido
+
+GOLD intraday:
+python pipeline/intraday_pipeline_web.py --symbol GOLD --web-agent --analyst analyst_1
+
+GOLD swing:
+python pipeline/swing_pipeline_web.py --symbol GOLD
+
+GOLD swing rápido:
+python pipeline/swing_pipeline_web.py --symbol GOLD --skip-intraday-refresh
+
+
+
+
+
+

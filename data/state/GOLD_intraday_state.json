@@ -1,26 +1,18 @@
 {
   "schema_version": "1.1",
   "symbol": "GOLD",
-  "updated_at_utc": "2026-06-16T21:22:28.331677+00:00",
-  "last_run_id": "GOLD_20260616_181609_b540007c",
+  "updated_at_utc": "2026-06-18T20:23:48.162771+00:00",
+  "last_run_id": "GOLD_20260618_171901_79e7f8d3",
   "last_action": "WAIT",
-  "last_price": 4339.31,
+  "last_price": 4215.7,
   "previous_thesis_evaluation": {
-    "status": "INVALIDATED",
-    "reason": "A tese anterior estava em espera por confirmação do padrão bear flag, mas o H1 mostrou candles fortes de alta."
+    "status": "NO_PREVIOUS_THESIS",
+    "reason": "Memória não enviada à LLM no perfil quick."
   },
-  "active_thesis": {
-    "scenario": "Espera por confirmação da tendência de alta.",
-    "action_now": "WAIT",
-    "conditional_bias": "BUY",
-    "summary": "H1 e M5 confirmam a tendência de alta, enquanto M1 indica timing adequado. O cenário é favorável para uma entrada compradora.",
-    "trigger": null,
-    "invalidation": 4346.68,
-    "expiry_minutes": 15
-  },
+  "active_thesis": {},
   "trade_plan": {
     "action_now": "WAIT",
-    "conditional_bias": "BUY",
+    "conditional_bias": "NEUTRAL",
     "trigger": null,
     "entry_min": null,
     "entry_max": null,
@@ -29,19 +21,9 @@
     "target_2": null
   },
   "confirmation_conditions": [],
-  "invalidation_conditions": [
-    "Qualquer forte candle bullish no H1, M15 ou M5",
-    "Rompimento acima do nível de invalidação (4346.68)"
-  ],
+  "invalidation_conditions": [],
   "previous_action": "WAIT",
-  "previous_price": 4339.31,
-  "previous_thesis_status": "INVALIDATED",
-  "levels": {
-    "trigger": null,
-    "entry_min": null,
-    "entry_max": null,
-    "invalidation": null,
-    "target_1": null,
-    "target_2": null
-  }
+  "previous_price": 4215.7,
+  "previous_thesis_status": "NO_PREVIOUS_THESIS",
+  "levels": {}
 }
