@@ -145,7 +145,7 @@ Regras de preenchimento:
 def read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Arquivo não encontrado: {path}")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(data, dict):
         raise ValueError(f"JSON deve conter um objeto: {path}")
     return data
