@@ -1,14 +1,13 @@
 
-### GOLD — 18/06/2026: rompimento após fechamento H1
+### GOLD — rompimento após fechamento H1
 
-Desde aproximadamente 11h25 BRT, o Gold testava repetidamente uma região de fundo observada em H1, M15 e M5. O preço permanecia indo e voltando sobre o suporte, formando compressão e acumulando liquidez abaixo das mínimas.
-
+Desde aproximadamente 11h30 BRT, o Gold testava repetidamente uma região de fundo observada em H1, M15 e M5. O preço permanecia indo e voltando sobre o suporte, formando compressão e acumulando liquidez abaixo das mínimas.
 Enquanto a vela H1 permanecia aberta, não havia confirmação suficiente do rompimento. O preço podia continuar consolidando ou realizar apenas uma varredura abaixo do fundo.
-
-Após o fechamento da vela H1 vermelha, próximo da mínima e abaixo da região de suporte, a pressão vendedora foi confirmada. Na vela seguinte ocorreu o rompimento, com busca das extensões de Fibonacci, incluindo a região de 161,8% projetada a partir das estruturas de H1/H4.
+Ou seja, faltando 20 min para fechamento da vela, houve o sweep comprador, para buscar liquidez ?   
+Quando fechou a vela, na próxima 12:08 , veio volume para romper fundo e continuar a venda com busca das extensões de Fibonacci, incluindo a região de 161,8% projetada a partir das estruturas de H1/H4. 
+Ficar esperto quando faltar 20 min para fechar a vela, provável consolidação inves de rompimentos. 
 
 Aprendizado operacional:
-
 * vários testes enfraquecem um suporte quando não produzem reação compradora;
 * rompimento durante uma vela aberta possui maior risco de falso breakout;
 * o fechamento H1 abaixo do fundo aumenta a confiabilidade da continuação;
@@ -16,3 +15,12 @@ Aprendizado operacional:
 * Fibonacci 127,2% e 161,8% podem ser usados como alvos quando há espaço estrutural;
 * entre 10h30 e 12h BRT, o fluxo de Nova York pode aumentar volume e volatilidade;
 * o horário sozinho não valida a entrada: é necessária confluência entre estrutura, fechamento, volume e reteste.
+
+
+### GOLD —
+Pensar 2x antes de comprar perto de resistência ou vender em suporte. 
+Considerar horário para rompimento, volume valido e ate mesmo dia da semana. 
+Mais fácil o preço consolidar, ou realmente ter o breakout ? 
+
+
+

@@ -1,13 +1,13 @@
 {
   "schema_version": "1.1",
   "symbol": "GOLD",
-  "updated_at_utc": "2026-06-18T20:23:48.162771+00:00",
-  "last_run_id": "GOLD_20260618_171901_79e7f8d3",
+  "updated_at_utc": "2026-06-22T20:31:40.706499+00:00",
+  "last_run_id": "GOLD_20260622_173137_29e92f3d",
   "last_action": "WAIT",
-  "last_price": 4215.7,
+  "last_price": 4189.86,
   "previous_thesis_evaluation": {
     "status": "NO_PREVIOUS_THESIS",
-    "reason": "Memória não enviada à LLM no perfil quick."
+    "reason": "Não houve resposta válida para avaliar a memória."
   },
   "active_thesis": {},
   "trade_plan": {
@@ -23,7 +23,7 @@
   "confirmation_conditions": [],
   "invalidation_conditions": [],
   "previous_action": "WAIT",
-  "previous_price": 4215.7,
+  "previous_price": 4189.86,
   "previous_thesis_status": "NO_PREVIOUS_THESIS",
   "levels": {}
 }

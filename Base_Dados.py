@@ -443,15 +443,63 @@ def resolve_broker_timezone(config: Mapping[str, Any], server_name: str) -> str:
     return direct_tz
 
 
-def ensure_symbol_available(symbol: str) -> bool:
-    info = mt5.symbol_info(symbol)
+def resolve_mt5_symbol(symbol: str) -> Optional[str]:
+    """
+    Resolve o nome real do símbolo no MT5 sem alterar a chave interna usada
+    pelo TradingAgent.
+
+    Primeiro tenta correspondência exata. Se não encontrar, procura uma
+    correspondência case-insensitive (por exemplo, BRENT -> Brent e
+    USAIND -> UsaInd). Isso preserva o comportamento atual do intraday,
+    que usa chaves/arquivos em maiúsculas, e apenas corrige o nome enviado
+    à API do MT5.
+    """
+    requested = str(symbol).strip()
+    if not requested:
+        return None
+
+    info = mt5.symbol_info(requested)
+    if info is not None:
+        resolved = requested
+    else:
+        available = mt5.symbols_get()
+        if available is None:
+            LOGGER.error(
+                "Não foi possível listar símbolos do MT5: %s",
+                mt5.last_error(),
+            )
+            return None
+
+        requested_key = requested.casefold()
+        resolved = next(
+            (item.name for item in available if item.name.casefold() == requested_key),
+            None,
+        )
+        if resolved is None:
+            LOGGER.error("Símbolo não encontrado no MT5: %s", requested)
+            return None
+
+        LOGGER.warning(
+            "Símbolo resolvido pelo MT5 | solicitado=%s | real=%s",
+            requested,
+            resolved,
+        )
+        info = mt5.symbol_info(resolved)
+
     if info is None:
-        LOGGER.error("Símbolo não encontrado no MT5: %s", symbol)
-        return False
-    if not info.visible and not mt5.symbol_select(symbol, True):
-        LOGGER.error("Não foi possível habilitar o símbolo: %s", symbol)
-        return False
-    return True
+        LOGGER.error("Falha ao obter informações do símbolo: %s", resolved)
+        return None
+
+    if not info.visible and not mt5.symbol_select(resolved, True):
+        LOGGER.error("Não foi possível habilitar o símbolo: %s", resolved)
+        return None
+
+    return resolved
+
+
+def ensure_symbol_available(symbol: str) -> bool:
+    """Compatibilidade com chamadas existentes."""
+    return resolve_mt5_symbol(symbol) is not None
 
 
 def collect_mt5_rates(
@@ -462,15 +510,16 @@ def collect_mt5_rates(
     broker_timezone: str,
     timestamp_source: str = "utc_epoch",
 ) -> pd.DataFrame:
-    if not ensure_symbol_available(symbol):
+    mt5_symbol = resolve_mt5_symbol(symbol)
+    if mt5_symbol is None:
         return pd.DataFrame()
 
     timeframe = MT5_TIMEFRAMES[timeframe_name]
     start_pos = 0 if include_live_bar else 1
-    rates = mt5.copy_rates_from_pos(symbol, timeframe, start_pos, int(count))
+    rates = mt5.copy_rates_from_pos(mt5_symbol, timeframe, start_pos, int(count))
 
     if rates is None or len(rates) == 0:
-        LOGGER.warning("Sem dados para %s %s", symbol, timeframe_name)
+        LOGGER.warning("Sem dados para %s (MT5=%s) %s", symbol, mt5_symbol, timeframe_name)
         return pd.DataFrame()
 
     base = pd.DataFrame(rates)
@@ -1986,6 +2035,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Modo do pipeline. Se omitido, usa pipeline.default_mode do JSON.",
     )
     parser.add_argument(
+        "--symbol",
+        action="append",
+        default=None,
+        help=(
+            "Filtra um símbolo. Pode ser repetido, por exemplo: "
+            "--symbol GOLD --symbol EURUSD."
+        ),
+    )
+    parser.add_argument(
+        "--symbols",
+        nargs="+",
+        default=None,
+        help=(
+            "Filtra vários símbolos em uma única opção, por exemplo: "
+            "--symbols GOLD EURUSD GBPUSD."
+        ),
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=("DEBUG", "INFO", "WARNING", "ERROR"),
@@ -2001,10 +2068,33 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     try:
         config = load_tradingagent_config(args.config)
+
+        requested_symbols: List[str] = []
+        if args.symbol:
+            requested_symbols.extend(args.symbol)
+        if args.symbols:
+            requested_symbols.extend(args.symbols)
+
+        if requested_symbols:
+            filtered_symbols = normalize_symbols(requested_symbols)
+            if not filtered_symbols:
+                raise ValueError("Nenhum símbolo válido foi informado no filtro CLI.")
+
+            universe = config.setdefault("universe", {})
+            if not isinstance(universe, MutableMapping):
+                raise ValueError("A seção universe do tradingagent.json precisa ser um objeto.")
+            universe["symbols"] = filtered_symbols
+            LOGGER.info("Filtro de símbolos aplicado via CLI: %s", filtered_symbols)
+
         default_mode = str(config.get("pipeline", {}).get("default_mode", "full_rebuild"))
         mode = str(args.mode or default_mode)
 
-        LOGGER.info("Projeto=%s | modo=%s", config.get("project", {}).get("name", "TradingAgent"), mode)
+        LOGGER.info(
+            "Projeto=%s | modo=%s | símbolos=%s",
+            config.get("project", {}).get("name", "TradingAgent"),
+            mode,
+            normalize_symbols(config.get("universe", {}).get("symbols", [])),
+        )
         outputs = run_pipeline(config, mode)
 
         LOGGER.info(

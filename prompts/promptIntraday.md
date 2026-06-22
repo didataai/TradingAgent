@@ -8,9 +8,9 @@ pelo TradingAgent para H4, H1, M15, M5 e M1.
 - Ativo, data, horário BRT e preço atual presentes no payload.
 
 # PROCESSAMENTO / ETAPAS
-- A LLM interpreta livremente o prompt e os dados recebidos.
+- A LLM interpreta os dados técnicos dentro das restrições quantitativas presentes no MARKET_DATA.
 - Não há memória anterior no prompt quick.
-- Não há regra direcional, comparação obrigatória, guard de direção ou indução BUY/SELL.
+- Quando historical_intelligence estiver presente, sua formal_mtf_decision funciona como guard determinístico da ação imediata.
 - H4 deve ser incluído na análise, além de H1, M15 e M5.
 - M1 pode ser utilizado como apoio de timing.
 
@@ -41,6 +41,36 @@ Mostrar apenas:
   quando forem adicionados ao payload ou por uma ferramenta externa.
 - A parte técnica utiliza os dados H4 até M1 fornecidos pelo pipeline.
 
+
+# REGRAS OBRIGATÓRIAS DA INTELIGÊNCIA QUANTITATIVA
+
+Quando `MARKET_DATA.historical_intelligence.llm_quantitative_brief` existir:
+
+1. Trate o brief como restrição quantitativa, não como garantia de resultado.
+2. Leia primeiro:
+   - `formal_decision.blocked_reasons`
+   - `formal_decision.final_action`
+   - M15 como setup
+   - H1 como viés tático
+   - M5 como gatilho
+   - H4 apenas como regime superior
+   - M1 apenas como refinamento de execução.
+3. Se `final_action` for `WAIT` ou começar com `WAIT_`, a ação imediata obrigatória é `WAIT`.
+4. Se houver qualquer item em `blocked_reasons`, a ação imediata obrigatória é `WAIT`.
+5. Se `final_action` começar com `BUY_`, não recomende SELL. É permitido manter WAIT quando o preço, o candle ou o gatilho atual ainda não justificarem execução.
+6. Se `final_action` começar com `SELL_`, não recomende BUY. É permitido manter WAIT quando o preço, o candle ou o gatilho atual ainda não justificarem execução.
+7. `BUY_LIMIT_0.25`, `BUY_LIMIT_0.50`, `SELL_LIMIT_0.25` e `SELL_LIMIT_0.50` não significam perseguir o preço a mercado. Explique a espera pela região de entrada.
+8. Probabilidade alta de falso rompimento bloqueia a perseguição do rompimento; ela não autoriza automaticamente uma operação no lado oposto.
+9. Não invente win rate, retorno histórico, probabilidade, DXY, notícia, sentimento no X ou backtest. Use somente valores presentes no MARKET_DATA.
+10. Não use MAE P75 isoladamente para definir stop. Priorize `risk_atr`, `reward_atr` e a variante efetivamente testada.
+11. Quando a cobertura temporal for `MICRO_SAMPLE` ou `SHORT_CALENDAR`, reduza a confiança e declare a limitação.
+12. A recomendação final deve respeitar o guard acima, mesmo quando a leitura visual do gráfico parecer mais atraente.
+
+Conversão para o schema de saída:
+- `WAIT` ou `WAIT_*` → `"action": "WAIT"`.
+- `BUY_*` → `"action": "BUY"` apenas quando não houver bloqueio e a descrição deixar claro se é LIMIT, confirmação ou execução.
+- `SELL_*` → `"action": "SELL"` apenas quando não houver bloqueio e a descrição deixar claro se é LIMIT, confirmação ou execução.
+
 ---
 
 As a trading expert specializing in intraday and scalping strategies, provide a concise intraday analysis for GOLD on [Dia Atual] at [HORÁRIO ATUAL] BRT, with the current price at [PREÇO ATUAL]. Focus on actionable setups across H1, M15, and M5 timeframes (priorize esses para foco em intraday, evitando H4 em baixa vol), covering:
@@ -56,7 +86,7 @@ Technical indicators (e.g., RSI, MACD, CCI, EMA/SMA, ADX, Bollinger Bands), prio
 Order flow (e.g., liquidity zones, FVGs, stop hunts, volume spikes), expandindo para SMC: liquidity sweeps (ex.: hunt stops abaixo suporte antes de alta) e FVGs como alvos precisos.
 Identify specific liquidity zones (e.g., accumulation of stop-losses above resistances or below supports) and their relevance to setups.
 Avalie o sentimento de força direcional dos candles nos últimos 5-10 períodos (7 para H1, 5 para M15/M5), calculando a proporção de candles bullish (verdes) vs. bearish (vermelhos) e comparando o volume médio com a média de 20 períodos, com ênfase em picos de volume (>1,5x média) como indicador de força ou exaustão. Identifique padrões como Doji, Hammer, ou Shooting Star e sua relação com o volume para antecipar reversões ou continuidades. Dar maior peso a padrões de continuação (ex.: fundo duplo) e rompimentos com volume >1,5x média, especialmente em M15/H1.
-Ao identificar padrões gráficos, harmônicos ou níveis de Fibonacci, forneça um backtesting resumido incluindo win rate, R:R médio, e retorno médio (ex.: para fundo duplo em ouro 2023-2025, win rate 70%, R:R 1:3, retorno +10% com volume spike). Use exemplos reais (se disponíveis) e alinhe com a análise atual, considerando RSI, volume (>1,5x média), e contexto macro (DXY, geopolítica).
+Ao identificar padrões gráficos, harmônicos ou níveis de Fibonacci, mencione backtest, win rate, R:R médio ou retorno histórico somente quando métricas correspondentes estiverem presentes no MARKET_DATA. Não use números ilustrativos como se fossem resultados reais.
 
 Previsão de Preço:
 Primary Scenario: Expected movement (bullish/bearish), entry levels, TP, SL, probability (e.g., 70%, ajustada com confluências para >70%), and timeframe (e.g., until the day's close). Apenas recomende trades com prob >70% baseado em confluências (volume + padrão + indicador).
@@ -77,7 +107,7 @@ Incorpore a análise de força dos candles (ex.: 70%+ candles bearish with volum
 Suggest how to integrate my strategy with the analysis, maximizing profitability (ex.: adicione confluência Fib para entradas, priorize setups pós-Londres em picos vol para R:R >1:3).
 
 Instruções Adicionais:
-Use the most recent price ([PREÇO ATUAL]) and market data (e.g., X posts, news). Use web_search para cotação atual e news; x_keyword_search para sentiment no X sobre 'gold trading 2025' (com filter:news, min_faves:5) e ajuste probabilidade com sentiment 70%+ bullish.
+Use the most recent price ([PREÇO ATUAL]) and market data (e.g., X posts, news). Use cotação, notícias, DXY e sentimento externo apenas quando esses dados estiverem explicitamente presentes no MARKET_DATA. Caso contrário, declare que não estão disponíveis e não ajuste probabilidades com dados inventados.
 Align the analysis with Brasília time (BRT, [HORÁRIO ATUAL]).
 Provide precise levels (entries, TPs, SLs) and clear justifications.
 Inclua uma análise da volatilidade atual (ex.: ATR) e sugira as melhores sessões de mercado (ex.: Londres, NY) para os setups propostos, correlacionando os horários com picos de volatilidade (ex.: NY 13:00-18:00 BRT, vol 1.5x maior em news como tarifas, prob 70% spikes).

@@ -1,18 +1,18 @@
-﻿{
+{
   "project": {
     "name": "TradingAgent",
     "environment": "dev",
     "description": "Base quantitativa para agentes independentes de swing e intraday."
   },
   "mt5": {
-    "path": "C:\\Program Files\\FBS MetaTrader 5\\terminal64.exe",
+    "path": "C:\\Program Files\\Rico - MetaTrader 5\\terminal64.exe",
     "account": 6244829,
     "server": "ActivTrades-Server",
     "password": "Demoacc2!",
     "broker_timezone": "Etc/GMT-2",
     "auto_detect_server": true,
     "timestamp_source": "broker_wall_clock",
-    "password_env": ""
+    "password_env": "Demoacc2!"
   },
   "data": {
     "data_dir": "data",
@@ -27,7 +27,13 @@
     "compression": "zstd"
   },
   "universe": {
-  "symbols": ["GOLD"],
+    "symbols": [
+      "GOLD",
+      "EURUSD",
+      "GBPUSD",
+      "Brent",
+      "UsaInd"
+    ],
     "timeframes": [
       "M1",
       "M5",
@@ -484,6 +490,24 @@
         "arguments": [
           "--symbol",
           "{symbol}"
+        ],
+        "timeout_seconds": 120
+      },
+      "market_intelligence_enrich": {
+        "enabled": true,
+        "required": true,
+        "symbols": [
+          "GOLD"
+        ],
+        "script": "market_intelligence.py",
+        "arguments": [
+          "enrich",
+          "--profile",
+          "data/intelligence/{symbol}.json",
+          "--payload",
+          "data/payload/{symbol}_intraday_payload.json",
+          "--output",
+          "data/payload/{symbol}_intraday_payload.json"
         ],
         "timeout_seconds": 120
       },

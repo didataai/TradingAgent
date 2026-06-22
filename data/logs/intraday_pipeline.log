@@ -4289,3 +4289,1642 @@
 [2026-06-19 11:07:03] Símbolo finalizado | symbol=GOLD | success=True | duration=1.865s
 [2026-06-19 11:07:03] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
 [2026-06-19 11:07:03] Pipeline finalizado | success=True | duration=6.059s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-19 11:50:18] Pipeline iniciado | run_id=intraday_pipeline_20260619_115018_29c01d29 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-19 11:50:18] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:50:18] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-19 11:50:18] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh
+    MetaTrader5 n�o instalado. Execute: pip install MetaTrader5
+[2026-06-19 11:50:28] Etapa finalizada | step=base_dados | symbol=- | success=False | return_code=1 | duration=10.373s
+[2026-06-19 11:50:28] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:50:28] Pipeline falhou | erro=RuntimeError: A atualização da base falhou; etapas seguintes não serão executadas.
+[2026-06-19 11:50:28] Pipeline finalizado | success=False | duration=10.406s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-19 11:52:18] Pipeline iniciado | run_id=intraday_pipeline_20260619_115218_3caf5a19 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-19 11:52:18] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:52:18] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-19 11:52:18] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh
+    MetaTrader5 n�o instalado. Execute: pip install MetaTrader5
+[2026-06-19 11:52:25] Etapa finalizada | step=base_dados | symbol=- | success=False | return_code=1 | duration=6.633s
+[2026-06-19 11:52:25] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:52:25] Pipeline falhou | erro=RuntimeError: A atualização da base falhou; etapas seguintes não serão executadas.
+[2026-06-19 11:52:25] Pipeline finalizado | success=False | duration=6.67s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-19 11:54:29] Pipeline iniciado | run_id=intraday_pipeline_20260619_115429_e6f1e188 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-19 11:54:29] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:54:29] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-19 11:54:29] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh
+    Pacote 'ta' n�o instalado. Execute: pip install ta
+[2026-06-19 11:54:33] Etapa finalizada | step=base_dados | symbol=- | success=False | return_code=1 | duration=4.387s
+[2026-06-19 11:54:33] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:54:33] Pipeline falhou | erro=RuntimeError: A atualização da base falhou; etapas seguintes não serão executadas.
+[2026-06-19 11:54:33] Pipeline finalizado | success=False | duration=4.419s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-19 11:55:02] Pipeline iniciado | run_id=intraday_pipeline_20260619_115502_31ba0fbb | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-19 11:55:02] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:55:02] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-19 11:55:02] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh
+    Pacote 'ta' n�o instalado. Execute: pip install ta
+[2026-06-19 11:55:06] Etapa finalizada | step=base_dados | symbol=- | success=False | return_code=1 | duration=4.463s
+[2026-06-19 11:55:06] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:55:06] Pipeline falhou | erro=RuntimeError: A atualização da base falhou; etapas seguintes não serão executadas.
+[2026-06-19 11:55:06] Pipeline finalizado | success=False | duration=4.491s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-19 11:55:57] Pipeline iniciado | run_id=intraday_pipeline_20260619_115557_b167b9de | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-19 11:55:57] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:55:57] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-19 11:55:57] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh
+    2026-06-19 11:56:02,546 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-19 11:56:02,547 - INFO - Projeto=TradingAgent | modo=intraday_refresh
+    2026-06-19 11:56:02,559 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-19 11:56:02,559 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-19 11:56:02,559 - INFO - Coletando GOLD TF=M1
+    2026-06-19 11:56:04,729 - ERROR - Erro em GOLD M1: pyarrow n�o instalado. Execute: pip install pyarrow
+    Traceback (most recent call last):
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 1878, in collect_and_build
+        saved = save_timeframe_dataset(dataset, symbol, timeframe, config)
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 1700, in save_timeframe_dataset
+        atomic_write_parquet(dataset, parquet_path, compression=compression)
+        ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 1672, in atomic_write_parquet
+        raise RuntimeError("pyarrow n�o instalado. Execute: pip install pyarrow")
+    RuntimeError: pyarrow n�o instalado. Execute: pip install pyarrow
+    2026-06-19 11:56:04,742 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260619T145604Z.json
+    2026-06-19 11:56:04,743 - INFO - Conex�o MT5 encerrada
+    2026-06-19 11:56:04,743 - ERROR - Falha no Base_Dados.py: pyarrow n�o instalado. Execute: pip install pyarrow
+    Traceback (most recent call last):
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 2008, in main
+        outputs = run_pipeline(config, mode)
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 1957, in run_pipeline
+        _, outputs = collect_and_build(config, mode, mode_cfg, broker_timezone)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 1878, in collect_and_build
+        saved = save_timeframe_dataset(dataset, symbol, timeframe, config)
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 1700, in save_timeframe_dataset
+        atomic_write_parquet(dataset, parquet_path, compression=compression)
+        ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      File "C:\Dev\TradingAgent\Base_Dados.py", line 1672, in atomic_write_parquet
+        raise RuntimeError("pyarrow n�o instalado. Execute: pip install pyarrow")
+    RuntimeError: pyarrow n�o instalado. Execute: pip install pyarrow
+[2026-06-19 11:56:04] Etapa finalizada | step=base_dados | symbol=- | success=False | return_code=1 | duration=7.158s
+[2026-06-19 11:56:04] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:56:04] Pipeline falhou | erro=RuntimeError: A atualização da base falhou; etapas seguintes não serão executadas.
+[2026-06-19 11:56:05] Pipeline finalizado | success=False | duration=7.186s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-19 11:59:15] Pipeline iniciado | run_id=intraday_pipeline_20260619_115915_0d04b7d2 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-19 11:59:15] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:59:15] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-19 11:59:15] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh
+    2026-06-19 11:59:20,847 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-19 11:59:20,847 - INFO - Projeto=TradingAgent | modo=intraday_refresh
+    2026-06-19 11:59:20,856 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-19 11:59:20,856 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-19 11:59:20,856 - INFO - Coletando GOLD TF=M1
+    2026-06-19 11:59:22,636 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-19 11:59:22,636 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-19 11:59:22,636 - INFO - Coletando GOLD TF=M5
+    2026-06-19 11:59:24,026 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-19 11:59:24,026 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-19 11:59:24,026 - INFO - Coletando GOLD TF=M15
+    2026-06-19 11:59:25,305 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-19 11:59:25,305 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-19 11:59:25,305 - INFO - Coletando GOLD TF=H1
+    2026-06-19 11:59:26,789 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-19 11:59:26,789 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-19 11:59:26,789 - INFO - Coletando GOLD TF=H4
+    2026-06-19 11:59:28,186 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-19 11:59:28,186 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-19 11:59:28,187 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-19 11:59:28,926 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-19 11:59:28,937 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260619T145928Z.json
+    2026-06-19 11:59:28,937 - INFO - Conex�o MT5 encerrada
+    2026-06-19 11:59:28,942 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-19 11:59:29] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=13.189s
+[2026-06-19 11:59:29] Símbolo iniciado | symbol=GOLD
+[2026-06-19 11:59:29] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-19 11:59:29] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-19 11:59:34] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.185s
+[2026-06-19 11:59:34] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-19 11:59:34] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=93622
+[2026-06-19 11:59:39] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=4.663s
+[2026-06-19 11:59:39] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-19 11:59:39] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=67987 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-19 11:59:39] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.691s
+[2026-06-19 11:59:39] Símbolo finalizado | symbol=GOLD | success=True | duration=10.551s
+[2026-06-19 11:59:39] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 11:59:39] Pipeline finalizado | success=True | duration=23.772s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-19 12:00:40] Pipeline iniciado | run_id=intraday_pipeline_20260619_120040_63793e8e | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-19 12:00:40] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 12:00:40] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-19 12:00:40] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh
+    2026-06-19 12:00:44,553 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-19 12:00:44,553 - INFO - Projeto=TradingAgent | modo=intraday_refresh
+    2026-06-19 12:00:44,562 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-19 12:00:44,563 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-19 12:00:44,563 - INFO - Coletando GOLD TF=M1
+    2026-06-19 12:00:46,095 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-19 12:00:46,096 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-19 12:00:46,096 - INFO - Coletando GOLD TF=M5
+    2026-06-19 12:00:47,376 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-19 12:00:47,376 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-19 12:00:47,376 - INFO - Coletando GOLD TF=M15
+    2026-06-19 12:00:48,754 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-19 12:00:48,754 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-19 12:00:48,754 - INFO - Coletando GOLD TF=H1
+    2026-06-19 12:00:50,401 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-19 12:00:50,401 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-19 12:00:50,401 - INFO - Coletando GOLD TF=H4
+    2026-06-19 12:00:52,294 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-19 12:00:52,294 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-19 12:00:52,294 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-19 12:00:53,235 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-19 12:00:53,256 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260619T150053Z.json
+    2026-06-19 12:00:53,256 - INFO - Conex�o MT5 encerrada
+    2026-06-19 12:00:53,262 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-19 12:00:53] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=13.274s
+[2026-06-19 12:00:53] Símbolo iniciado | symbol=GOLD
+[2026-06-19 12:00:53] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-19 12:00:53] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-19 12:00:59] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.492s
+[2026-06-19 12:00:59] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-19 12:00:59] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=93587
+[2026-06-19 12:01:04] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=5.297s
+[2026-06-19 12:01:04] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-19 12:01:04] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=67934 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-19 12:01:05] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.803s
+[2026-06-19 12:01:05] Símbolo finalizado | symbol=GOLD | success=True | duration=11.603s
+[2026-06-19 12:01:05] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-19 12:01:05] Pipeline finalizado | success=True | duration=24.909s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 10:18:07] Pipeline iniciado | run_id=intraday_pipeline_20260622_101807_b6d6208a | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 10:18:07] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:18:07] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 10:18:07] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 10:18:15,772 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 10:18:15,773 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 10:18:15,773 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 10:18:15,782 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 10:18:15,782 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 10:18:15,783 - INFO - Coletando GOLD TF=M1
+    2026-06-22 10:18:18,296 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 10:18:18,296 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 10:18:18,296 - INFO - Coletando GOLD TF=M5
+    2026-06-22 10:18:20,347 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 10:18:20,347 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 10:18:20,347 - INFO - Coletando GOLD TF=M15
+    2026-06-22 10:18:22,269 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 10:18:22,269 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 10:18:22,269 - INFO - Coletando GOLD TF=H1
+    2026-06-22 10:18:24,529 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 10:18:24,529 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 10:18:24,529 - INFO - Coletando GOLD TF=H4
+    2026-06-22 10:18:27,276 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 10:18:27,276 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 10:18:27,276 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 10:18:28,598 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 10:18:28,614 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T131828Z.json
+    2026-06-22 10:18:28,614 - INFO - Conex�o MT5 encerrada
+    2026-06-22 10:18:28,626 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 10:18:28] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=21.64s
+[2026-06-22 10:18:28] Símbolo iniciado | symbol=GOLD
+[2026-06-22 10:18:28] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:18:28] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 10:18:35] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.922s
+[2026-06-22 10:18:35] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:18:35] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95131
+[2026-06-22 10:18:42] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.201s
+[2026-06-22 10:18:42] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 10:18:42] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68674 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 10:18:42] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.863s
+[2026-06-22 10:18:42] Símbolo finalizado | symbol=GOLD | success=True | duration=13.993s
+[2026-06-22 10:18:42] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:18:42] Pipeline finalizado | success=True | duration=35.677s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 10:20:14] Pipeline iniciado | run_id=intraday_pipeline_20260622_102014_5ade049e | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 10:20:14] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:20:14] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 10:20:14] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 10:20:19,826 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 10:20:19,826 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 10:20:19,826 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 10:20:19,836 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 10:20:19,837 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 10:20:19,837 - INFO - Coletando GOLD TF=M1
+    2026-06-22 10:20:22,239 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 10:20:22,239 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 10:20:22,239 - INFO - Coletando GOLD TF=M5
+    2026-06-22 10:20:24,313 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 10:20:24,314 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 10:20:24,314 - INFO - Coletando GOLD TF=M15
+    2026-06-22 10:20:26,477 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 10:20:26,477 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 10:20:26,477 - INFO - Coletando GOLD TF=H1
+    2026-06-22 10:20:28,682 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 10:20:28,682 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 10:20:28,683 - INFO - Coletando GOLD TF=H4
+    2026-06-22 10:20:30,907 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 10:20:30,907 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 10:20:30,907 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 10:20:31,979 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 10:20:31,995 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T132031Z.json
+    2026-06-22 10:20:31,995 - INFO - Conex�o MT5 encerrada
+    2026-06-22 10:20:32,002 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 10:20:32] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=17.333s
+[2026-06-22 10:20:32] Símbolo iniciado | symbol=GOLD
+[2026-06-22 10:20:32] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:20:32] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 10:20:38] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.043s
+[2026-06-22 10:20:38] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:20:38] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95934
+[2026-06-22 10:20:44] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.221s
+[2026-06-22 10:20:44] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 10:20:44] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=69074 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 10:20:45] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.811s
+[2026-06-22 10:20:45] Símbolo finalizado | symbol=GOLD | success=True | duration=13.083s
+[2026-06-22 10:20:45] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:20:45] Pipeline finalizado | success=True | duration=30.448s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 10:31:26] Pipeline iniciado | run_id=intraday_pipeline_20260622_103126_3c8d208e | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 10:31:26] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:31:26] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 10:31:26] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 10:31:48,414 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 10:31:48,414 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 10:31:48,415 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 10:31:48,484 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 10:31:48,484 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 10:31:48,484 - INFO - Coletando GOLD TF=M1
+    2026-06-22 10:31:55,339 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 10:31:55,340 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 10:31:55,341 - INFO - Coletando GOLD TF=M5
+    2026-06-22 10:32:00,727 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 10:32:00,727 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 10:32:00,728 - INFO - Coletando GOLD TF=M15
+    2026-06-22 10:32:05,715 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 10:32:05,715 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 10:32:05,716 - INFO - Coletando GOLD TF=H1
+    2026-06-22 10:32:10,687 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 10:32:10,688 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 10:32:10,688 - INFO - Coletando GOLD TF=H4
+    2026-06-22 10:32:15,016 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 10:32:15,016 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 10:32:15,017 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 10:32:16,954 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 10:32:17,067 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T133216Z.json
+    2026-06-22 10:32:17,068 - INFO - Conex�o MT5 encerrada
+    2026-06-22 10:32:17,077 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 10:32:17] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=51.563s
+[2026-06-22 10:32:17] Símbolo iniciado | symbol=GOLD
+[2026-06-22 10:32:17] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:32:17] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 10:32:28] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=10.159s
+[2026-06-22 10:32:28] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:32:28] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95198
+[2026-06-22 10:32:35] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=7.002s
+[2026-06-22 10:32:35] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 10:32:35] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68736 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 10:32:35] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.857s
+[2026-06-22 10:32:35] Símbolo finalizado | symbol=GOLD | success=True | duration=18.038s
+[2026-06-22 10:32:35] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:32:36] Pipeline finalizado | success=True | duration=69.817s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 10:36:57] Pipeline iniciado | run_id=intraday_pipeline_20260622_103657_60861821 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 10:36:57] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:36:57] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 10:36:57] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 10:37:05,718 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 10:37:05,718 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 10:37:05,718 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 10:37:05,732 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 10:37:05,733 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 10:37:05,733 - INFO - Coletando GOLD TF=M1
+    2026-06-22 10:37:08,370 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 10:37:08,370 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 10:37:08,370 - INFO - Coletando GOLD TF=M5
+    2026-06-22 10:37:10,550 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 10:37:10,550 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 10:37:10,550 - INFO - Coletando GOLD TF=M15
+    2026-06-22 10:37:12,728 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 10:37:12,729 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 10:37:12,729 - INFO - Coletando GOLD TF=H1
+    2026-06-22 10:37:14,852 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 10:37:14,852 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 10:37:14,853 - INFO - Coletando GOLD TF=H4
+    2026-06-22 10:37:17,185 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 10:37:17,185 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 10:37:17,186 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 10:37:18,368 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 10:37:18,382 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T133718Z.json
+    2026-06-22 10:37:18,383 - INFO - Conex�o MT5 encerrada
+    2026-06-22 10:37:18,390 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 10:37:18] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=20.907s
+[2026-06-22 10:37:18] Símbolo iniciado | symbol=GOLD
+[2026-06-22 10:37:18] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:37:18] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 10:37:26] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=7.815s
+[2026-06-22 10:37:26] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:37:26] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=96117
+[2026-06-22 10:37:36] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=9.555s
+[2026-06-22 10:37:36] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 10:37:36] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=69170 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 10:37:36] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.901s
+[2026-06-22 10:37:36] Símbolo finalizado | symbol=GOLD | success=True | duration=18.282s
+[2026-06-22 10:37:36] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:37:36] Pipeline finalizado | success=True | duration=39.232s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 10:42:13] Pipeline iniciado | run_id=intraday_pipeline_20260622_104213_d7b6ff4d | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 10:42:13] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:42:13] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 10:42:13] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 10:42:20,793 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 10:42:20,793 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 10:42:20,793 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 10:42:20,803 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 10:42:20,803 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 10:42:20,803 - INFO - Coletando GOLD TF=M1
+    2026-06-22 10:42:23,342 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 10:42:23,342 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 10:42:23,342 - INFO - Coletando GOLD TF=M5
+    2026-06-22 10:42:25,423 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 10:42:25,423 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 10:42:25,423 - INFO - Coletando GOLD TF=M15
+    2026-06-22 10:42:27,675 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 10:42:27,675 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 10:42:27,675 - INFO - Coletando GOLD TF=H1
+    2026-06-22 10:42:29,694 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 10:42:29,694 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 10:42:29,694 - INFO - Coletando GOLD TF=H4
+    2026-06-22 10:42:31,744 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 10:42:31,744 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 10:42:31,745 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 10:42:32,765 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 10:42:32,779 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T134232Z.json
+    2026-06-22 10:42:32,780 - INFO - Conex�o MT5 encerrada
+    2026-06-22 10:42:32,789 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 10:42:33] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=19.112s
+[2026-06-22 10:42:33] Símbolo iniciado | symbol=GOLD
+[2026-06-22 10:42:33] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:42:33] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 10:42:39] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.211s
+[2026-06-22 10:42:39] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:42:39] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=96071
+[2026-06-22 10:42:45] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=5.777s
+[2026-06-22 10:42:45] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 10:42:45] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=69133 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 10:42:45] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.765s
+[2026-06-22 10:42:45] Símbolo finalizado | symbol=GOLD | success=True | duration=12.766s
+[2026-06-22 10:42:45] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:42:45] Pipeline finalizado | success=True | duration=31.913s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 10:45:44] Pipeline iniciado | run_id=intraday_pipeline_20260622_104543_8286abe2 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 10:45:44] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:45:44] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 10:45:44] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 10:45:48,734 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 10:45:48,734 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 10:45:48,734 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 10:45:48,745 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 10:45:48,745 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 10:45:48,745 - INFO - Coletando GOLD TF=M1
+    2026-06-22 10:45:51,316 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 10:45:51,317 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 10:45:51,317 - INFO - Coletando GOLD TF=M5
+    2026-06-22 10:45:53,370 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 10:45:53,370 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 10:45:53,370 - INFO - Coletando GOLD TF=M15
+    2026-06-22 10:45:55,559 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 10:45:55,560 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 10:45:55,560 - INFO - Coletando GOLD TF=H1
+    2026-06-22 10:45:57,344 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 10:45:57,344 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 10:45:57,344 - INFO - Coletando GOLD TF=H4
+    2026-06-22 10:45:59,178 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 10:45:59,179 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 10:45:59,179 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 10:46:00,188 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 10:46:00,201 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T134600Z.json
+    2026-06-22 10:46:00,201 - INFO - Conex�o MT5 encerrada
+    2026-06-22 10:46:00,208 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 10:46:00] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=16.484s
+[2026-06-22 10:46:00] Símbolo iniciado | symbol=GOLD
+[2026-06-22 10:46:00] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:46:00] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 10:46:06] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.181s
+[2026-06-22 10:46:06] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:46:06] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=96217
+[2026-06-22 10:46:12] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.095s
+[2026-06-22 10:46:12] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 10:46:12] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=69174 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 10:46:13] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.964s
+[2026-06-22 10:46:13] Símbolo finalizado | symbol=GOLD | success=True | duration=13.252s
+[2026-06-22 10:46:13] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:46:13] Pipeline finalizado | success=True | duration=29.778s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 10:51:25] Pipeline iniciado | run_id=intraday_pipeline_20260622_105125_be3df56e | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 10:51:25] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:51:25] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 10:51:25] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 10:51:29,302 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 10:51:29,303 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 10:51:29,303 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 10:51:29,312 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 10:51:29,312 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 10:51:29,312 - INFO - Coletando GOLD TF=M1
+    2026-06-22 10:51:30,946 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 10:51:30,946 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 10:51:30,946 - INFO - Coletando GOLD TF=M5
+    2026-06-22 10:51:32,331 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 10:51:32,331 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 10:51:32,331 - INFO - Coletando GOLD TF=M15
+    2026-06-22 10:51:33,667 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 10:51:33,668 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 10:51:33,668 - INFO - Coletando GOLD TF=H1
+    2026-06-22 10:51:34,946 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 10:51:34,946 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 10:51:34,946 - INFO - Coletando GOLD TF=H4
+    2026-06-22 10:51:36,362 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 10:51:36,362 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 10:51:36,363 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 10:51:36,972 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 10:51:36,991 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T135136Z.json
+    2026-06-22 10:51:36,991 - INFO - Conex�o MT5 encerrada
+    2026-06-22 10:51:36,997 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 10:51:37] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=12.032s
+[2026-06-22 10:51:37] Símbolo iniciado | symbol=GOLD
+[2026-06-22 10:51:37] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:51:37] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 10:51:42] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=4.845s
+[2026-06-22 10:51:42] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 10:51:42] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95796
+[2026-06-22 10:51:46] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=4.729s
+[2026-06-22 10:51:46] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 10:51:46] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68910 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 10:51:47] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.666s
+[2026-06-22 10:51:47] Símbolo finalizado | symbol=GOLD | success=True | duration=10.253s
+[2026-06-22 10:51:47] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 10:51:47] Pipeline finalizado | success=True | duration=22.317s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:01:35] Pipeline iniciado | run_id=intraday_pipeline_20260622_110135_67cb27b8 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:01:35] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:01:35] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:01:35] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:01:40,351 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:01:40,352 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:01:40,352 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:01:40,361 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:01:40,361 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:01:40,361 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:01:42,204 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:01:42,204 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:01:42,204 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:01:43,480 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:01:43,480 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:01:43,480 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:01:44,975 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:01:44,975 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:01:44,975 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:01:46,632 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:01:46,632 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:01:46,632 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:01:48,171 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:01:48,171 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:01:48,171 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:01:48,872 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:01:48,886 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T140148Z.json
+    2026-06-22 11:01:48,886 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:01:48,892 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:01:49] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=13.689s
+[2026-06-22 11:01:49] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:01:49] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:01:49] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 11:01:55] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.899s
+[2026-06-22 11:01:55] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:01:55] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94369
+[2026-06-22 11:02:01] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.66s
+[2026-06-22 11:02:01] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:02:01] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68138 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:02:02] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.841s
+[2026-06-22 11:02:02] Símbolo finalizado | symbol=GOLD | success=True | duration=13.412s
+[2026-06-22 11:02:02] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:02:02] Pipeline finalizado | success=True | duration=27.136s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:05:17] Pipeline iniciado | run_id=intraday_pipeline_20260622_110517_4929a701 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:05:17] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:05:17] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:05:17] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:05:21,886 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:05:21,886 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:05:21,886 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:05:21,894 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:05:21,894 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:05:21,894 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:05:23,678 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:05:23,678 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:05:23,678 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:05:25,093 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:05:25,093 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:05:25,093 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:05:26,736 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:05:26,736 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:05:26,736 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:05:28,399 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:05:28,399 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:05:28,399 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:05:29,919 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:05:29,919 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:05:29,919 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:05:30,695 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:05:30,708 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T140530Z.json
+    2026-06-22 11:05:30,708 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:05:30,713 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:05:30] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=13.393s
+[2026-06-22 11:05:30] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:05:30] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:05:30] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 11:05:36] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.997s
+[2026-06-22 11:05:36] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:05:36] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94448
+[2026-06-22 11:05:42] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=5.906s
+[2026-06-22 11:05:42] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:05:42] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68175 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:05:43] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.796s
+[2026-06-22 11:05:43] Símbolo finalizado | symbol=GOLD | success=True | duration=12.709s
+[2026-06-22 11:05:43] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:05:43] Pipeline finalizado | success=True | duration=26.135s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:09:56] Pipeline iniciado | run_id=intraday_pipeline_20260622_110956_cb79265c | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:09:56] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:09:56] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:09:56] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:10:00,569 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:10:00,569 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:10:00,570 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:10:00,577 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:10:00,577 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:10:00,577 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:10:02,028 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:10:02,028 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:10:02,028 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:10:03,427 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:10:03,428 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:10:03,428 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:10:04,730 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:10:04,730 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:10:04,730 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:10:06,162 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:10:06,162 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:10:06,162 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:10:07,507 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:10:07,507 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:10:07,507 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:10:08,160 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:10:08,174 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T141008Z.json
+    2026-06-22 11:10:08,174 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:10:08,181 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:10:08] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=12.083s
+[2026-06-22 11:10:08] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:10:08] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:10:08] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 11:10:13] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.103s
+[2026-06-22 11:10:13] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:10:13] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94105
+[2026-06-22 11:10:19] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=5.684s
+[2026-06-22 11:10:19] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:10:19] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=67990 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:10:20] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.794s
+[2026-06-22 11:10:20] Símbolo finalizado | symbol=GOLD | success=True | duration=11.593s
+[2026-06-22 11:10:20] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:10:20] Pipeline finalizado | success=True | duration=23.708s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:15:22] Pipeline iniciado | run_id=intraday_pipeline_20260622_111522_499c99ee | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:15:22] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:15:22] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:15:22] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:15:26,314 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:15:26,314 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:15:26,314 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:15:26,324 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:15:26,324 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:15:26,324 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:15:27,958 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:15:27,958 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:15:27,958 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:15:29,432 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:15:29,432 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:15:29,432 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:15:30,859 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:15:30,859 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:15:30,860 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:15:32,303 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:15:32,303 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:15:32,303 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:15:34,143 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:15:34,143 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:15:34,143 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:15:34,979 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:15:34,994 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T141534Z.json
+    2026-06-22 11:15:34,994 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:15:34,999 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:15:35] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=13.015s
+[2026-06-22 11:15:35] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:15:35] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:15:35] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 11:15:40] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.163s
+[2026-06-22 11:15:40] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:15:40] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94930
+[2026-06-22 11:15:45] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=4.878s
+[2026-06-22 11:15:45] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:15:45] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68567 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:15:46] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.729s
+[2026-06-22 11:15:46] Símbolo finalizado | symbol=GOLD | success=True | duration=10.782s
+[2026-06-22 11:15:46] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:15:46] Pipeline finalizado | success=True | duration=23.833s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:20:11] Pipeline iniciado | run_id=intraday_pipeline_20260622_112011_d1b0702d | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:20:11] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:20:11] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:20:11] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:20:15,533 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:20:15,534 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:20:15,534 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:20:15,543 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:20:15,543 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:20:15,543 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:20:17,020 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:20:17,020 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:20:17,020 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:20:18,383 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:20:18,383 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:20:18,383 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:20:19,777 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:20:19,778 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:20:19,778 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:20:21,060 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:20:21,060 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:20:21,060 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:20:22,353 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:20:22,353 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:20:22,353 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:20:22,993 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:20:23,008 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T142023Z.json
+    2026-06-22 11:20:23,008 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:20:23,014 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:20:23] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=11.734s
+[2026-06-22 11:20:23] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:20:23] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:20:23] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 11:20:28] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.231s
+[2026-06-22 11:20:28] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:20:28] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94484
+[2026-06-22 11:20:34] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.096s
+[2026-06-22 11:20:34] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:20:34] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68231 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:20:35] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.877s
+[2026-06-22 11:20:35] Símbolo finalizado | symbol=GOLD | success=True | duration=12.215s
+[2026-06-22 11:20:35] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:20:35] Pipeline finalizado | success=True | duration=23.977s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:25:10] Pipeline iniciado | run_id=intraday_pipeline_20260622_112510_5c762376 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:25:10] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:25:10] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:25:10] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:25:14,139 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:25:14,140 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:25:14,140 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:25:14,152 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:25:14,152 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:25:14,152 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:25:15,737 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:25:15,737 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:25:15,737 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:25:17,041 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:25:17,041 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:25:17,041 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:25:18,307 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:25:18,307 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:25:18,307 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:25:19,589 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:25:19,590 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:25:19,590 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:25:20,864 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:25:20,864 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:25:20,865 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:25:21,563 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:25:21,578 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T142521Z.json
+    2026-06-22 11:25:21,578 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:25:21,583 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:25:21] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=11.764s
+[2026-06-22 11:25:21] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:25:21] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:25:21] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 11:25:26] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.173s
+[2026-06-22 11:25:26] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:25:27] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94733
+[2026-06-22 11:25:33] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.117s
+[2026-06-22 11:25:33] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:25:33] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68405 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:25:33] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.741s
+[2026-06-22 11:25:33] Símbolo finalizado | symbol=GOLD | success=True | duration=12.041s
+[2026-06-22 11:25:33] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:25:33] Pipeline finalizado | success=True | duration=23.837s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:30:21] Pipeline iniciado | run_id=intraday_pipeline_20260622_113021_3bd2330b | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:30:21] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:30:21] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:30:21] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:30:25,666 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:30:25,667 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:30:25,667 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:30:25,675 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:30:25,675 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:30:25,675 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:30:27,187 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:30:27,187 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:30:27,187 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:30:28,528 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:30:28,528 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:30:28,528 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:30:29,918 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:30:29,918 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:30:29,918 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:30:31,292 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:30:31,292 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:30:31,292 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:30:32,647 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:30:32,647 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:30:32,647 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:30:33,208 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:30:33,221 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T143033Z.json
+    2026-06-22 11:30:33,221 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:30:33,226 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:30:33] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=11.686s
+[2026-06-22 11:30:33] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:30:33] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:30:33] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 11:30:38] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=4.775s
+[2026-06-22 11:30:38] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:30:38] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94445
+[2026-06-22 11:30:43] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=4.982s
+[2026-06-22 11:30:43] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:30:43] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68259 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:30:43] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.747s
+[2026-06-22 11:30:43] Símbolo finalizado | symbol=GOLD | success=True | duration=10.515s
+[2026-06-22 11:30:43] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:30:44] Pipeline finalizado | success=True | duration=22.23s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:35:23] Pipeline iniciado | run_id=intraday_pipeline_20260622_113523_12ed13bf | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:35:23] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:35:23] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:35:23] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:35:27,662 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:35:27,662 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:35:27,662 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:35:27,671 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:35:27,671 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:35:27,671 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:35:29,307 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:35:29,307 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:35:29,307 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:35:30,539 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:35:30,539 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:35:30,539 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:35:31,962 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:35:31,962 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:35:31,962 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:35:33,228 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:35:33,229 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:35:33,229 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:35:34,623 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:35:34,623 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:35:34,624 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:35:35,212 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:35:35,224 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T143535Z.json
+    2026-06-22 11:35:35,224 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:35:35,231 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:35:35] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=11.639s
+[2026-06-22 11:35:35] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:35:35] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:35:35] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 11:35:40] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=4.764s
+[2026-06-22 11:35:40] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:35:40] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=93995
+[2026-06-22 11:35:45] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=4.845s
+[2026-06-22 11:35:45] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:35:45] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68070 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:35:45] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.722s
+[2026-06-22 11:35:45] Símbolo finalizado | symbol=GOLD | success=True | duration=10.341s
+[2026-06-22 11:35:45] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:35:45] Pipeline finalizado | success=True | duration=22.011s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:39:59] Pipeline iniciado | run_id=intraday_pipeline_20260622_113959_791e20f0 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:39:59] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:39:59] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:39:59] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:40:03,291 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:40:03,291 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:40:03,292 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:40:03,302 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:40:03,302 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:40:03,302 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:40:04,662 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:40:04,662 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:40:04,662 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:40:05,935 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:40:05,935 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:40:05,935 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:40:07,526 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:40:07,526 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:40:07,526 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:40:09,433 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:40:09,433 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:40:09,433 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:40:11,509 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:40:11,509 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:40:11,510 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:40:13,008 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:40:13,025 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T144013Z.json
+    2026-06-22 11:40:13,025 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:40:13,035 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:40:13] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=14.125s
+[2026-06-22 11:40:13] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:40:13] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:40:13] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 11:40:20] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=7.082s
+[2026-06-22 11:40:20] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:40:20] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94242
+[2026-06-22 11:40:26] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.072s
+[2026-06-22 11:40:26] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:40:26] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68178 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:40:27] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.875s
+[2026-06-22 11:40:27] Símbolo finalizado | symbol=GOLD | success=True | duration=14.039s
+[2026-06-22 11:40:27] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:40:27] Pipeline finalizado | success=True | duration=28.2s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 11:50:28] Pipeline iniciado | run_id=intraday_pipeline_20260622_115028_9cfaafc2 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 11:50:28] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:50:28] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 11:50:28] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 11:50:36,248 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 11:50:36,249 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 11:50:36,249 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 11:50:36,261 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 11:50:36,261 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 11:50:36,261 - INFO - Coletando GOLD TF=M1
+    2026-06-22 11:50:39,044 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 11:50:39,044 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 11:50:39,044 - INFO - Coletando GOLD TF=M5
+    2026-06-22 11:50:41,166 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 11:50:41,167 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 11:50:41,167 - INFO - Coletando GOLD TF=M15
+    2026-06-22 11:50:43,339 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 11:50:43,339 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 11:50:43,339 - INFO - Coletando GOLD TF=H1
+    2026-06-22 11:50:45,487 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 11:50:45,487 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 11:50:45,487 - INFO - Coletando GOLD TF=H4
+    2026-06-22 11:50:47,606 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 11:50:47,606 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 11:50:47,607 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 11:50:48,614 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 11:50:48,642 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T145048Z.json
+    2026-06-22 11:50:48,642 - INFO - Conex�o MT5 encerrada
+    2026-06-22 11:50:48,649 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 11:50:48] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=20.612s
+[2026-06-22 11:50:48] Símbolo iniciado | symbol=GOLD
+[2026-06-22 11:50:48] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:50:48] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 11:50:55] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.625s
+[2026-06-22 11:50:55] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 11:50:55] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94610
+[2026-06-22 11:51:02] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.499s
+[2026-06-22 11:51:02] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 11:51:02] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68307 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 11:51:02] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.856s
+[2026-06-22 11:51:02] Símbolo finalizado | symbol=GOLD | success=True | duration=13.993s
+[2026-06-22 11:51:02] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 11:51:02] Pipeline finalizado | success=True | duration=34.648s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 12:00:11] Pipeline iniciado | run_id=intraday_pipeline_20260622_120011_ec50d4b7 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 12:00:11] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 12:00:11] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 12:00:11] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 12:00:27,307 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 12:00:27,308 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 12:00:27,308 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 12:00:27,326 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 12:00:27,326 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 12:00:27,326 - INFO - Coletando GOLD TF=M1
+    2026-06-22 12:00:33,443 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 12:00:33,443 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 12:00:33,443 - INFO - Coletando GOLD TF=M5
+    2026-06-22 12:00:38,232 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 12:00:38,232 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 12:00:38,233 - INFO - Coletando GOLD TF=M15
+    2026-06-22 12:00:43,156 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 12:00:43,156 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 12:00:43,156 - INFO - Coletando GOLD TF=H1
+    2026-06-22 12:00:47,985 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 12:00:47,986 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 12:00:47,986 - INFO - Coletando GOLD TF=H4
+    2026-06-22 12:00:52,077 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 12:00:52,077 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 12:00:52,077 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 12:00:53,366 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 12:00:53,386 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T150053Z.json
+    2026-06-22 12:00:53,387 - INFO - Conex�o MT5 encerrada
+    2026-06-22 12:00:53,396 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 12:00:53] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=42.069s
+[2026-06-22 12:00:53] Símbolo iniciado | symbol=GOLD
+[2026-06-22 12:00:53] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 12:00:53] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 12:01:00] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=7.036s
+[2026-06-22 12:01:00] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 12:01:00] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95526
+[2026-06-22 12:01:07] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.302s
+[2026-06-22 12:01:07] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 12:01:07] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68768 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 12:01:07] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.861s
+[2026-06-22 12:01:07] Símbolo finalizado | symbol=GOLD | success=True | duration=14.21s
+[2026-06-22 12:01:07] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 12:01:07] Pipeline finalizado | success=True | duration=56.313s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 12:10:47] Pipeline iniciado | run_id=intraday_pipeline_20260622_121047_36a02957 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 12:10:47] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 12:10:47] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 12:10:47] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 12:10:52,540 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 12:10:52,540 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 12:10:52,540 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 12:10:52,553 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 12:10:52,553 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 12:10:52,553 - INFO - Coletando GOLD TF=M1
+    2026-06-22 12:10:55,091 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 12:10:55,091 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 12:10:55,091 - INFO - Coletando GOLD TF=M5
+    2026-06-22 12:10:57,387 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 12:10:57,387 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 12:10:57,387 - INFO - Coletando GOLD TF=M15
+    2026-06-22 12:10:59,474 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 12:10:59,474 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 12:10:59,474 - INFO - Coletando GOLD TF=H1
+    2026-06-22 12:11:01,713 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 12:11:01,713 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 12:11:01,713 - INFO - Coletando GOLD TF=H4
+    2026-06-22 12:11:03,899 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 12:11:03,899 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 12:11:03,899 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 12:11:05,013 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 12:11:05,035 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T151105Z.json
+    2026-06-22 12:11:05,035 - INFO - Conex�o MT5 encerrada
+    2026-06-22 12:11:05,042 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 12:11:05] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=17.593s
+[2026-06-22 12:11:05] Símbolo iniciado | symbol=GOLD
+[2026-06-22 12:11:05] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 12:11:05] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 12:11:12] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.738s
+[2026-06-22 12:11:12] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 12:11:12] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=96567
+[2026-06-22 12:11:18] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.563s
+[2026-06-22 12:11:18] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 12:11:18] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=69279 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 12:11:19] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.92s
+[2026-06-22 12:11:19] Símbolo finalizado | symbol=GOLD | success=True | duration=14.231s
+[2026-06-22 12:11:19] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 12:11:19] Pipeline finalizado | success=True | duration=31.859s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 12:37:29] Pipeline iniciado | run_id=intraday_pipeline_20260622_123729_ed147323 | symbols=['GOLD'] | agent_only=False | skip_agent=False | agent_mode=json
+[2026-06-22 12:37:29] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 12:37:29] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 12:37:29] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 12:37:34,715 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 12:37:34,715 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 12:37:34,715 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 12:37:34,725 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 12:37:34,725 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 12:37:34,725 - INFO - Coletando GOLD TF=M1
+    2026-06-22 12:37:37,345 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 12:37:37,345 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 12:37:37,345 - INFO - Coletando GOLD TF=M5
+    2026-06-22 12:37:39,395 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 12:37:39,396 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 12:37:39,396 - INFO - Coletando GOLD TF=M15
+    2026-06-22 12:37:41,705 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 12:37:41,705 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 12:37:41,705 - INFO - Coletando GOLD TF=H1
+    2026-06-22 12:37:44,488 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 12:37:44,488 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 12:37:44,488 - INFO - Coletando GOLD TF=H4
+    2026-06-22 12:37:47,095 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 12:37:47,095 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 12:37:47,096 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 12:37:48,239 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 12:37:48,257 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T153748Z.json
+    2026-06-22 12:37:48,257 - INFO - Conex�o MT5 encerrada
+    2026-06-22 12:37:48,263 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 12:37:48] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=19.098s
+[2026-06-22 12:37:48] Símbolo iniciado | symbol=GOLD
+[2026-06-22 12:37:48] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 12:37:48] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION
+[2026-06-22 12:37:54] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.301s
+[2026-06-22 12:37:54] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 12:37:54] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94807
+[2026-06-22 12:38:01] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.597s
+[2026-06-22 12:38:01] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 12:38:01] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=68581 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 12:38:02] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.961s
+[2026-06-22 12:38:02] Símbolo finalizado | symbol=GOLD | success=True | duration=13.873s
+[2026-06-22 12:38:02] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 12:38:02] Pipeline finalizado | success=True | duration=33.002s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:08:57] Pipeline iniciado | run_id=intraday_pipeline_20260622_170857_cc93835f | symbols=['GOLD'] | agent_only=False | skip_agent=True | skip_market_intelligence=False | agent_mode=json
+[2026-06-22 17:08:57] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:08:57] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:08:57] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:09:09,534 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:09:09,535 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:09:09,535 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:09:09,546 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:09:09,546 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:09:09,546 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:09:13,022 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:09:13,022 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:09:13,022 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:09:15,563 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:09:15,563 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:09:15,563 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:09:17,251 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:09:17,252 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:09:17,252 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:09:18,713 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:09:18,713 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:09:18,713 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:09:20,227 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:09:20,227 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:09:20,227 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:09:20,892 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:09:20,911 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T200920Z.json
+    2026-06-22 17:09:20,911 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:09:20,916 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:09:21] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=23.523s
+[2026-06-22 17:09:21] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:09:21] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:09:21] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:09:27] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.016s
+[2026-06-22 17:09:27] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:09:27] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94983
+[2026-06-22 17:09:33] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.068s
+[2026-06-22 17:09:33] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:09:33] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT_M5_CONFIRMATION"
+    }
+[2026-06-22 17:09:38] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=5.368s
+[2026-06-22 17:09:38] Símbolo finalizado | symbol=GOLD | success=True | duration=17.464s
+[2026-06-22 17:09:38] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:09:38] Pipeline finalizado | success=True | duration=41.044s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:10:34] Pipeline iniciado | run_id=intraday_pipeline_20260622_171034_f4c4393e | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | agent_mode=json
+[2026-06-22 17:10:34] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:10:34] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:10:34] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:10:38,671 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:10:38,671 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:10:38,671 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:10:38,680 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:10:38,680 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:10:38,680 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:10:40,840 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:10:40,840 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:10:40,840 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:10:42,733 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:10:42,733 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:10:42,733 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:10:44,203 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:10:44,203 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:10:44,203 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:10:46,022 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:10:46,022 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:10:46,022 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:10:48,080 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:10:48,080 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:10:48,081 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:10:49,381 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:10:49,393 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T201049Z.json
+    2026-06-22 17:10:49,393 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:10:49,399 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:10:49] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=15.488s
+[2026-06-22 17:10:49] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:10:49] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:10:49] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:10:56] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.475s
+[2026-06-22 17:10:56] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:10:56] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95092
+[2026-06-22 17:11:02] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.299s
+[2026-06-22 17:11:02] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:11:02] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT_M5_CONFIRMATION"
+    }
+[2026-06-22 17:11:07] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=5.367s
+[2026-06-22 17:11:07] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 17:11:07] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=115114 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 17:11:08] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.816s
+[2026-06-22 17:11:08] Símbolo finalizado | symbol=GOLD | success=True | duration=18.971s
+[2026-06-22 17:11:08] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:11:08] Pipeline finalizado | success=True | duration=34.495s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:11:30] Pipeline iniciado | run_id=intraday_pipeline_20260622_171130_940eb7fe | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=True | agent_mode=json
+[2026-06-22 17:11:30] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:11:30] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:11:30] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:11:35,667 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:11:35,668 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:11:35,668 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:11:35,685 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:11:35,685 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:11:35,685 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:11:39,031 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:11:39,031 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:11:39,031 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:11:42,454 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:11:42,454 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:11:42,454 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:11:45,127 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:11:45,127 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:11:45,127 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:11:47,614 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:11:47,614 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:11:47,614 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:11:50,048 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:11:50,048 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:11:50,048 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:11:51,400 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:11:51,417 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T201151Z.json
+    2026-06-22 17:11:51,418 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:11:51,424 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:11:51] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=20.992s
+[2026-06-22 17:11:51] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:11:51] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:11:51] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:11:59] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=7.385s
+[2026-06-22 17:11:59] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:11:59] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94855
+[2026-06-22 17:12:05] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.422s
+[2026-06-22 17:12:05] Etapa ignorada | step=market_intelligence_enrich | symbol=GOLD | reason=cli_skip
+[2026-06-22 17:12:05] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 17:12:05] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=70707 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 17:12:06] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.823s
+[2026-06-22 17:12:06] Símbolo finalizado | symbol=GOLD | success=True | duration=14.643s
+[2026-06-22 17:12:06] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:12:06] Pipeline finalizado | success=True | duration=35.668s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:30:43] Pipeline iniciado | run_id=intraday_pipeline_20260622_173043_cc21d1e6 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | agent_mode=json
+[2026-06-22 17:30:43] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:30:43] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:30:43] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:30:51,562 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:30:51,562 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:30:51,562 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:30:51,580 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:30:51,580 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:30:51,580 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:30:54,289 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:30:54,289 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:30:54,289 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:30:56,930 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:30:56,931 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:30:56,931 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:30:59,337 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:30:59,337 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:30:59,337 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:31:01,468 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:31:01,468 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:31:01,468 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:31:04,396 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:31:04,396 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:31:04,396 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:31:05,566 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:31:05,585 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T203105Z.json
+    2026-06-22 17:31:05,585 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:31:05,595 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:31:05] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=22.37s
+[2026-06-22 17:31:05] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:31:05] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:31:05] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:31:14] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=8.434s
+[2026-06-22 17:31:14] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:31:14] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=96769
+[2026-06-22 17:31:20] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.571s
+[2026-06-22 17:31:20] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:31:20] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-06-22 17:31:27] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=6.69s
+[2026-06-22 17:31:27] Etapa iniciada | step=intraday_agent | symbol=GOLD | timeout=1500.0s
+[2026-06-22 17:31:27] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\intraday_agent.py --symbol GOLD --analyst analyst_1
+    [17:31:37] Execu��o iniciada | symbol=GOLD | mode=single | profile=quick
+    [17:31:37] Analistas selecionados: ['analyst_1'] | modo=single
+    [17:31:37] Input LLM salvo | role=analyst_1 | path=C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt | chars=116114
+    [17:31:37] LLM in�cio | role=analyst_1 | model=qwen2.5:7b-instruct | provider=ollama_local | prompt_chars=116114 | timeout=900.0s
+    [17:31:40] Cr�tico ignorado neste modo.
+    [17:31:40] �rbitro ignorado neste modo.
+    Run conclu�do | s�mbolo=GOLD | modo=single | profile=quick | a��o=WAIT | fonte=fallback | latency_ms=3645
+    
+    ===== TRADING AGENT � RESULTADO R�PIDO =====
+    Ativo: GOLD | Pre�o: 4189.86
+    
+    Pontos-chave
+    - N�o retornado pelo modelo nesta rodada.
+    
+    Pontos de aten��o
+    - Bloqueios quantitativos ativos: H1_M15_DIRECTION_CONFLICT
+    
+    Resumo por timeframe
+    H4: N�o retornado pelo modelo.
+    H1: N�o retornado pelo modelo.
+    M15: N�o retornado pelo modelo.
+    M5: N�o retornado pelo modelo.
+    
+    A��o Imediata
+    Esperar; a decis�o quantitativa n�o autoriza entrada imediata.
+    
+    A��o Mais Recomendada Agora
+    WAIT
+    Guard quantitativo: WAIT. Bloqueios: H1_M15_DIRECTION_CONFLICT.
+[2026-06-22 17:31:41] Etapa finalizada | step=intraday_agent | symbol=GOLD | success=True | return_code=0 | duration=13.483s
+[2026-06-22 17:31:41] Símbolo finalizado | symbol=GOLD | success=True | duration=35.199s
+[2026-06-22 17:31:41] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:31:41] Pipeline finalizado | success=True | duration=57.607s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:35:44] Pipeline iniciado | run_id=intraday_pipeline_20260622_173544_a1b11870 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | agent_mode=json
+[2026-06-22 17:35:44] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:35:44] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:35:44] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:35:52,551 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:35:52,551 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:35:52,551 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:35:52,564 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:35:52,565 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:35:52,565 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:35:56,830 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:35:56,830 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:35:56,830 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:35:59,776 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:35:59,776 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:35:59,776 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:36:02,603 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:36:02,604 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:36:02,604 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:36:04,954 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:36:04,954 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:36:04,954 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:36:07,674 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:36:07,674 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:36:07,675 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:36:08,739 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:36:08,759 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T203608Z.json
+    2026-06-22 17:36:08,759 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:36:08,766 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:36:09] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=24.857s
+[2026-06-22 17:36:09] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:36:09] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:36:09] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:36:15] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=6.589s
+[2026-06-22 17:36:15] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:36:15] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95054
+[2026-06-22 17:36:21] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=5.663s
+[2026-06-22 17:36:21] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:36:21] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT_M5_CONFIRMATION"
+    }
+[2026-06-22 17:36:26] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=5.123s
+[2026-06-22 17:36:26] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 17:36:26] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=115093 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 17:36:27] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.911s
+[2026-06-22 17:36:27] Símbolo finalizado | symbol=GOLD | success=True | duration=18.299s
+[2026-06-22 17:36:27] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:36:27] Pipeline finalizado | success=True | duration=43.194s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:37:22] Pipeline iniciado | run_id=intraday_pipeline_20260622_173722_dc27adcf | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=True | agent_mode=json
+[2026-06-22 17:37:22] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:37:22] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:37:22] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:37:26,742 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:37:26,742 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:37:26,742 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:37:26,751 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:37:26,751 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:37:26,751 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:37:29,074 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:37:29,074 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:37:29,074 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:37:30,816 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:37:30,816 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:37:30,816 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:37:32,516 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:37:32,516 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:37:32,516 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:37:34,271 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:37:34,271 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:37:34,271 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:37:36,050 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:37:36,050 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:37:36,050 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:37:36,866 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:37:36,879 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T203736Z.json
+    2026-06-22 17:37:36,879 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:37:36,883 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:37:37] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=14.73s
+[2026-06-22 17:37:37] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:37:37] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:37:37] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:37:42] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.821s
+[2026-06-22 17:37:42] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:37:42] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95366
+[2026-06-22 17:37:48] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=5.896s
+[2026-06-22 17:37:48] Etapa ignorada | step=market_intelligence_enrich | symbol=GOLD | reason=cli_skip
+[2026-06-22 17:37:48] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 17:37:48] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=70980 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 17:37:49] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.856s
+[2026-06-22 17:37:49] Símbolo finalizado | symbol=GOLD | success=True | duration=12.586s
+[2026-06-22 17:37:49] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:37:49] Pipeline finalizado | success=True | duration=27.35s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:43:28] Pipeline iniciado | run_id=intraday_pipeline_20260622_174328_36845c56 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=True | agent_mode=json
+[2026-06-22 17:43:28] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:43:28] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:43:28] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:43:41,748 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:43:41,748 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:43:41,748 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:43:41,776 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:43:41,776 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:43:41,776 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:43:45,337 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:43:45,337 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:43:45,337 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:43:49,160 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:43:49,160 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:43:49,160 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:43:51,480 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:43:51,480 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:43:51,480 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:43:53,829 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:43:53,829 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:43:53,830 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:43:57,282 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:43:57,282 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:43:57,282 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:43:58,239 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:43:58,256 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T204358Z.json
+    2026-06-22 17:43:58,256 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:43:58,264 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:43:58] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=30.093s
+[2026-06-22 17:43:58] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:43:58] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:43:58] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:44:06] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=7.859s
+[2026-06-22 17:44:06] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:44:06] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=95028
+[2026-06-22 17:44:14] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=8.304s
+[2026-06-22 17:44:14] Etapa ignorada | step=market_intelligence_enrich | symbol=GOLD | reason=cli_skip
+[2026-06-22 17:44:14] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 17:44:14] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=70784 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 17:44:15] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.799s
+[2026-06-22 17:44:15] Símbolo finalizado | symbol=GOLD | success=True | duration=16.975s
+[2026-06-22 17:44:15] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:44:15] Pipeline finalizado | success=True | duration=47.118s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-06-22 17:44:56] Pipeline iniciado | run_id=intraday_pipeline_20260622_174456_d7a22689 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | agent_mode=json
+[2026-06-22 17:44:56] Lock adquirido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:44:56] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-06-22 17:44:56] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-06-22 17:45:01,979 - INFO - Config TradingAgent carregada: C:\Dev\TradingAgent\tradingagent.json
+    2026-06-22 17:45:01,979 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-06-22 17:45:01,979 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-06-22 17:45:01,988 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-06-22 17:45:01,989 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-06-22 17:45:01,989 - INFO - Coletando GOLD TF=M1
+    2026-06-22 17:45:04,174 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M1.parquet
+    2026-06-22 17:45:04,174 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-06-22 17:45:04,174 - INFO - Coletando GOLD TF=M5
+    2026-06-22 17:45:06,830 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M5.parquet
+    2026-06-22 17:45:06,831 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-06-22 17:45:06,831 - INFO - Coletando GOLD TF=M15
+    2026-06-22 17:45:10,397 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_M15.parquet
+    2026-06-22 17:45:10,397 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-06-22 17:45:10,397 - INFO - Coletando GOLD TF=H1
+    2026-06-22 17:45:12,244 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H1.parquet
+    2026-06-22 17:45:12,244 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-06-22 17:45:12,244 - INFO - Coletando GOLD TF=H4
+    2026-06-22 17:45:14,039 - INFO - Parquet salvo: C:\Dev\TradingAgent\data\GOLD_H4.parquet
+    2026-06-22 17:45:14,039 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-06-22 17:45:14,039 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Dev\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-06-22 17:45:14,963 - INFO - Consolidado Parquet salvo: C:\Dev\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-06-22 17:45:14,978 - INFO - Manifest salvo: C:\Dev\TradingAgent\data\manifests\base_dados_intraday_refresh_20260622T204514Z.json
+    2026-06-22 17:45:14,978 - INFO - Conex�o MT5 encerrada
+    2026-06-22 17:45:14,983 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-06-22 17:45:15] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=18.791s
+[2026-06-22 17:45:15] Símbolo iniciado | symbol=GOLD
+[2026-06-22 17:45:15] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:45:15] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Dev\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-06-22 17:45:21] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=5.951s
+[2026-06-22 17:45:21] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:45:21] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Dev\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=96103
+[2026-06-22 17:45:27] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=6.422s
+[2026-06-22 17:45:27] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-06-22 17:45:27] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-06-22 17:45:33] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=5.95s
+[2026-06-22 17:45:33] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-06-22 17:45:33] Comando | C:\Users\DiegoRosaCastilho\AppData\Local\Programs\Python\Python314\python.exe C:\Dev\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=107952 | llm_called=False
+    Arquivo gerado: C:\Dev\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-06-22 17:45:34] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.854s
+[2026-06-22 17:45:34] Símbolo finalizado | symbol=GOLD | success=True | duration=19.193s
+[2026-06-22 17:45:34] Lock removido | path=C:\Dev\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-06-22 17:45:34] Pipeline finalizado | success=True | duration=38.021s | latest=C:\Dev\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json

@@ -129,8 +129,8 @@ Retorne SOMENTE JSON válido, sem Markdown e sem texto fora do JSON:
 }
 
 O JSON é apenas o formato de transporte.
-A análise, direção e recomendação devem ser definidas livremente pela LLM
-a partir do prompt original e do MARKET_DATA.
+A análise técnica é produzida pela LLM, mas a ação imediata deve respeitar
+historical_intelligence.formal_mtf_decision quando esse bloco existir.
 
 Regras de preenchimento:
 - immediate_action é obrigatório e não pode ser vazio.

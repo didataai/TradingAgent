@@ -443,6 +443,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--skip-market-intelligence",
+        action="store_true",
+        help=(
+            "Ignora somente a etapa de inteligência histórica e mantém "
+            "o fluxo factual anterior."
+        ),
+    )
+    parser.add_argument(
         "--no-lock",
         action="store_true",
         help="Desabilita o lock somente nesta execução.",
@@ -508,6 +516,7 @@ def main() -> int:
         logger.write(
             f"Pipeline iniciado | run_id={run_id} | symbols={symbols} "
             f"| agent_only={args.agent_only} | skip_agent={args.skip_agent} "
+            f"| skip_market_intelligence={args.skip_market_intelligence} "
             f"| agent_mode={args.agent_mode or 'json'}"
         )
 
@@ -537,6 +546,7 @@ def main() -> int:
                 "agent_only": args.agent_only,
                 "skip_agent": args.skip_agent,
                 "web_agent": args.web_agent,
+                "skip_market_intelligence": args.skip_market_intelligence,
                 "agent_mode_override": args.agent_mode,
                 "analyst_override": args.analyst,
                 "lock_enabled": use_lock,
@@ -555,13 +565,25 @@ def main() -> int:
 
             if not args.agent_only and steps_cfg["base_dados"].get("enabled", True):
                 base_cfg = steps_cfg["base_dados"]
+                base_arguments = expand_arguments(
+                    base_cfg.get("arguments", []),
+                    None,
+                )
+
+                # Quando --symbol for informado na CLI, repassa o mesmo filtro
+                # ao Base_Dados.py. A atualização continua sendo executada uma
+                # única vez, porém somente para os símbolos solicitados.
+                #
+                # Sem --symbol, o Base_Dados.py mantém o comportamento padrão e
+                # lê universe.symbols diretamente do tradingagent.json.
+                if args.symbol:
+                    for selected_symbol in symbols:
+                        base_arguments.extend(["--symbol", selected_symbol])
+
                 base_result = run_step(
                     name="base_dados",
                     script=resolve_path(base_cfg["script"]),
-                    arguments=expand_arguments(
-                        base_cfg.get("arguments", []),
-                        None,
-                    ),
+                    arguments=base_arguments,
                     timeout_seconds=float(
                         base_cfg.get("timeout_seconds", 180)
                     ),
@@ -621,6 +643,62 @@ def main() -> int:
                                 raise RuntimeError(
                                     f"Etapa {step_name} falhou para {symbol}."
                                 )
+
+                        intelligence_cfg = steps_cfg.get(
+                            "market_intelligence_enrich"
+                        )
+                        if (
+                            intelligence_cfg
+                            and intelligence_cfg.get("enabled", True)
+                            and not args.skip_market_intelligence
+                        ):
+                            enabled_symbols = [
+                                str(item).upper()
+                                for item in intelligence_cfg.get("symbols", [])
+                            ]
+                            if enabled_symbols and symbol not in enabled_symbols:
+                                logger.write(
+                                    "Etapa ignorada | "
+                                    "step=market_intelligence_enrich "
+                                    f"| symbol={symbol} "
+                                    "| reason=symbol_not_enabled"
+                                )
+                            else:
+                                result = run_step(
+                                    name="market_intelligence_enrich",
+                                    script=resolve_path(
+                                        intelligence_cfg["script"]
+                                    ),
+                                    arguments=expand_arguments(
+                                        intelligence_cfg.get("arguments", []),
+                                        symbol,
+                                    ),
+                                    timeout_seconds=float(
+                                        intelligence_cfg.get(
+                                            "timeout_seconds", 120
+                                        )
+                                    ),
+                                    logger=logger,
+                                    symbol=symbol,
+                                )
+                                symbol_record["steps"][
+                                    "market_intelligence_enrich"
+                                ] = result
+
+                                required = bool(
+                                    intelligence_cfg.get("required", True)
+                                )
+                                if not result["success"] and required:
+                                    raise RuntimeError(
+                                        "Etapa market_intelligence_enrich "
+                                        f"falhou para {symbol}."
+                                    )
+                        elif args.skip_market_intelligence:
+                            logger.write(
+                                "Etapa ignorada | "
+                                "step=market_intelligence_enrich "
+                                f"| symbol={symbol} | reason=cli_skip"
+                            )
 
                     if args.web_agent:
                         web_cfg = steps_cfg.get(

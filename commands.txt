@@ -51,11 +51,36 @@ python pipeline/intraday_pipeline_web.py --symbol GOLD --web-agent --analyst ana
 GOLD swing:
 python pipeline/swing_pipeline_web.py --symbol GOLD
 
+# Swing para rodar todos os símbolos do JSON
+py .\pipeline\swing_pipeline_web.py
+
 GOLD swing rápido:
-python pipeline/swing_pipeline_web.py --symbol GOLD --skip-intraday-refresh
+p# Para rodar só o GOLD
+py .\pipeline\swing_pipeline_web.py --symbol GOLD
 
 
+## Intraday 
+
+py .\pipeline\intraday_pipeline_web.py --web-agent
+
+## por Symbol 
+
+py .\pipeline\intraday_pipeline_web.py ` --symbol GOLD ` --web-agent ` --analyst analyst_1
+
+#Sem inteligencia
+py .\pipeline\intraday_pipeline_web.py --symbol GOLD --web-agent --analyst analyst_1 --skip-market-intelligence
 
 
+py .\pipeline\intraday_pipeline_web.py `
+  --symbol GOLD `
+  --symbol EURUSD `
+  --web-agent
+  
+  ## Market intelligence.
 
+ py .\market_intelligence.py build --symbol GOLD --input-dir .\data --output 
+ 
+ Get-Content .\data\intelligence\GOLD.json -TotalCount 25
+
+ Get-Content .\data\intelligence\GOLD.json 
 

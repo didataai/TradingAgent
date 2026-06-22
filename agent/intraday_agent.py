@@ -118,6 +118,14 @@ def compact_payload(p):
     out={'payload_schema_version':p.get('payload_schema_version'),'symbol':p.get('symbol'),'current_price':p.get('current_price'),'market_status':p.get('market_status'),'generated_at_utc':p.get('generated_at_utc'),'timeframes':{}}
     for tf,b in p.get('timeframes',{}).items():
         out['timeframes'][tf]={k:b.get(k) for k in ('current_bar','previous_closed_bar','indicators_exact','derived_metrics_exact','algorithmic_annotations','nearby_level_zones','pattern_geometry','recent_bars')}
+    historical=p.get('historical_intelligence')
+    if isinstance(historical,dict):
+        out['historical_intelligence']={
+            'profile_schema_version':historical.get('profile_schema_version'),
+            'preferred_action_now':historical.get('preferred_action_now'),
+            'formal_mtf_decision':historical.get('formal_mtf_decision'),
+            'llm_quantitative_brief':historical.get('llm_quantitative_brief'),
+        }
     return out
 
 ANALYST_SCHEMA='''
@@ -188,8 +196,8 @@ Retorne SOMENTE JSON válido, sem Markdown e sem texto fora do JSON:
 }
 
 O JSON é apenas o formato de transporte.
-A análise, direção e recomendação devem ser definidas livremente pela LLM
-a partir do prompt original e do MARKET_DATA.
+A análise técnica é produzida pela LLM, mas a ação imediata deve respeitar
+historical_intelligence.formal_mtf_decision quando esse bloco existir.
 
 Regras de preenchimento:
 - immediate_action é obrigatório e não pode ser vazio.
@@ -652,6 +660,94 @@ def validate_decision_integrity(final: dict[str, Any], current_price: Any) -> di
     return final
 
 
+
+def apply_quantitative_guard(
+    final: dict[str, Any],
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Impede que a saída quick contradiga a decisão quantitativa formal."""
+    historical = payload.get("historical_intelligence")
+    if not isinstance(historical, dict):
+        return final
+
+    formal = historical.get("formal_mtf_decision")
+    if not isinstance(formal, dict):
+        return final
+
+    formal_action = str(formal.get("final_action") or "WAIT").upper()
+    blocked = formal.get("blocked_reasons")
+    blocked = blocked if isinstance(blocked, list) else []
+    llm_action = norm_action(final.get("action"))
+
+    required_wait = bool(blocked) or formal_action == "WAIT" or formal_action.startswith("WAIT_")
+    formal_side = (
+        "BUY" if formal_action.startswith("BUY_")
+        else "SELL" if formal_action.startswith("SELL_")
+        else None
+    )
+
+    issues: list[str] = []
+    guarded_action = llm_action
+
+    if required_wait:
+        if llm_action != "WAIT":
+            issues.append(
+                "A LLM contradisse WAIT/bloqueio da decisão quantitativa."
+            )
+        guarded_action = "WAIT"
+    elif formal_side and llm_action not in {formal_side, "WAIT"}:
+        issues.append(
+            f"A LLM tentou inverter o lado quantitativo {formal_side}."
+        )
+        guarded_action = "WAIT"
+
+    final["action"] = guarded_action
+
+    recommended = final.get("recommended_action_now")
+    if not isinstance(recommended, dict):
+        recommended = {}
+    recommended["action"] = guarded_action
+
+    if guarded_action == "WAIT" and (required_wait or issues):
+        previous = str(recommended.get("description") or "").strip()
+        reason = (
+            f"Guard quantitativo: {formal_action}. "
+            + (
+                f"Bloqueios: {', '.join(map(str, blocked))}. "
+                if blocked else ""
+            )
+        )
+        recommended["description"] = (reason + previous).strip()
+        final["immediate_action"] = (
+            "Esperar; a decisão quantitativa não autoriza entrada imediata."
+        )
+
+    final["recommended_action_now"] = recommended
+
+    attention = final.get("attention_points")
+    if not isinstance(attention, list):
+        attention = []
+    if issues:
+        attention.extend(issues)
+    if blocked:
+        attention.append(
+            "Bloqueios quantitativos ativos: "
+            + ", ".join(map(str, blocked))
+        )
+    final["attention_points"] = list(dict.fromkeys(attention))
+
+    final["decision_validation"] = {
+        "passed": not issues,
+        "original_action": llm_action,
+        "validated_action": guarded_action,
+        "downgraded_to_wait": guarded_action == "WAIT" and llm_action != "WAIT",
+        "issues": issues,
+        "mode": "llm_with_quantitative_guard",
+        "formal_action": formal_action,
+        "blocked_reasons": blocked,
+    }
+    return final
+
 def final_pick(s:S):
     if s['mode'] == 'single':
         ok = [x for x in s.get('analyst_results', []) if x.get('success')]
@@ -782,14 +878,16 @@ async def finalize(s:S):
             s['payload'].get('current_price'),
         )
     else:
-        f['decision_validation'] = {
-            'passed': True,
-            'original_action': f.get('action', 'WAIT'),
-            'validated_action': f.get('action', 'WAIT'),
-            'downgraded_to_wait': False,
-            'issues': [],
-            'mode': 'llm_free_decision',
-        }
+        f = apply_quantitative_guard(f, s['payload'])
+        if 'decision_validation' not in f:
+            f['decision_validation'] = {
+                'passed': True,
+                'original_action': f.get('action', 'WAIT'),
+                'validated_action': f.get('action', 'WAIT'),
+                'downgraded_to_wait': False,
+                'issues': [],
+                'mode': 'llm_without_quantitative_brief',
+            }
     ts = now()
     rec={'@timestamp':ts,'run_id':s['run_id'],'project':cfg.get('project',{}).get('name','TradingAgent'),'environment':cfg.get('project',{}).get('environment','dev'),'symbol':sym,'analysis_type':'intraday','execution':{'mode':s['mode'],'profile':s.get('profile'),'selected_analyst':s.get('selected_analyst'),'analysts_requested':len(s.get('analyst_results',[])),'analysts_successful':sum(1 for x in s.get('analyst_results',[]) if x.get('success')),'critic_called':bool(s.get('critic_result')),'arbiter_called':bool(s.get('arbiter_result')),'total_latency_ms':round((time.perf_counter()-s['started_perf'])*1000),'success':True,'errors':s.get('errors',[])},'market':{'payload_schema_version':s['payload'].get('payload_schema_version'),'generated_at_utc':s['payload'].get('generated_at_utc'),'current_price':s['payload'].get('current_price'),'market_status':s['payload'].get('market_status')},'memory_before':s.get('memory'),'analyst_results':s.get('analyst_results',[]),'consensus':s.get('consensus'),'critic_result':s.get('critic_result'),'arbiter_result':s.get('arbiter_result'),'final':f}
     previous_eval = f.get('previous_thesis_evaluation', {

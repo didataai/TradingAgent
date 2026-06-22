@@ -1,0 +1,215 @@
+{
+  "project": "TradingAgent",
+  "mode": "daily_refresh",
+  "status": "success",
+  "created_at_utc": "2026-06-19T20:55:17.206020+00:00",
+  "config_path": "C:\\Dev\\TradingAgent\\tradingagent.json",
+  "outputs": {
+    "symbols": [
+      "GOLD",
+      "EURUSD",
+      "GBPUSD",
+      "BRENT",
+      "USAIND"
+    ],
+    "timeframes": [
+      "H4",
+      "D1",
+      "W1",
+      "MN1"
+    ],
+    "include_live_bar": true,
+    "enable_labels": false,
+    "files": [
+      {
+        "symbol": "GOLD",
+        "timeframe": "H4",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GOLD_H4.parquet"
+        }
+      },
+      {
+        "symbol": "EURUSD",
+        "timeframe": "H4",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\EURUSD_H4.parquet"
+        }
+      },
+      {
+        "symbol": "GBPUSD",
+        "timeframe": "H4",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GBPUSD_H4.parquet"
+        }
+      },
+      {
+        "symbol": "BRENT",
+        "timeframe": "H4",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\BRENT_H4.parquet"
+        }
+      },
+      {
+        "symbol": "USAIND",
+        "timeframe": "H4",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\USAIND_H4.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "D1",
+        "rows": 3379,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GOLD_D1.parquet"
+        }
+      },
+      {
+        "symbol": "EURUSD",
+        "timeframe": "D1",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\EURUSD_D1.parquet"
+        }
+      },
+      {
+        "symbol": "GBPUSD",
+        "timeframe": "D1",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GBPUSD_D1.parquet"
+        }
+      },
+      {
+        "symbol": "BRENT",
+        "timeframe": "D1",
+        "rows": 2595,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\BRENT_D1.parquet"
+        }
+      },
+      {
+        "symbol": "USAIND",
+        "timeframe": "D1",
+        "rows": 3454,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\USAIND_D1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "W1",
+        "rows": 672,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GOLD_W1.parquet"
+        }
+      },
+      {
+        "symbol": "EURUSD",
+        "timeframe": "W1",
+        "rows": 2893,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\EURUSD_W1.parquet"
+        }
+      },
+      {
+        "symbol": "GBPUSD",
+        "timeframe": "W1",
+        "rows": 1728,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GBPUSD_W1.parquet"
+        }
+      },
+      {
+        "symbol": "BRENT",
+        "timeframe": "W1",
+        "rows": 542,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\BRENT_W1.parquet"
+        }
+      },
+      {
+        "symbol": "USAIND",
+        "timeframe": "W1",
+        "rows": 689,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\USAIND_W1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "MN1",
+        "rows": 155,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GOLD_MN1.parquet"
+        }
+      },
+      {
+        "symbol": "EURUSD",
+        "timeframe": "MN1",
+        "rows": 666,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\EURUSD_MN1.parquet"
+        }
+      },
+      {
+        "symbol": "GBPUSD",
+        "timeframe": "MN1",
+        "rows": 398,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\GBPUSD_MN1.parquet"
+        }
+      },
+      {
+        "symbol": "BRENT",
+        "timeframe": "MN1",
+        "rows": 126,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\BRENT_MN1.parquet"
+        }
+      },
+      {
+        "symbol": "USAIND",
+        "timeframe": "MN1",
+        "rows": 159,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Dev\\TradingAgent\\data\\USAIND_MN1.parquet"
+        }
+      }
+    ],
+    "errors": [],
+    "consolidated_suffix": "swing",
+    "consolidated_files": [
+      "C:\\Dev\\TradingAgent\\data\\consolidated\\BRENT_swing.parquet",
+      "C:\\Dev\\TradingAgent\\data\\consolidated\\EURUSD_swing.parquet",
+      "C:\\Dev\\TradingAgent\\data\\consolidated\\GBPUSD_swing.parquet",
+      "C:\\Dev\\TradingAgent\\data\\consolidated\\GOLD_swing.parquet",
+      "C:\\Dev\\TradingAgent\\data\\consolidated\\USAIND_swing.parquet"
+    ]
+  }
+}
