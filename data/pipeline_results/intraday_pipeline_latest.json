@@ -1,6 +1,6 @@
 {
-  "@timestamp": "2026-06-22T20:44:56.407230+00:00",
-  "run_id": "intraday_pipeline_20260622_174456_d7a22689",
+  "@timestamp": "2026-06-23T18:29:53.009078+00:00",
+  "run_id": "intraday_pipeline_20260623_152953_1596c182",
   "project": "TradingAgent",
   "environment": "dev",
   "pipeline": "intraday",
@@ -20,9 +20,9 @@
     "name": "base_dados",
     "symbol": null,
     "success": true,
-    "started_at_utc": "2026-06-22T20:44:56.431837+00:00",
-    "finished_at_utc": "2026-06-22T20:45:15.222953+00:00",
-    "duration_seconds": 18.791,
+    "started_at_utc": "2026-06-23T18:29:53.028996+00:00",
+    "finished_at_utc": "2026-06-23T18:30:11.775559+00:00",
+    "duration_seconds": 18.747,
     "return_code": 0,
     "timed_out": false,
     "command": [
@@ -34,31 +34,31 @@
       "GOLD"
     ],
     "output_tail": [
-      "2026-06-22 17:45:01,979 - INFO - Config TradingAgent carregada: C:\\Dev\\TradingAgent\\tradingagent.json",
-      "2026-06-22 17:45:01,979 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']",
-      "2026-06-22 17:45:01,979 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']",
-      "2026-06-22 17:45:01,988 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server",
-      "2026-06-22 17:45:01,989 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock",
-      "2026-06-22 17:45:01,989 - INFO - Coletando GOLD TF=M1",
-      "2026-06-22 17:45:04,174 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_M1.parquet",
-      "2026-06-22 17:45:04,174 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True",
-      "2026-06-22 17:45:04,174 - INFO - Coletando GOLD TF=M5",
-      "2026-06-22 17:45:06,830 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_M5.parquet",
-      "2026-06-22 17:45:06,831 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True",
-      "2026-06-22 17:45:06,831 - INFO - Coletando GOLD TF=M15",
-      "2026-06-22 17:45:10,397 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_M15.parquet",
-      "2026-06-22 17:45:10,397 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True",
-      "2026-06-22 17:45:10,397 - INFO - Coletando GOLD TF=H1",
-      "2026-06-22 17:45:12,244 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_H1.parquet",
-      "2026-06-22 17:45:12,244 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True",
-      "2026-06-22 17:45:12,244 - INFO - Coletando GOLD TF=H4",
-      "2026-06-22 17:45:14,039 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_H4.parquet",
-      "2026-06-22 17:45:14,039 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True",
-      "2026-06-22 17:45:14,039 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\\Dev\\TradingAgent\\data\\consolidated s�mbolos=['GOLD']",
-      "2026-06-22 17:45:14,963 - INFO - Consolidado Parquet salvo: C:\\Dev\\TradingAgent\\data\\consolidated\\GOLD_intraday.parquet",
-      "2026-06-22 17:45:14,978 - INFO - Manifest salvo: C:\\Dev\\TradingAgent\\data\\manifests\\base_dados_intraday_refresh_20260622T204514Z.json",
-      "2026-06-22 17:45:14,978 - INFO - Conex�o MT5 encerrada",
-      "2026-06-22 17:45:14,983 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0",
+      "2026-06-23 15:29:58,024 - INFO - Config TradingAgent carregada: C:\\Dev\\TradingAgent\\tradingagent.json",
+      "2026-06-23 15:29:58,024 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']",
+      "2026-06-23 15:29:58,024 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']",
+      "2026-06-23 15:29:58,036 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server",
+      "2026-06-23 15:29:58,037 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock",
+      "2026-06-23 15:29:58,037 - INFO - Coletando GOLD TF=M1",
+      "2026-06-23 15:30:00,921 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_M1.parquet",
+      "2026-06-23 15:30:00,921 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True",
+      "2026-06-23 15:30:00,921 - INFO - Coletando GOLD TF=M5",
+      "2026-06-23 15:30:03,688 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_M5.parquet",
+      "2026-06-23 15:30:03,688 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True",
+      "2026-06-23 15:30:03,688 - INFO - Coletando GOLD TF=M15",
+      "2026-06-23 15:30:06,121 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_M15.parquet",
+      "2026-06-23 15:30:06,121 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True",
+      "2026-06-23 15:30:06,122 - INFO - Coletando GOLD TF=H1",
+      "2026-06-23 15:30:08,493 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_H1.parquet",
+      "2026-06-23 15:30:08,493 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True",
+      "2026-06-23 15:30:08,493 - INFO - Coletando GOLD TF=H4",
+      "2026-06-23 15:30:10,615 - INFO - Parquet salvo: C:\\Dev\\TradingAgent\\data\\GOLD_H4.parquet",
+      "2026-06-23 15:30:10,615 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True",
+      "2026-06-23 15:30:10,615 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\\Dev\\TradingAgent\\data\\consolidated s�mbolos=['GOLD']",
+      "2026-06-23 15:30:11,498 - INFO - Consolidado Parquet salvo: C:\\Dev\\TradingAgent\\data\\consolidated\\GOLD_intraday.parquet",
+      "2026-06-23 15:30:11,511 - INFO - Manifest salvo: C:\\Dev\\TradingAgent\\data\\manifests\\base_dados_intraday_refresh_20260623T183011Z.json",
+      "2026-06-23 15:30:11,511 - INFO - Conex�o MT5 encerrada",
+      "2026-06-23 15:30:11,515 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0",
       "done"
     ],
     "error": null
@@ -72,9 +72,9 @@
           "name": "timeframe_context",
           "symbol": "GOLD",
           "success": true,
-          "started_at_utc": "2026-06-22T20:45:15.229984+00:00",
-          "finished_at_utc": "2026-06-22T20:45:21.181098+00:00",
-          "duration_seconds": 5.951,
+          "started_at_utc": "2026-06-23T18:30:11.781459+00:00",
+          "finished_at_utc": "2026-06-23T18:30:16.916042+00:00",
+          "duration_seconds": 5.135,
           "return_code": 0,
           "timed_out": false,
           "command": [
@@ -85,7 +85,7 @@
           ],
           "output_tail": [
             "Contexto salvo: C:\\Dev\\TradingAgent\\data\\context\\GOLD_intraday_context.json",
-            "S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT"
+            "S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=SELL_ON_CONFIRMATION"
           ],
           "error": null
         },
@@ -93,9 +93,9 @@
           "name": "prompt_payload",
           "symbol": "GOLD",
           "success": true,
-          "started_at_utc": "2026-06-22T20:45:21.184285+00:00",
-          "finished_at_utc": "2026-06-22T20:45:27.606163+00:00",
-          "duration_seconds": 6.422,
+          "started_at_utc": "2026-06-23T18:30:16.919036+00:00",
+          "finished_at_utc": "2026-06-23T18:30:22.206991+00:00",
+          "duration_seconds": 5.288,
           "return_code": 0,
           "timed_out": false,
           "command": [
@@ -106,7 +106,7 @@
           ],
           "output_tail": [
             "Payload factual salvo: C:\\Dev\\TradingAgent\\data\\payload\\GOLD_intraday_payload.json",
-            "S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=96103"
+            "S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=92380"
           ],
           "error": null
         },
@@ -114,9 +114,9 @@
           "name": "market_intelligence_enrich",
           "symbol": "GOLD",
           "success": true,
-          "started_at_utc": "2026-06-22T20:45:27.609396+00:00",
-          "finished_at_utc": "2026-06-22T20:45:33.559475+00:00",
-          "duration_seconds": 5.95,
+          "started_at_utc": "2026-06-23T18:30:22.209849+00:00",
+          "finished_at_utc": "2026-06-23T18:30:28.088119+00:00",
+          "duration_seconds": 5.878,
           "return_code": 0,
           "timed_out": false,
           "command": [
@@ -134,7 +134,7 @@
             "{",
             "  \"status\": \"ok\",",
             "  \"output\": \"data\\\\payload\\\\GOLD_intraday_payload.json\",",
-            "  \"preferred_action_now\": \"WAIT\"",
+            "  \"preferred_action_now\": \"SELL_LIMIT_0.50\"",
             "}"
           ],
           "error": null
@@ -143,9 +143,9 @@
           "name": "web_input_agent",
           "symbol": "GOLD",
           "success": true,
-          "started_at_utc": "2026-06-22T20:45:33.563433+00:00",
-          "finished_at_utc": "2026-06-22T20:45:34.417839+00:00",
-          "duration_seconds": 0.854,
+          "started_at_utc": "2026-06-23T18:30:28.090066+00:00",
+          "finished_at_utc": "2026-06-23T18:30:28.895387+00:00",
+          "duration_seconds": 0.805,
           "return_code": 0,
           "timed_out": false,
           "command": [
@@ -157,20 +157,20 @@
             "analyst_1"
           ],
           "output_tail": [
-            "Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=107952 | llm_called=False",
+            "Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=113451 | llm_called=False",
             "Arquivo gerado: C:\\Dev\\TradingAgent\\data\\debug_llm\\GOLD_analyst_1_latest_input.txt"
           ],
           "error": null
         }
       },
       "agent_summary": null,
-      "duration_seconds": 19.193,
+      "duration_seconds": 17.119,
       "error": null
     }
   ],
   "success": true,
-  "started_at_utc": "2026-06-22T20:44:56.407230+00:00",
-  "finished_at_utc": "2026-06-22T20:45:34.428119+00:00",
-  "duration_seconds": 38.021,
+  "started_at_utc": "2026-06-23T18:29:53.009078+00:00",
+  "finished_at_utc": "2026-06-23T18:30:28.904366+00:00",
+  "duration_seconds": 35.895,
   "error": null
 }
