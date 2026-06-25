@@ -1,0 +1,56 @@
+{
+  "script": "base_dados_candle_research.py",
+  "symbol": "GOLD",
+  "started_at_utc": "2026-06-25T17:59:46.540840+00:00",
+  "output_root": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base",
+  "timeframes": {
+    "M1": {
+      "requested": 150000,
+      "rows": 99999,
+      "columns": 212,
+      "start_brt": "2026-03-15 20:50:00",
+      "end_brt": "2026-06-25 14:58:00",
+      "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base\\timeframes\\GOLD_M1_candle_research.parquet"
+    },
+    "M5": {
+      "requested": 100000,
+      "rows": 99999,
+      "columns": 212,
+      "start_brt": "2025-01-27 21:10:00",
+      "end_brt": "2026-06-25 14:55:00",
+      "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base\\timeframes\\GOLD_M5_candle_research.parquet"
+    },
+    "M15": {
+      "requested": 50000,
+      "rows": 50000,
+      "columns": 212,
+      "start_brt": "2024-05-14 17:00:00",
+      "end_brt": "2026-06-25 14:45:00",
+      "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base\\timeframes\\GOLD_M15_candle_research.parquet"
+    },
+    "H1": {
+      "requested": 20000,
+      "rows": 20000,
+      "columns": 212,
+      "start_brt": "2023-02-07 03:00:00",
+      "end_brt": "2026-06-25 14:00:00",
+      "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base\\timeframes\\GOLD_H1_candle_research.parquet"
+    },
+    "H4": {
+      "requested": 10000,
+      "rows": 10000,
+      "columns": 212,
+      "start_brt": "2020-01-09 15:00:00",
+      "end_brt": "2026-06-25 11:00:00",
+      "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base\\timeframes\\GOLD_H4_candle_research.parquet"
+    }
+  },
+  "errors": [],
+  "consolidated": {
+    "rows": 279998,
+    "columns": 214,
+    "path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base\\consolidated\\GOLD_candle_research.parquet"
+  },
+  "status": "success",
+  "finished_at_utc": "2026-06-25T18:00:27.431791+00:00"
+}

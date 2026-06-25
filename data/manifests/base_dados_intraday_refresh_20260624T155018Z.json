@@ -1,0 +1,73 @@
+{
+  "project": "TradingAgent",
+  "mode": "intraday_refresh",
+  "status": "success",
+  "created_at_utc": "2026-06-24T15:50:18.695275+00:00",
+  "config_path": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\tradingagent.json",
+  "outputs": {
+    "symbols": [
+      "GOLD"
+    ],
+    "timeframes": [
+      "M1",
+      "M5",
+      "M15",
+      "H1",
+      "H4"
+    ],
+    "include_live_bar": true,
+    "enable_labels": false,
+    "files": [
+      {
+        "symbol": "GOLD",
+        "timeframe": "M1",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "M5",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M5.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "M15",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M15.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "H1",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_H1.parquet"
+        }
+      },
+      {
+        "symbol": "GOLD",
+        "timeframe": "H4",
+        "rows": 5000,
+        "columns": 212,
+        "saved": {
+          "parquet": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_H4.parquet"
+        }
+      }
+    ],
+    "errors": [],
+    "consolidated_suffix": "intraday",
+    "consolidated_files": [
+      "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\consolidated\\GOLD_intraday.parquet"
+    ]
+  }
+}

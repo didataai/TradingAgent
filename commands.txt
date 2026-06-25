@@ -76,9 +76,16 @@ py .\pipeline\intraday_pipeline_web.py `
   
   ## Market intelligence.
 
- py .\market_intelligence.py build --symbol GOLD --input-dir .\data --output 
- 
+py .\market_intelligence.py build --symbol GOLD --input-dir .\data --output .\data\market_intelligence\GOLD.json
+
  Get-Content .\data\intelligence\GOLD.json -TotalCount 25
 
  Get-Content .\data\intelligence\GOLD.json 
 
+## 
+
+python tools/market_chronos_dataset.py --symbol GOLD
+
+python tools/market_chronos_dataset.py --symbol GOLD --input data/market_chronos/candle_base/consolidated/GOLD_candle_research.parquet
+
+python tools/base_dados_candle.py --symbol GOLD --mode full_rebuild --timeframes M1 M5 M15 H1 H4

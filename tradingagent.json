@@ -1,11 +1,11 @@
-{
+﻿{
   "project": {
     "name": "TradingAgent",
     "environment": "dev",
     "description": "Base quantitativa para agentes independentes de swing e intraday."
   },
   "mt5": {
-    "path": "C:\\Program Files\\Rico - MetaTrader 5\\terminal64.exe",
+    "path": "C:\\Program Files\\FBS MetaTrader 5\\terminal64.exe",
     "account": 6244829,
     "server": "ActivTrades-Server",
     "password": "Demoacc2!",
