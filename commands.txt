@@ -58,21 +58,24 @@ py .\pipeline\swing_pipeline_web.py --symbol GOLD
 
 
 ## Intraday 
+## LLM local
+python pipeline/intraday_pipeline_web.py ` --symbol GOLD ` --analyst analyst_1
 
+
+## 
 py .\pipeline\intraday_pipeline_web.py --web-agent
 
 ## por Symbol 
 
 py .\pipeline\intraday_pipeline_web.py ` --symbol GOLD ` --web-agent ` --analyst analyst_1
 
+python pipeline/intraday_pipeline_web.py ` --symbol GOLD ` --web-agent ` --analyst analyst_1
+
 #Sem inteligencia
 py .\pipeline\intraday_pipeline_web.py --symbol GOLD --web-agent --analyst analyst_1 --skip-market-intelligence
 
-
-py .\pipeline\intraday_pipeline_web.py `
-  --symbol GOLD `
-  --symbol EURUSD `
-  --web-agent
+## 2 Symbol - EU and Gold
+py .\pipeline\intraday_pipeline_web.py ` --symbol GOLD ` --symbol EURUSD ` --web-agent
   
   ## Market intelligence.
 

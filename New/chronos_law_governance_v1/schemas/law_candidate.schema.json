@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tradingagent.local/schemas/law_candidate.schema.json",
+  "title": "Market Chronos Law Candidate",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "candidate_id",
+    "symbol",
+    "name",
+    "status",
+    "conditions",
+    "effect",
+    "validation"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^CAND_[A-Z0-9_\\-]+$"
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DISCOVERED",
+        "PENDING_VALIDATION",
+        "VALIDATED",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "REJECTED"
+      ]
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "updated_at_utc": {
+      "type": "string"
+    },
+    "conditions": {
+      "type": "object"
+    },
+    "effect": {
+      "type": "object",
+      "required": [
+        "supporting_side",
+        "blocked_actions"
+      ],
+      "properties": {
+        "supporting_side": {
+          "type": "string",
+          "enum": [
+            "BUY",
+            "SELL",
+            "NONE"
+          ]
+        },
+        "blocked_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "action_hint": {
+          "type": "string"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "sample_size",
+        "oos_pass",
+        "walk_forward_pass",
+        "recent_window_pass",
+        "confidence_grade"
+      ],
+      "properties": {
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "oos_pass": {
+          "type": "boolean"
+        },
+        "walk_forward_pass": {
+          "type": "boolean"
+        },
+        "recent_window_pass": {
+          "type": "boolean"
+        },
+        "confidence_grade": {
+          "type": "string",
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "UNRATED"
+          ]
+        },
+        "expectancy_atr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_degradation_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "reviewed_by": {
+          "type": "string"
+        },
+        "reviewed_at_utc": {
+          "type": "string"
+        },
+        "decision_reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

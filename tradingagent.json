@@ -1,4 +1,4 @@
-﻿{
+{
   "project": {
     "name": "TradingAgent",
     "environment": "dev",
@@ -492,6 +492,51 @@
           "{symbol}"
         ],
         "timeout_seconds": 120
+      },
+      "chronos_runtime": {
+        "enabled": true,
+        "required": false,
+        "symbols": [
+          "GOLD"
+        ],
+        "script": "tools/market_chronos_runtime.py",
+        "arguments": [
+          "--symbol",
+          "{symbol}",
+          "--anchor-tf",
+          "M5",
+          "--source-mode",
+          "live",
+          "--live-timeframes",
+          "M5",
+          "M15",
+          "H1",
+          "H4",
+          "--warmup-bars",
+          "5000",
+          "--max-age-minutes",
+          "30",
+          "--event-timezone",
+          "UTC"
+        ],
+        "timeout_seconds": 180
+      },
+      "chronos_payload_bridge": {
+        "enabled": true,
+        "required": false,
+        "symbols": [
+          "GOLD"
+        ],
+        "script": "tools/chronos_payload_bridge.py",
+        "arguments": [
+          "--payload",
+          "data/payload/{symbol}_intraday_payload.json",
+          "--chronos",
+          "data/context/{symbol}_chronos_intelligence.json",
+          "--output",
+          "data/payload/{symbol}_intraday_payload.json"
+        ],
+        "timeout_seconds": 30
       },
       "market_intelligence_enrich": {
         "enabled": true,

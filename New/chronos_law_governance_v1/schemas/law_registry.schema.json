@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tradingagent.local/schemas/law_registry.schema.json",
+  "title": "Market Chronos Operational Law Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "registry_schema_version",
+    "registry_version",
+    "symbol",
+    "updated_at_utc",
+    "laws"
+  ],
+  "properties": {
+    "registry_schema_version": {
+      "const": "1.0"
+    },
+    "registry_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "updated_at_utc": {
+      "type": "string"
+    },
+    "laws": {
+      "type": "array",
+      "items": {
+        "$ref": "market_law.schema.json"
+      }
+    }
+  }
+}

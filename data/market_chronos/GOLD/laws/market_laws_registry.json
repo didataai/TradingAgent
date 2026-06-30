@@ -1,0 +1,754 @@
+{
+  "registry_schema_version": "1.1.0",
+  "engine_version": "V10.1",
+  "validation_scope": "VALIDATED_LOCAL",
+  "generated_at_utc": "2026-06-26T20:43:48.990775+00:00",
+  "symbol": "GOLD",
+  "anchor_tf": "M5",
+  "laws": [
+    {
+      "law_id": "LAW_0001A",
+      "name": "First Resistance Attempt Against Bearish MTF",
+      "hypothesis": "Primeira tentativa contra resistência, sem falha no nível atual e contra MTF vendedor favorece devolução.",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "status": "VALIDATED_LOCAL",
+      "validation_status": "VALIDATED",
+      "tier": "A",
+      "side": "SELL",
+      "conditions": {
+        "level_attempt_side": "UP",
+        "attempt_bucket": "FIRST_ATTEMPT",
+        "failure_memory_bucket": "NO_RECENT_FAILURE",
+        "mtf_bias": "DOWN",
+        "mtf_alignment_bucket_in": [
+          "MIXED",
+          "STRONG",
+          "FULL"
+        ]
+      },
+      "effect": {
+        "block_action": "BUY_BREAKOUT",
+        "preferred_response": "WAIT_FOR_SELL_CONFIRMATION",
+        "runtime_role": "GUARD"
+      },
+      "metrics": {
+        "sample_size": 948,
+        "full_edge": 0.516878,
+        "full_ci_low": 0.463705,
+        "full_ci_high": 0.57005,
+        "is_edge": 0.523449,
+        "oos_edge": 0.501742,
+        "recent_edge": 0.504098,
+        "oos_valid": 287,
+        "positive_year_ratio": 1.0,
+        "positive_window_ratio": 1.0
+      },
+      "segment_modulators": [
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_AGAINST_HTF_DOWN",
+          "status": "WEAKER",
+          "score_adjustment": -8.047,
+          "full_valid": 460,
+          "full_edge": 0.286957,
+          "oos_valid": 136,
+          "oos_edge": 0.191176
+        },
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_MIXED_HTF",
+          "status": "STRONGER",
+          "score_adjustment": 7.76,
+          "full_valid": 482,
+          "full_edge": 0.738589,
+          "oos_valid": 149,
+          "oos_edge": 0.785235
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "MIXED_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 7.76,
+          "full_valid": 482,
+          "full_edge": 0.738589,
+          "oos_valid": 149,
+          "oos_edge": 0.785235
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "STRONG_DOWN_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -17.342,
+          "full_valid": 187,
+          "full_edge": 0.02139,
+          "oos_valid": 50,
+          "oos_edge": -0.2
+        },
+        {
+          "dimension": "WEEKDAY",
+          "segment": "TUESDAY",
+          "status": "STRONGER",
+          "score_adjustment": 3.404,
+          "full_valid": 184,
+          "full_edge": 0.61413,
+          "oos_valid": 49,
+          "oos_edge": 0.55102
+        }
+      ]
+    },
+    {
+      "law_id": "LAW_0001B",
+      "name": "First Support Attempt Against Bullish MTF",
+      "hypothesis": "Primeira tentativa contra suporte, sem falha no nível atual e contra MTF comprador favorece devolução.",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "status": "VALIDATED_LOCAL",
+      "validation_status": "VALIDATED",
+      "tier": "A",
+      "side": "BUY",
+      "conditions": {
+        "level_attempt_side": "DOWN",
+        "attempt_bucket": "FIRST_ATTEMPT",
+        "failure_memory_bucket": "NO_RECENT_FAILURE",
+        "mtf_bias": "UP",
+        "mtf_alignment_bucket_in": [
+          "MIXED",
+          "STRONG",
+          "FULL"
+        ]
+      },
+      "effect": {
+        "block_action": "SELL_BREAKOUT",
+        "preferred_response": "WAIT_FOR_BUY_CONFIRMATION",
+        "runtime_role": "GUARD"
+      },
+      "metrics": {
+        "sample_size": 971,
+        "full_edge": 0.431514,
+        "full_ci_low": 0.375978,
+        "full_ci_high": 0.48705,
+        "is_edge": 0.408511,
+        "oos_edge": 0.492481,
+        "recent_edge": 0.511848,
+        "oos_valid": 266,
+        "positive_year_ratio": 1.0,
+        "positive_window_ratio": 1.0
+      },
+      "segment_modulators": [
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_MIXED_HTF",
+          "status": "STRONGER",
+          "score_adjustment": 7.34,
+          "full_valid": 393,
+          "full_edge": 0.641221,
+          "oos_valid": 108,
+          "oos_edge": 0.740741
+        },
+        {
+          "dimension": "ENERGY",
+          "segment": "EXTREME",
+          "status": "STRONGER",
+          "score_adjustment": 3.142,
+          "full_valid": 94,
+          "full_edge": 0.521277,
+          "oos_valid": 28,
+          "oos_edge": 0.607143
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "MIXED_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 7.34,
+          "full_valid": 393,
+          "full_edge": 0.641221,
+          "oos_valid": 108,
+          "oos_edge": 0.740741
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "STRONG_UP_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -14.253,
+          "full_valid": 247,
+          "full_edge": 0.024291,
+          "oos_valid": 63,
+          "oos_edge": 0.142857
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "LONDON",
+          "status": "STRONGER",
+          "score_adjustment": 3.272,
+          "full_valid": 120,
+          "full_edge": 0.525,
+          "oos_valid": 40,
+          "oos_edge": 0.525
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "NY_AFTERNOON",
+          "status": "STRONGER",
+          "score_adjustment": 4.755,
+          "full_valid": 141,
+          "full_edge": 0.567376,
+          "oos_valid": 36,
+          "oos_edge": 0.777778
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "PRE_LONDON",
+          "status": "WEAKER",
+          "score_adjustment": -7.691,
+          "full_valid": 85,
+          "full_edge": 0.211765,
+          "oos_valid": 24,
+          "oos_edge": 0.166667
+        }
+      ]
+    },
+    {
+      "law_id": "LAW_0002A",
+      "name": "Resistance Breakout After External Failure Memory",
+      "hypothesis": "Breakout de resistência contra MTF vendedor após false break e sweep recentes favorece devolução.",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "status": "VALIDATED_LOCAL",
+      "validation_status": "VALIDATED",
+      "tier": "A",
+      "side": "SELL",
+      "conditions": {
+        "level_attempt_side": "UP",
+        "attempt_bucket": "FIRST_ATTEMPT",
+        "failure_memory_bucket": "NO_RECENT_FAILURE",
+        "mtf_bias": "DOWN",
+        "mtf_alignment_bucket_in": [
+          "MIXED",
+          "STRONG",
+          "FULL"
+        ],
+        "event_breakout_up": true,
+        "bars_since_false_break_between": [
+          1,
+          3
+        ],
+        "bars_since_sweep_between": [
+          1,
+          3
+        ]
+      },
+      "effect": {
+        "block_action": "BUY_BREAKOUT",
+        "preferred_response": "WAIT_FOR_SELL_CONFIRMATION",
+        "runtime_role": "GUARD"
+      },
+      "metrics": {
+        "sample_size": 732,
+        "full_edge": 0.516393,
+        "full_ci_low": 0.455955,
+        "full_ci_high": 0.576832,
+        "is_edge": 0.523904,
+        "oos_edge": 0.5,
+        "recent_edge": 0.505102,
+        "oos_valid": 230,
+        "positive_year_ratio": 1.0,
+        "positive_window_ratio": 1.0
+      },
+      "segment_modulators": [
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_AGAINST_HTF_DOWN",
+          "status": "WEAKER",
+          "score_adjustment": -7.408,
+          "full_valid": 338,
+          "full_edge": 0.304734,
+          "oos_valid": 106,
+          "oos_edge": 0.188679
+        },
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_MIXED_HTF",
+          "status": "STRONGER",
+          "score_adjustment": 6.553,
+          "full_valid": 388,
+          "full_edge": 0.703608,
+          "oos_valid": 122,
+          "oos_edge": 0.770492
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "MIXED_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 6.553,
+          "full_valid": 388,
+          "full_edge": 0.703608,
+          "oos_valid": 122,
+          "oos_edge": 0.770492
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "STRONG_DOWN_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -16.088,
+          "full_valid": 141,
+          "full_edge": 0.056738,
+          "oos_valid": 43,
+          "oos_edge": -0.162791
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "NY_OPEN",
+          "status": "STRONGER",
+          "score_adjustment": 3.579,
+          "full_valid": 118,
+          "full_edge": 0.618644,
+          "oos_valid": 33,
+          "oos_edge": 0.69697
+        },
+        {
+          "dimension": "WEEKDAY",
+          "segment": "TUESDAY",
+          "status": "STRONGER",
+          "score_adjustment": 5.498,
+          "full_valid": 147,
+          "full_edge": 0.673469,
+          "oos_valid": 40,
+          "oos_edge": 0.6
+        }
+      ]
+    },
+    {
+      "law_id": "LAW_0002B",
+      "name": "Support Breakout After External Failure Memory",
+      "hypothesis": "Breakout de suporte contra MTF comprador após false break e sweep recentes favorece devolução.",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "status": "VALIDATED_LOCAL",
+      "validation_status": "VALIDATED",
+      "tier": "A",
+      "side": "BUY",
+      "conditions": {
+        "level_attempt_side": "DOWN",
+        "attempt_bucket": "FIRST_ATTEMPT",
+        "failure_memory_bucket": "NO_RECENT_FAILURE",
+        "mtf_bias": "UP",
+        "mtf_alignment_bucket_in": [
+          "MIXED",
+          "STRONG",
+          "FULL"
+        ],
+        "event_breakout_down": true,
+        "bars_since_false_break_between": [
+          1,
+          3
+        ],
+        "bars_since_sweep_between": [
+          1,
+          3
+        ]
+      },
+      "effect": {
+        "block_action": "SELL_BREAKOUT",
+        "preferred_response": "WAIT_FOR_BUY_CONFIRMATION",
+        "runtime_role": "GUARD"
+      },
+      "metrics": {
+        "sample_size": 755,
+        "full_edge": 0.421192,
+        "full_ci_low": 0.35777,
+        "full_ci_high": 0.484614,
+        "is_edge": 0.387868,
+        "oos_edge": 0.507109,
+        "recent_edge": 0.511905,
+        "oos_valid": 211,
+        "positive_year_ratio": 1.0,
+        "positive_window_ratio": 1.0
+      },
+      "segment_modulators": [
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_MIXED_HTF",
+          "status": "STRONGER",
+          "score_adjustment": 7.065,
+          "full_valid": 321,
+          "full_edge": 0.623053,
+          "oos_valid": 91,
+          "oos_edge": 0.714286
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "MIXED_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 7.065,
+          "full_valid": 321,
+          "full_edge": 0.623053,
+          "oos_valid": 91,
+          "oos_edge": 0.714286
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "STRONG_UP_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -14.158,
+          "full_valid": 180,
+          "full_edge": 0.016667,
+          "oos_valid": 46,
+          "oos_edge": 0.217391
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "ASIA",
+          "status": "STRONGER",
+          "score_adjustment": 2.917,
+          "full_valid": 220,
+          "full_edge": 0.504545,
+          "oos_valid": 56,
+          "oos_edge": 0.607143
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "LATE_BRT",
+          "status": "WEAKER",
+          "score_adjustment": -7.095,
+          "full_valid": 119,
+          "full_edge": 0.218487,
+          "oos_valid": 35,
+          "oos_edge": 0.028571
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "LONDON",
+          "status": "STRONGER",
+          "score_adjustment": 3.139,
+          "full_valid": 92,
+          "full_edge": 0.51087,
+          "oos_valid": 25,
+          "oos_edge": 0.52
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "NY_AFTERNOON",
+          "status": "STRONGER",
+          "score_adjustment": 5.539,
+          "full_valid": 107,
+          "full_edge": 0.579439,
+          "oos_valid": 30,
+          "oos_edge": 0.8
+        }
+      ]
+    },
+    {
+      "law_id": "LAW_0003A",
+      "name": "Second Resistance Attempt After One Failure",
+      "hypothesis": "Segunda tentativa contra resistência após uma falha no nível e contra MTF vendedor favorece rejeição.",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "status": "VALIDATED_LOCAL",
+      "validation_status": "VALIDATED",
+      "tier": "B",
+      "side": "SELL",
+      "conditions": {
+        "level_attempt_side": "UP",
+        "attempt_bucket": "SECOND_ATTEMPT",
+        "failure_memory_bucket": "ONE_RECENT_FAILURE",
+        "mtf_bias": "DOWN",
+        "mtf_alignment_bucket_in": [
+          "MIXED",
+          "STRONG",
+          "FULL"
+        ]
+      },
+      "effect": {
+        "block_action": null,
+        "preferred_response": "WAIT_FOR_SELL_CONFIRMATION",
+        "runtime_role": "CONFIRMATION"
+      },
+      "metrics": {
+        "sample_size": 620,
+        "full_edge": 0.206452,
+        "full_ci_low": 0.130153,
+        "full_ci_high": 0.28275,
+        "is_edge": 0.225352,
+        "oos_edge": 0.164948,
+        "recent_edge": 0.13253,
+        "oos_valid": 194,
+        "positive_year_ratio": 1.0,
+        "positive_window_ratio": 1.0
+      },
+      "segment_modulators": [
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "DOWN_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -5.567,
+          "full_valid": 211,
+          "full_edge": 0.047393,
+          "oos_valid": 67,
+          "oos_edge": -0.059701
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "MIXED_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 9.882,
+          "full_valid": 223,
+          "full_edge": 0.488789,
+          "oos_valid": 69,
+          "oos_edge": 0.434783
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "STRONG_DOWN_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -15.797,
+          "full_valid": 98,
+          "full_edge": -0.244898,
+          "oos_valid": 31,
+          "oos_edge": -0.096774
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "UP_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 5.899,
+          "full_valid": 88,
+          "full_edge": 0.375,
+          "oos_valid": 27,
+          "oos_edge": 0.333333
+        },
+        {
+          "dimension": "LEVEL_PROXIMITY",
+          "segment": "NEAR_RESISTANCE",
+          "status": "STRONGER",
+          "score_adjustment": 2.833,
+          "full_valid": 341,
+          "full_edge": 0.28739,
+          "oos_valid": 112,
+          "oos_edge": 0.241071
+        },
+        {
+          "dimension": "LEVEL_PROXIMITY",
+          "segment": "NEAR_SUPPORT",
+          "status": "WEAKER",
+          "score_adjustment": -12.421,
+          "full_valid": 128,
+          "full_edge": -0.148438,
+          "oos_valid": 42,
+          "oos_edge": -0.261905
+        },
+        {
+          "dimension": "LEVEL_PROXIMITY",
+          "segment": "OTHER_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 4.132,
+          "full_valid": 151,
+          "full_edge": 0.324503,
+          "oos_valid": 40,
+          "oos_edge": 0.4
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "LONDON",
+          "status": "STRONGER",
+          "score_adjustment": 4.179,
+          "full_valid": 89,
+          "full_edge": 0.325843,
+          "oos_valid": 34,
+          "oos_edge": 0.235294
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "NY_AFTERNOON",
+          "status": "WEAKER",
+          "score_adjustment": -6.392,
+          "full_valid": 126,
+          "full_edge": 0.02381,
+          "oos_valid": 37,
+          "oos_edge": 0.162162
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "NY_OPEN",
+          "status": "STRONGER",
+          "score_adjustment": 3.392,
+          "full_valid": 89,
+          "full_edge": 0.303371,
+          "oos_valid": 25,
+          "oos_edge": 0.2
+        },
+        {
+          "dimension": "WEEKDAY",
+          "segment": "MONDAY",
+          "status": "WEAKER",
+          "score_adjustment": -5.767,
+          "full_valid": 120,
+          "full_edge": 0.041667,
+          "oos_valid": 50,
+          "oos_edge": -0.06
+        },
+        {
+          "dimension": "WEEKDAY",
+          "segment": "THURSDAY",
+          "status": "STRONGER",
+          "score_adjustment": 2.815,
+          "full_valid": 122,
+          "full_edge": 0.286885,
+          "oos_valid": 35,
+          "oos_edge": 0.314286
+        }
+      ]
+    },
+    {
+      "law_id": "LAW_0003B",
+      "name": "Second Support Attempt After One Failure",
+      "hypothesis": "Segunda tentativa contra suporte após uma falha no nível e contra MTF comprador favorece defesa.",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "status": "PROVISIONAL",
+      "validation_status": "PROVISIONAL",
+      "tier": "C",
+      "side": "BUY",
+      "conditions": {
+        "level_attempt_side": "DOWN",
+        "attempt_bucket": "SECOND_ATTEMPT",
+        "failure_memory_bucket": "ONE_RECENT_FAILURE",
+        "mtf_bias": "UP",
+        "mtf_alignment_bucket_in": [
+          "MIXED",
+          "STRONG",
+          "FULL"
+        ]
+      },
+      "effect": {
+        "block_action": null,
+        "preferred_response": "WAIT_FOR_BUY_CONFIRMATION",
+        "runtime_role": "ADVISORY"
+      },
+      "metrics": {
+        "sample_size": 882,
+        "full_edge": 0.138322,
+        "full_ci_low": 0.073683,
+        "full_ci_high": 0.202961,
+        "is_edge": 0.146497,
+        "oos_edge": 0.11811,
+        "recent_edge": 0.154545,
+        "oos_valid": 254,
+        "positive_year_ratio": 1.0,
+        "positive_window_ratio": 1.0
+      },
+      "segment_modulators": [
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_MIXED_HTF",
+          "status": "STRONGER",
+          "score_adjustment": 14.492,
+          "full_valid": 105,
+          "full_edge": 0.552381,
+          "oos_valid": 24,
+          "oos_edge": 0.708333
+        },
+        {
+          "dimension": "BREAKOUT_ALIGNMENT",
+          "segment": "BREAKOUT_WITH_HTF_UP",
+          "status": "WEAKER",
+          "score_adjustment": -17.139,
+          "full_valid": 111,
+          "full_edge": -0.351351,
+          "oos_valid": 36,
+          "oos_edge": -0.277778
+        },
+        {
+          "dimension": "ENERGY",
+          "segment": "LOW",
+          "status": "STRONGER",
+          "score_adjustment": 3.01,
+          "full_valid": 263,
+          "full_edge": 0.224335,
+          "oos_valid": 68,
+          "oos_edge": 0.191176
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "DOWN_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 6.715,
+          "full_valid": 106,
+          "full_edge": 0.330189,
+          "oos_valid": 35,
+          "oos_edge": 0.142857
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "MIXED_LOCATION",
+          "status": "STRONGER",
+          "score_adjustment": 11.025,
+          "full_valid": 300,
+          "full_edge": 0.453333,
+          "oos_valid": 78,
+          "oos_edge": 0.5
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "STRONG_UP_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -13.591,
+          "full_valid": 168,
+          "full_edge": -0.25,
+          "oos_valid": 52,
+          "oos_edge": -0.019231
+        },
+        {
+          "dimension": "HTF_LOCATION",
+          "segment": "UP_LOCATION",
+          "status": "WEAKER",
+          "score_adjustment": -5.637,
+          "full_valid": 308,
+          "full_edge": -0.022727,
+          "oos_valid": 89,
+          "oos_edge": -0.146067
+        },
+        {
+          "dimension": "LEVEL_PROXIMITY",
+          "segment": "NEAR_RESISTANCE",
+          "status": "WEAKER",
+          "score_adjustment": -4.292,
+          "full_valid": 446,
+          "full_edge": 0.015695,
+          "oos_valid": 132,
+          "oos_edge": -0.015152
+        },
+        {
+          "dimension": "LEVEL_PROXIMITY",
+          "segment": "NEAR_SUPPORT",
+          "status": "STRONGER",
+          "score_adjustment": 8.75,
+          "full_valid": 291,
+          "full_edge": 0.388316,
+          "oos_valid": 81,
+          "oos_edge": 0.382716
+        },
+        {
+          "dimension": "SESSION_BRT",
+          "segment": "LONDON",
+          "status": "WEAKER",
+          "score_adjustment": -7.364,
+          "full_valid": 111,
+          "full_edge": -0.072072,
+          "oos_valid": 28,
+          "oos_edge": 0.071429
+        },
+        {
+          "dimension": "WEEKDAY",
+          "segment": "FRIDAY",
+          "status": "WEAKER",
+          "score_adjustment": -3.505,
+          "full_valid": 131,
+          "full_edge": 0.038168,
+          "oos_valid": 38,
+          "oos_edge": -0.026316
+        }
+      ]
+    }
+  ]
+}

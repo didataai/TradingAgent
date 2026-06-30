@@ -1,11 +1,11 @@
 {
-  "script": "market_chronos_engine.py",
-  "validation_marker": "MARKET_CHRONOS_ENGINE_V5_HTF_LOCATION_DNA",
+  "script": "market_chronos_engine_v10_1.py",
+  "validation_marker": "MARKET_CHRONOS_ENGINE_V10_1_RUNTIME_HARDENING",
   "symbol": "GOLD",
   "anchor_tf": "M5",
   "rows": 99999,
   "input": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet",
   "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\engine",
   "min_bars": 120,
-  "generated_at_utc": "2026-06-25T21:57:03.634361+00:00"
+  "generated_at_utc": "2026-06-26T20:43:52.188190+00:00"
 }
