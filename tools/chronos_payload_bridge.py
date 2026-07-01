@@ -36,13 +36,13 @@ def normalized(value: Any) -> str:
 
 def semantic_vote(value: Any) -> int:
     text = normalized(value)
-    positive = (
-        "VERY_HIGH", "HIGH", "STRONG", "EXPANSION", "ALIGNED", "FAVORABLE",
-        "CONFIRMED", "ABOVE", "BULLISH", "BEARISH",
-    )
     negative = (
-        "VERY_LOW", "LOW", "WEAK", "COMPRESSION", "MISALIGNED", "CONFLICT",
-        "UNFAVORABLE", "OPPOSITE",
+        "VERY_LOW", "LOW", "WEAK", "COMPRESSION", "MISALIGNED",
+        "CONFLICT", "UNFAVORABLE", "OPPOSITE",
+    )
+    positive = (
+        "VERY_HIGH", "HIGH", "STRONG", "EXPANSION", "ALIGNED",
+        "FAVORABLE", "CONFIRMED", "ABOVE", "BULLISH", "BEARISH",
     )
     if any(token in text for token in negative):
         return -1
@@ -73,11 +73,7 @@ def infer_breakout_side(state: dict[str, Any], chronos: dict[str, Any]) -> str:
     if side in {"DOWN", "SELL", "SHORT"}:
         return "DOWN"
     supporting = normalized(chronos.get("supporting_side"))
-    if supporting == "BUY":
-        return "UP"
-    if supporting == "SELL":
-        return "DOWN"
-    return "NONE"
+    return "UP" if supporting == "BUY" else "DOWN" if supporting == "SELL" else "NONE"
 
 
 def directional_vote(value: Any, side: str) -> tuple[int, bool]:
@@ -98,41 +94,65 @@ def build_breakout_quality(state_payload: dict[str, Any], chronos: dict[str, Any
     side = infer_breakout_side(state, chronos)
     applicable = side in {"UP", "DOWN"}
 
-    body_vote = semantic_vote(state.get("anchor_body_bucket"))
-    range_vote = semantic_vote(state.get("anchor_range_bucket"))
-    displacement = combine_votes(body_vote, range_vote)
-    displacement_known = any(state.get(key) is not None for key in ("anchor_body_bucket", "anchor_range_bucket"))
+    displacement = combine_votes(
+        semantic_vote(state.get("anchor_body_bucket")),
+        semantic_vote(state.get("anchor_range_bucket")),
+    )
+    displacement_known = any(
+        state.get(key) is not None for key in ("anchor_body_bucket", "anchor_range_bucket")
+    )
 
     vol_ratio = as_float(state.get("anchor_vol_ratio"))
-    ratio_vote = 1 if vol_ratio is not None and vol_ratio >= 1.5 else -1 if vol_ratio is not None and vol_ratio < 0.8 else 0
-    volume_vote = semantic_vote(state.get("anchor_vol_bucket"))
-    participation = combine_votes(ratio_vote, volume_vote)
+    ratio_vote = (
+        1 if vol_ratio is not None and vol_ratio >= 1.5
+        else -1 if vol_ratio is not None and vol_ratio < 0.8
+        else 0
+    )
+    participation = combine_votes(ratio_vote, semantic_vote(state.get("anchor_vol_bucket")))
     participation_known = vol_ratio is not None or state.get("anchor_vol_bucket") is not None
 
     direction_vote, direction_known = directional_vote(state.get("anchor_direction"), side)
-    breakout_vote = 1 if applicable and (
-        (side == "UP" and bool(state.get("event_breakout_up")))
-        or (side == "DOWN" and bool(state.get("event_breakout_down")))
-    ) else 0
+    breakout_vote = int(
+        applicable and (
+            (side == "UP" and bool(state.get("event_breakout_up")))
+            or (side == "DOWN" and bool(state.get("event_breakout_down")))
+        )
+    )
     momentum = combine_votes(direction_vote, breakout_vote)
     momentum_known = direction_known or breakout_vote != 0
 
-    alignment_vote, alignment_known = directional_vote(state.get("breakout_location_alignment"), side)
+    alignment_vote, alignment_known = directional_vote(
+        state.get("breakout_location_alignment"), side
+    )
     htf_vote, htf_known = directional_vote(state.get("htf_location_bias"), side)
     location = combine_votes(alignment_vote, htf_vote)
     location_known = alignment_known or htf_known
 
     mtf_vote, mtf_known = directional_vote(state.get("mtf_bias"), side)
-    mtf_bucket_vote = semantic_vote(state.get("mtf_alignment_bucket"))
-    trend = combine_votes(mtf_vote, mtf_bucket_vote)
+    trend = combine_votes(mtf_vote, semantic_vote(state.get("mtf_alignment_bucket")))
     trend_known = mtf_known or state.get("mtf_alignment_bucket") is not None
 
     families = {
-        "displacement": {"score": displacement, "status": family_label(displacement, displacement_known)},
-        "participation": {"score": participation, "status": family_label(participation, participation_known)},
-        "momentum": {"score": momentum, "status": family_label(momentum, momentum_known)},
-        "location": {"score": location, "status": family_label(location, location_known)},
-        "trend": {"score": trend, "status": family_label(trend, trend_known)},
+        "displacement": {
+            "score": displacement,
+            "status": family_label(displacement, displacement_known),
+        },
+        "participation": {
+            "score": participation,
+            "status": family_label(participation, participation_known),
+        },
+        "momentum": {
+            "score": momentum,
+            "status": family_label(momentum, momentum_known),
+        },
+        "location": {
+            "score": location,
+            "status": family_label(location, location_known),
+        },
+        "trend": {
+            "score": trend,
+            "status": family_label(trend, trend_known),
+        },
     }
     score = sum(item["score"] for item in families.values()) if applicable else 0
     band = "PREMIUM" if score >= 4 else "VALID" if score >= 2 else "LOW"
@@ -155,7 +175,8 @@ def build_breakout_quality(state_payload: dict[str, Any], chronos: dict[str, Any
         "method": "chronos_runtime_state_mapping_v1",
         "note": (
             f"Breakout Quality: {score}/5 | Classification: {band}"
-            if applicable else "Breakout Quality: not applicable; no active breakout side."
+            if applicable
+            else "Breakout Quality: not applicable; no active breakout side."
         ),
     }
 
@@ -166,7 +187,7 @@ def compact_chronos(
     state_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     freshness = data.get("freshness") or {}
-    stale = str(freshness.get("status", "UNKNOWN")).upper() == "STALE"
+    stale = normalized(freshness.get("status")) == "STALE"
 
     result: dict[str, Any] = {
         "available": not stale,
@@ -210,21 +231,29 @@ def compact_chronos(
             "chronos_action": "UNAVAILABLE_STALE",
             "confidence": "NONE",
             "matched_laws": [],
+            "operational_band": "UNAVAILABLE",
         })
-        if "breakout_quality" in result:
-            result["breakout_quality"]["available"] = False
-            result["breakout_quality"]["reason"] = "STALE_DATA"
+        quality = result.get("breakout_quality")
+        if quality:
+            quality.update({
+                "available": False,
+                "reason": "STALE_DATA",
+                "observed_score": quality.get("breakout_quality_score"),
+                "observed_band": quality.get("operational_band"),
+                "operational_band": "UNAVAILABLE",
+                "note": "Breakout Quality unavailable: stale market data.",
+            })
 
     if include_diagnostics:
         result["law_diagnostics"] = data.get("law_diagnostics", [])
         result["diagnostic_summary"] = data.get("diagnostic_summary", {})
-
     return result
 
 
 def infer_state_path(chronos_path: Path) -> Path:
-    name = chronos_path.name.replace("_chronos_intelligence.json", "_chronos_state.json")
-    return chronos_path.with_name(name)
+    return chronos_path.with_name(
+        chronos_path.name.replace("_chronos_intelligence.json", "_chronos_state.json")
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -264,6 +293,8 @@ def main() -> int:
         "chronos_action": summary["chronos_action"],
         "breakout_quality_score": quality.get("breakout_quality_score"),
         "operational_band": quality.get("operational_band"),
+        "observed_score": quality.get("observed_score"),
+        "observed_band": quality.get("observed_band"),
         "breakout_side": quality.get("side"),
         "known_families": quality.get("known_families"),
     }, ensure_ascii=False, indent=2))
