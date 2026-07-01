@@ -1,0 +1,381 @@
+{
+  "schema_version": "1.1.0",
+  "engine_version": "V10.1",
+  "evaluated_at": "2026-06-25T14:55:00",
+  "symbol": "GOLD",
+  "anchor_tf": "M5",
+  "matched_laws": [],
+  "matched_count": 0,
+  "supporting_side": "NONE",
+  "buy_score": 0.0,
+  "sell_score": 0.0,
+  "blocked_actions": [],
+  "chronos_action": "NO_MATCH",
+  "confidence": "NONE",
+  "current_segments": {
+    "HOUR_BRT": "14",
+    "SESSION_BRT": "NY_AFTERNOON",
+    "WEEKDAY": "THURSDAY",
+    "ENERGY": "LOW",
+    "HTF_LOCATION": "STRONG_UP_LOCATION",
+    "BREAKOUT_ALIGNMENT": "BREAKOUT_WITH_HTF_UP",
+    "LEVEL_PROXIMITY": "NEAR_RESISTANCE"
+  },
+  "guard_note": "Lei de devolução bloqueia perseguição incompatível; entrada oposta ainda exige confirmação do preço.",
+  "law_diagnostics": [
+    {
+      "law_id": "LAW_0001A",
+      "name": "First Resistance Attempt Against Bearish MTF",
+      "side": "SELL",
+      "tier": "A",
+      "matched": false,
+      "passed_conditions": 2,
+      "total_conditions": 5,
+      "failed_conditions": [
+        "attempt_bucket",
+        "failure_memory_bucket",
+        "mtf_bias"
+      ],
+      "condition_checks": {
+        "level_attempt_side": {
+          "field": "level_attempt_side",
+          "expected": "UP",
+          "actual": "UP",
+          "passed": true
+        },
+        "attempt_bucket": {
+          "field": "attempt_bucket",
+          "expected": "FIRST_ATTEMPT",
+          "actual": "THIRD_ATTEMPT",
+          "passed": false
+        },
+        "failure_memory_bucket": {
+          "field": "failure_memory_bucket",
+          "expected": "NO_RECENT_FAILURE",
+          "actual": "TWO_RECENT_FAILURES",
+          "passed": false
+        },
+        "mtf_bias": {
+          "field": "mtf_bias",
+          "expected": "DOWN",
+          "actual": "UP",
+          "passed": false
+        },
+        "mtf_alignment_bucket_in": {
+          "field": "mtf_alignment_bucket",
+          "expected": [
+            "MIXED",
+            "STRONG",
+            "FULL"
+          ],
+          "actual": "FULL",
+          "passed": true
+        }
+      }
+    },
+    {
+      "law_id": "LAW_0001B",
+      "name": "First Support Attempt Against Bullish MTF",
+      "side": "BUY",
+      "tier": "A",
+      "matched": false,
+      "passed_conditions": 2,
+      "total_conditions": 5,
+      "failed_conditions": [
+        "level_attempt_side",
+        "attempt_bucket",
+        "failure_memory_bucket"
+      ],
+      "condition_checks": {
+        "level_attempt_side": {
+          "field": "level_attempt_side",
+          "expected": "DOWN",
+          "actual": "UP",
+          "passed": false
+        },
+        "attempt_bucket": {
+          "field": "attempt_bucket",
+          "expected": "FIRST_ATTEMPT",
+          "actual": "THIRD_ATTEMPT",
+          "passed": false
+        },
+        "failure_memory_bucket": {
+          "field": "failure_memory_bucket",
+          "expected": "NO_RECENT_FAILURE",
+          "actual": "TWO_RECENT_FAILURES",
+          "passed": false
+        },
+        "mtf_bias": {
+          "field": "mtf_bias",
+          "expected": "UP",
+          "actual": "UP",
+          "passed": true
+        },
+        "mtf_alignment_bucket_in": {
+          "field": "mtf_alignment_bucket",
+          "expected": [
+            "MIXED",
+            "STRONG",
+            "FULL"
+          ],
+          "actual": "FULL",
+          "passed": true
+        }
+      }
+    },
+    {
+      "law_id": "LAW_0002A",
+      "name": "Resistance Breakout After External Failure Memory",
+      "side": "SELL",
+      "tier": "A",
+      "matched": false,
+      "passed_conditions": 5,
+      "total_conditions": 8,
+      "failed_conditions": [
+        "attempt_bucket",
+        "failure_memory_bucket",
+        "mtf_bias"
+      ],
+      "condition_checks": {
+        "level_attempt_side": {
+          "field": "level_attempt_side",
+          "expected": "UP",
+          "actual": "UP",
+          "passed": true
+        },
+        "attempt_bucket": {
+          "field": "attempt_bucket",
+          "expected": "FIRST_ATTEMPT",
+          "actual": "THIRD_ATTEMPT",
+          "passed": false
+        },
+        "failure_memory_bucket": {
+          "field": "failure_memory_bucket",
+          "expected": "NO_RECENT_FAILURE",
+          "actual": "TWO_RECENT_FAILURES",
+          "passed": false
+        },
+        "mtf_bias": {
+          "field": "mtf_bias",
+          "expected": "DOWN",
+          "actual": "UP",
+          "passed": false
+        },
+        "mtf_alignment_bucket_in": {
+          "field": "mtf_alignment_bucket",
+          "expected": [
+            "MIXED",
+            "STRONG",
+            "FULL"
+          ],
+          "actual": "FULL",
+          "passed": true
+        },
+        "event_breakout_up": {
+          "field": "event_breakout_up",
+          "expected": true,
+          "actual": true,
+          "passed": true
+        },
+        "bars_since_false_break_between": {
+          "field": "bars_since_false_break",
+          "expected": [
+            1.0,
+            3.0
+          ],
+          "actual": 3.0,
+          "passed": true
+        },
+        "bars_since_sweep_between": {
+          "field": "bars_since_sweep",
+          "expected": [
+            1.0,
+            3.0
+          ],
+          "actual": 3.0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "law_id": "LAW_0002B",
+      "name": "Support Breakout After External Failure Memory",
+      "side": "BUY",
+      "tier": "A",
+      "matched": false,
+      "passed_conditions": 4,
+      "total_conditions": 8,
+      "failed_conditions": [
+        "level_attempt_side",
+        "attempt_bucket",
+        "failure_memory_bucket",
+        "event_breakout_down"
+      ],
+      "condition_checks": {
+        "level_attempt_side": {
+          "field": "level_attempt_side",
+          "expected": "DOWN",
+          "actual": "UP",
+          "passed": false
+        },
+        "attempt_bucket": {
+          "field": "attempt_bucket",
+          "expected": "FIRST_ATTEMPT",
+          "actual": "THIRD_ATTEMPT",
+          "passed": false
+        },
+        "failure_memory_bucket": {
+          "field": "failure_memory_bucket",
+          "expected": "NO_RECENT_FAILURE",
+          "actual": "TWO_RECENT_FAILURES",
+          "passed": false
+        },
+        "mtf_bias": {
+          "field": "mtf_bias",
+          "expected": "UP",
+          "actual": "UP",
+          "passed": true
+        },
+        "mtf_alignment_bucket_in": {
+          "field": "mtf_alignment_bucket",
+          "expected": [
+            "MIXED",
+            "STRONG",
+            "FULL"
+          ],
+          "actual": "FULL",
+          "passed": true
+        },
+        "event_breakout_down": {
+          "field": "event_breakout_down",
+          "expected": true,
+          "actual": false,
+          "passed": false
+        },
+        "bars_since_false_break_between": {
+          "field": "bars_since_false_break",
+          "expected": [
+            1.0,
+            3.0
+          ],
+          "actual": 3.0,
+          "passed": true
+        },
+        "bars_since_sweep_between": {
+          "field": "bars_since_sweep",
+          "expected": [
+            1.0,
+            3.0
+          ],
+          "actual": 3.0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "law_id": "LAW_0003A",
+      "name": "Second Resistance Attempt After One Failure",
+      "side": "SELL",
+      "tier": "B",
+      "matched": false,
+      "passed_conditions": 2,
+      "total_conditions": 5,
+      "failed_conditions": [
+        "attempt_bucket",
+        "failure_memory_bucket",
+        "mtf_bias"
+      ],
+      "condition_checks": {
+        "level_attempt_side": {
+          "field": "level_attempt_side",
+          "expected": "UP",
+          "actual": "UP",
+          "passed": true
+        },
+        "attempt_bucket": {
+          "field": "attempt_bucket",
+          "expected": "SECOND_ATTEMPT",
+          "actual": "THIRD_ATTEMPT",
+          "passed": false
+        },
+        "failure_memory_bucket": {
+          "field": "failure_memory_bucket",
+          "expected": "ONE_RECENT_FAILURE",
+          "actual": "TWO_RECENT_FAILURES",
+          "passed": false
+        },
+        "mtf_bias": {
+          "field": "mtf_bias",
+          "expected": "DOWN",
+          "actual": "UP",
+          "passed": false
+        },
+        "mtf_alignment_bucket_in": {
+          "field": "mtf_alignment_bucket",
+          "expected": [
+            "MIXED",
+            "STRONG",
+            "FULL"
+          ],
+          "actual": "FULL",
+          "passed": true
+        }
+      }
+    },
+    {
+      "law_id": "LAW_0003B",
+      "name": "Second Support Attempt After One Failure",
+      "side": "BUY",
+      "tier": "C",
+      "matched": false,
+      "passed_conditions": 2,
+      "total_conditions": 5,
+      "failed_conditions": [
+        "level_attempt_side",
+        "attempt_bucket",
+        "failure_memory_bucket"
+      ],
+      "condition_checks": {
+        "level_attempt_side": {
+          "field": "level_attempt_side",
+          "expected": "DOWN",
+          "actual": "UP",
+          "passed": false
+        },
+        "attempt_bucket": {
+          "field": "attempt_bucket",
+          "expected": "SECOND_ATTEMPT",
+          "actual": "THIRD_ATTEMPT",
+          "passed": false
+        },
+        "failure_memory_bucket": {
+          "field": "failure_memory_bucket",
+          "expected": "ONE_RECENT_FAILURE",
+          "actual": "TWO_RECENT_FAILURES",
+          "passed": false
+        },
+        "mtf_bias": {
+          "field": "mtf_bias",
+          "expected": "UP",
+          "actual": "UP",
+          "passed": true
+        },
+        "mtf_alignment_bucket_in": {
+          "field": "mtf_alignment_bucket",
+          "expected": [
+            "MIXED",
+            "STRONG",
+            "FULL"
+          ],
+          "actual": "FULL",
+          "passed": true
+        }
+      }
+    }
+  ],
+  "diagnostic_summary": {
+    "laws_evaluated": 6,
+    "laws_matched": 0,
+    "laws_not_matched": 6
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "script": "market_pattern_research.py",
+  "version": "MVP_1",
+  "generated_at_utc": "2026-07-01T14:38:20.017952+00:00",
+  "symbol": "GOLD",
+  "anchor_tf": "M5",
+  "input": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet",
+  "rows": 99999,
+  "timeframes": [
+    "M1",
+    "M5",
+    "M15",
+    "H1"
+  ],
+  "windows": [
+    12,
+    20,
+    30
+  ],
+  "horizons": [
+    3,
+    6,
+    12
+  ],
+  "events": 3903,
+  "active_states": 66480,
+  "statistics_rows": 23,
+  "skipped_timeframes": {
+    "M1": "OHLC ausente: M1_open, M1_high, M1_low, M1_close"
+  },
+  "outputs": {
+    "events": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\research\\pattern_events.parquet",
+    "statistics": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\research\\pattern_statistics.csv",
+    "active_states": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\research\\pattern_active_states.parquet",
+    "current_state": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\research\\pattern_current_state.json"
+  }
+}

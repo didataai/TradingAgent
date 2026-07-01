@@ -1,0 +1,11 @@
+{
+  "script": "market_chronos_engine_v10_1.py",
+  "validation_marker": "MARKET_CHRONOS_ENGINE_V10_1_RUNTIME_HARDENING",
+  "symbol": "GOLD",
+  "anchor_tf": "M5",
+  "rows": 99999,
+  "input": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet",
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\research_staging\\20260630T205732Z\\engine",
+  "min_bars": 120,
+  "generated_at_utc": "2026-06-30T20:58:48.492369+00:00"
+}

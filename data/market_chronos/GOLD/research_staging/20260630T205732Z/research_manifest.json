@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "mode": "RESEARCH_STAGING_ONLY",
+  "run_id": "20260630T205732Z",
+  "symbol": "GOLD",
+  "anchor_tf": "M5",
+  "started_at_utc": "2026-06-30T20:57:32.334944+00:00",
+  "finished_at_utc": "2026-06-30T20:58:48.929037+00:00",
+  "command": [
+    "C:\\Users\\diego\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+    "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\tools\\market_chronos_engine_v10_1.py",
+    "--symbol",
+    "GOLD",
+    "--anchor-tf",
+    "M5",
+    "--input",
+    "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet",
+    "--output",
+    "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\research_staging\\20260630T205732Z\\engine",
+    "--min-bars",
+    "120",
+    "--min-segment",
+    "120"
+  ],
+  "return_code": 0,
+  "engine_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\research_staging\\20260630T205732Z\\engine",
+  "candidate_registry": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\research_staging\\20260630T205732Z\\laws\\market_laws_registry.json",
+  "operational_registry_touched": false,
+  "stdout": "[2026-06-30 17:57:34] Lendo: C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet\n[2026-06-30 17:57:35] Linhas: 99999\n[2026-06-30 17:58:48] OK\n{\n  \"output\": \"C:\\\\Users\\\\diego\\\\Desktop\\\\Python\\\\TradingAgent\\\\data\\\\market_chronos\\\\GOLD\\\\research_staging\\\\20260630T205732Z\\\\engine\",\n  \"report\": \"C:\\\\Users\\\\diego\\\\Desktop\\\\Python\\\\TradingAgent\\\\data\\\\market_chronos\\\\GOLD\\\\research_staging\\\\20260630T205732Z\\\\engine\\\\chronos_engine_report.md\",\n  \"xlsx\": \"C:\\\\Users\\\\diego\\\\Desktop\\\\Python\\\\TradingAgent\\\\data\\\\market_chronos\\\\GOLD\\\\research_staging\\\\20260630T205732Z\\\\engine\\\\GOLD_market_chronos_engine.xlsx\",\n  \"detail\": \"C:\\\\Users\\\\diego\\\\Desktop\\\\Python\\\\TradingAgent\\\\data\\\\market_chronos\\\\GOLD\\\\research_staging\\\\20260630T205732Z\\\\engine\\\\GOLD_M5_engine_detail.parquet\",\n  \"rows\": 99999,\n  \"behavior_hours\": 24,\n  \"dna_patterns\": 15,\n  \"contexts\": 706,\n  \"events\": 129,\n  \"level_playbook\": 117,\n  \"state_dna_macro\": 204,\n  \"state_dna_operational\": 0,\n  \"state_dna_granular\": 0,\n  \"state_transitions\": 270,\n  \"setup_genome_macro\": 178,\n  \"setup_genome_time\": 1,\n  \"setup_genome_granular\": 0,\n  \"htf_location_dna\": 149,\n  \"htf_setup_genome\": 200,\n  \"htf_setup_genome_time\": 2,\n  \"htf_breakout_alignment\": 225,\n  \"sequence_dna_macro\": 194,\n  \"sequence_dna_setup\": 186,\n  \"sequence_dna_time\": 1,\n  \"sequence_regimes\": 179,\n  \"memory_dna\": 98,\n  \"memory_setup\": 148,\n  \"memory_attempts\": 113,\n  \"memory_playbook\": 70,\n  \"validation_laws\": 6,\n  \"validation_validated\": 5,\n  \"validation_provisional\": 1,\n  \"law_segments\": 302,\n  \"law_segments_stronger\": 39,\n  \"law_segments_weaker\": 31,\n  \"registry_laws\": 6,\n  \"runtime_matched_laws\": 0,\n  \"runtime_action\": \"NO_MATCH\",\n  \"registry\": \"C:\\\\Users\\\\diego\\\\Desktop\\\\Python\\\\TradingAgent\\\\data\\\\market_chronos\\\\GOLD\\\\research_staging\\\\20260630T205732Z\\\\laws\\\\market_laws_registry.json\",\n  \"chronos_intelligence_latest\": \"C:\\\\Users\\\\diego\\\\Desktop\\\\Python\\\\TradingAgent\\\\data\\\\market_chronos\\\\GOLD\\\\research_staging\\\\20260630T205732Z\\\\engine\\\\chronos_intelligence_latest.json\"\n}\n",
+  "stderr": ""
+}

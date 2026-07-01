@@ -1,0 +1,22 @@
+{
+  "script": "market_micro_break_diagnostics_v2.py",
+  "version": "2.0",
+  "generated_at_utc": "2026-07-01T15:28:55.778006+00:00",
+  "symbol": "GOLD",
+  "m1_rows": 5000,
+  "m5_rows": 99999,
+  "m1_min": "2026-06-25T23:58:00",
+  "m1_max": "2026-07-01T14:17:00",
+  "m5_close_min": "2025-01-28T00:15:00",
+  "m5_close_max": "2026-06-25T18:00:00",
+  "has_temporal_overlap": false,
+  "overlap_start": null,
+  "overlap_end": null,
+  "max_context_lag_minutes": 5,
+  "valid_aligned_rows": 0,
+  "unaligned_rows": 5000,
+  "buy_context_rows": 0,
+  "sell_context_rows": 0,
+  "max_observed_lag_minutes": null,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\micro_confirmation\\diagnostics_v2"
+}

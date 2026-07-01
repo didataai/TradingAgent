@@ -1,0 +1,47 @@
+{
+  "script": "market_volatility_dna.py",
+  "version": "1.2-consolidated-research-base",
+  "generated_at_utc": "2026-07-01T18:44:18.874669+00:00",
+  "symbol": "GOLD",
+  "source": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\candle_base\\consolidated\\GOLD_candle_research.parquet",
+  "m1_start": "2026-03-15T23:50:00",
+  "m1_end": "2026-06-25T17:58:00",
+  "m1_candles": 99999,
+  "context_candles": {
+    "M5": 20000,
+    "M15": 6667,
+    "H1": 1668
+  },
+  "context_color_distribution": {
+    "M5": {
+      "RED": 10133,
+      "GREEN": 9840,
+      "DOJI": 27
+    },
+    "M15": {
+      "RED": 3377,
+      "GREEN": 3288,
+      "DOJI": 2
+    },
+    "H1": {
+      "RED": 866,
+      "GREEN": 801,
+      "DOJI": 1
+    }
+  },
+  "events": 74548,
+  "double_breaks_included": false,
+  "train_events": 52183,
+  "test_events": 22365,
+  "horizons_minutes": [
+    5,
+    15,
+    30,
+    60
+  ],
+  "min_train": 200,
+  "min_test": 80,
+  "stable_positive_candidates": 76,
+  "stable_negative_candidates": 4,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\volatility_dna"
+}

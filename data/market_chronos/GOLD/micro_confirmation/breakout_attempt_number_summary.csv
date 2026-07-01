@@ -1,0 +1,9 @@
+﻿side,accepted_on_attempt,episodes,share_of_accepted,avg_failed_attempts_before_break,pressure_building_rate,possible_compression_rate
+BUY,1,525,0.875,0.0,0.0,0.0
+BUY,2,66,0.11,1.0,0.0,0.0
+BUY,3,9,0.015,2.0,0.0,0.7777777777777778
+SELL,1,564,0.8703703703703703,0.0,0.0,0.0
+SELL,2,72,0.1111111111111111,1.0,0.0,0.0
+SELL,3,8,0.012345679012345678,2.0,0.0,0.5
+SELL,4,3,0.004629629629629629,3.0,0.3333333333333333,1.0
+SELL,5,1,0.0015432098765432098,4.0,1.0,1.0

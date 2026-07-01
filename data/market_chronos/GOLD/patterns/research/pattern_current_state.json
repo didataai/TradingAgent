@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "generated_at_utc": "2026-07-01T14:38:20.017952+00:00",
+  "symbol": "GOLD",
+  "anchor_tf": "M5",
+  "patterns": [
+    {
+      "symbol": "GOLD",
+      "timeframe": "H1",
+      "bar_index": 99985,
+      "event_time": "2026-06-25T13:50:00",
+      "pattern_type": "TRIANGLE_ASCENDING",
+      "state": "ACTIVE",
+      "window_bars": 20,
+      "upper_boundary": 4044.4,
+      "lower_boundary": 4028.49685714,
+      "width_end_atr": 0.63734187,
+      "compression_ratio": 0.60758035,
+      "upper_touches": 20,
+      "lower_touches": 12,
+      "upper_slope_atr": 0.00417639,
+      "lower_slope_atr": 0.05611279,
+      "quality_score": 64.96394473
+    },
+    {
+      "symbol": "GOLD",
+      "timeframe": "M15",
+      "bar_index": 99916,
+      "event_time": "2026-06-25T08:05:00",
+      "pattern_type": "TRIANGLE_DESCENDING",
+      "state": "ACTIVE",
+      "window_bars": 12,
+      "upper_boundary": 3985.48551282,
+      "lower_boundary": 3981.61435897,
+      "width_end_atr": 0.38129641,
+      "compression_ratio": 0.35948835,
+      "upper_touches": 12,
+      "lower_touches": 11,
+      "upper_slope_atr": -0.04089685,
+      "lower_slope_atr": -0.021442,
+      "quality_score": 49.83904084
+    },
+    {
+      "symbol": "GOLD",
+      "timeframe": "M5",
+      "bar_index": 98436,
+      "event_time": "2026-06-17T19:45:00",
+      "pattern_type": "TRIANGLE_ASCENDING",
+      "state": "ACTIVE",
+      "window_bars": 20,
+      "upper_boundary": 4267.85057143,
+      "lower_boundary": 4264.52914286,
+      "width_end_atr": 0.31544598,
+      "compression_ratio": 0.59462994,
+      "upper_touches": 8,
+      "lower_touches": 9,
+      "upper_slope_atr": 0.02455873,
+      "lower_slope_atr": 0.04891252,
+      "quality_score": 48.31675776
+    }
+  ]
+}

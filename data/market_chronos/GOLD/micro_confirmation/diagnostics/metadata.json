@@ -1,0 +1,16 @@
+{
+  "script": "market_micro_break_diagnostics.py",
+  "version": "1.0",
+  "generated_at_utc": "2026-07-01T15:27:26.013901+00:00",
+  "symbol": "GOLD",
+  "m1_rows": 5000,
+  "m5_rows": 99999,
+  "aligned_rows": 5000,
+  "candidate_rows": 4999,
+  "buy_context_rows": 5000,
+  "sell_context_rows": 0,
+  "buy_break_candidates": 2350,
+  "sell_break_candidates": 0,
+  "semantic_events_written": 2344,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\micro_confirmation\\diagnostics"
+}

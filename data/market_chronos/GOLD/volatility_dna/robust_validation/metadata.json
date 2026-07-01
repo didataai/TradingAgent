@@ -1,0 +1,23 @@
+{
+  "script": "market_volatility_dna_validation.py",
+  "version": "1.0-independent-block-validation",
+  "generated_at_utc": "2026-07-01T18:47:55.792842+00:00",
+  "symbol": "GOLD",
+  "events_input": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\volatility_dna\\volatility_dna_events.parquet",
+  "raw_events": 74548,
+  "horizons_minutes": [
+    5,
+    15,
+    30,
+    60
+  ],
+  "blocks": 5,
+  "min_train": 100,
+  "min_test": 40,
+  "min_block": 20,
+  "min_success_lift": 0.03,
+  "min_return_lift": 0.05,
+  "robust_positive": 29,
+  "robust_negative": 13,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\volatility_dna\\robust_validation"
+}

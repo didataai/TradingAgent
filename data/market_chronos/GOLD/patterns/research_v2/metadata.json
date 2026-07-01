@@ -1,0 +1,22 @@
+{
+  "script": "market_pattern_research_v2.py",
+  "version": "2.4-breakout-zone-next-obstacle",
+  "generated_at_utc": "2026-07-01T17:26:43.043845+00:00",
+  "symbol": "GOLD",
+  "rows_by_timeframe": {
+    "M1": 5000,
+    "M5": 99999,
+    "M15": 33334,
+    "H1": 8338
+  },
+  "events": 115,
+  "events_with_breakout_zone": 8,
+  "events_with_next_obstacle": 57,
+  "events_with_alignment_and_obstacle": 1,
+  "events_with_clear_space_after_alignment": 7,
+  "active_episodes": 154,
+  "context_summary_rows": 6,
+  "strength_summary_rows": 4,
+  "origin_summary_rows": 5,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\research_v2"
+}

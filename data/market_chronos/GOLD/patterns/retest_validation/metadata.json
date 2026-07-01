@@ -1,0 +1,11 @@
+{
+  "script": "market_pattern_retest_validation.py",
+  "version": "1.0",
+  "generated_at_utc": "2026-07-01T14:58:15.943970+00:00",
+  "symbol": "GOLD",
+  "events": 115,
+  "summary_rows": 18,
+  "retest_horizon": 8,
+  "retest_tolerance_atr": 0.18,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\retest_validation"
+}

@@ -1,0 +1,5 @@
+﻿timeframe,pattern_type,breakout_side,h1_color,h4_color,htf_alignment,horizon_minutes,valid_blocks,positive_blocks,negative_blocks,avg_block_return,min_block_return,max_block_return,avg_block_success,robust_status
+M15,TRIANGLE_ASCENDING,DOWN,GREEN,GREEN,PARTIAL_OR_NONE,15,0,0,0,,,,,NOT_ROBUST
+M15,TRIANGLE_ASCENDING,DOWN,GREEN,GREEN,PARTIAL_OR_NONE,30,0,0,0,,,,,NOT_ROBUST
+M15,TRIANGLE_ASCENDING,DOWN,GREEN,GREEN,PARTIAL_OR_NONE,60,0,0,0,,,,,NOT_ROBUST
+M15,TRIANGLE_ASCENDING,DOWN,GREEN,GREEN,PARTIAL_OR_NONE,180,0,0,0,,,,,NOT_ROBUST

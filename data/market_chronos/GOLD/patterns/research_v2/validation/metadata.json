@@ -1,0 +1,79 @@
+{
+  "script": "market_pattern_validation.py",
+  "version": "1.1-fallback-and-explicit-stability",
+  "generated_at_utc": "2026-07-01T18:08:56.213259+00:00",
+  "symbol": "GOLD",
+  "anchor_tf": "M5",
+  "events_input": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\research_v2\\pattern_events.parquet",
+  "events_validated": 115,
+  "horizons_minutes": [
+    15,
+    30,
+    60,
+    180
+  ],
+  "train_ratio": 0.7,
+  "min_sample": 10,
+  "split_counts": [
+    {
+      "timeframe": "H1",
+      "temporal_split": "TEST",
+      "events": 5
+    },
+    {
+      "timeframe": "H1",
+      "temporal_split": "TRAIN",
+      "events": 9
+    },
+    {
+      "timeframe": "M1",
+      "temporal_split": "TEST",
+      "events": 1
+    },
+    {
+      "timeframe": "M1",
+      "temporal_split": "TRAIN",
+      "events": 1
+    },
+    {
+      "timeframe": "M15",
+      "temporal_split": "TEST",
+      "events": 12
+    },
+    {
+      "timeframe": "M15",
+      "temporal_split": "TRAIN",
+      "events": 26
+    },
+    {
+      "timeframe": "M5",
+      "temporal_split": "TEST",
+      "events": 19
+    },
+    {
+      "timeframe": "M5",
+      "temporal_split": "TRAIN",
+      "events": 42
+    }
+  ],
+  "sources": {
+    "M1": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\GOLD_M1.parquet",
+    "M5": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet (MTF)",
+    "M15": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet (MTF)",
+    "H1": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\lab\\GOLD_M5_mtf_research_base.parquet (MTF)"
+  },
+  "skipped_timeframes": {},
+  "by_timeframe_rows": 44,
+  "train_test_rows": 72,
+  "stability_rows": 44,
+  "stability_status_counts": {
+    "INSUFFICIENT_SAMPLE": 18,
+    "MISSING_SPLIT": 18,
+    "UNSTABLE": 6,
+    "STABLE_NEGATIVE": 2
+  },
+  "stable_positive": 0,
+  "stable_negative": 2,
+  "stable_neutral": 0,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\patterns\\research_v2\\validation"
+}

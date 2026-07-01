@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1.0",
   "engine_version": "V10.1",
-  "evaluated_at": "2026-06-30T19:20:00",
+  "evaluated_at": "2026-07-01T14:15:00",
   "symbol": "GOLD",
   "anchor_tf": "M5",
   "matched_laws": [],
@@ -13,12 +13,12 @@
   "chronos_action": "NO_MATCH",
   "confidence": "NONE",
   "current_segments": {
-    "HOUR_BRT": "16",
-    "SESSION_BRT": "NY_AFTERNOON",
-    "WEEKDAY": "TUESDAY",
-    "ENERGY": "VERY_LOW",
+    "HOUR_BRT": "11",
+    "SESSION_BRT": "NY_OPEN",
+    "WEEKDAY": "WEDNESDAY",
+    "ENERGY": "LOW",
     "HTF_LOCATION": "DOWN_LOCATION",
-    "BREAKOUT_ALIGNMENT": "NO_BREAKOUT",
+    "BREAKOUT_ALIGNMENT": "BREAKOUT_WITH_HTF_DOWN",
     "LEVEL_PROXIMITY": "UNKNOWN"
   },
   "guard_note": "Lei de devolução bloqueia perseguição incompatível; entrada oposta ainda exige confirmação do preço.",
@@ -40,7 +40,7 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "UP",
-          "actual": "NONE",
+          "actual": "DOWN",
           "passed": false
         },
         "attempt_bucket": {
@@ -79,10 +79,9 @@
       "side": "BUY",
       "tier": "A",
       "matched": false,
-      "passed_conditions": 2,
+      "passed_conditions": 3,
       "total_conditions": 5,
       "failed_conditions": [
-        "level_attempt_side",
         "mtf_bias",
         "mtf_alignment_bucket_in"
       ],
@@ -90,8 +89,8 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "DOWN",
-          "actual": "NONE",
-          "passed": false
+          "actual": "DOWN",
+          "passed": true
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
@@ -141,7 +140,7 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "UP",
-          "actual": "NONE",
+          "actual": "DOWN",
           "passed": false
         },
         "attempt_bucket": {
@@ -204,20 +203,18 @@
       "side": "BUY",
       "tier": "A",
       "matched": false,
-      "passed_conditions": 4,
+      "passed_conditions": 6,
       "total_conditions": 8,
       "failed_conditions": [
-        "level_attempt_side",
         "mtf_bias",
-        "mtf_alignment_bucket_in",
-        "event_breakout_down"
+        "mtf_alignment_bucket_in"
       ],
       "condition_checks": {
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "DOWN",
-          "actual": "NONE",
-          "passed": false
+          "actual": "DOWN",
+          "passed": true
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
@@ -250,8 +247,8 @@
         "event_breakout_down": {
           "field": "event_breakout_down",
           "expected": true,
-          "actual": false,
-          "passed": false
+          "actual": true,
+          "passed": true
         },
         "bars_since_false_break_between": {
           "field": "bars_since_false_break",
@@ -292,7 +289,7 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "UP",
-          "actual": "NONE",
+          "actual": "DOWN",
           "passed": false
         },
         "attempt_bucket": {
@@ -331,10 +328,9 @@
       "side": "BUY",
       "tier": "C",
       "matched": false,
-      "passed_conditions": 0,
+      "passed_conditions": 1,
       "total_conditions": 5,
       "failed_conditions": [
-        "level_attempt_side",
         "attempt_bucket",
         "failure_memory_bucket",
         "mtf_bias",
@@ -344,8 +340,8 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "DOWN",
-          "actual": "NONE",
-          "passed": false
+          "actual": "DOWN",
+          "passed": true
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
@@ -388,7 +384,7 @@
   "registry_file": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\laws\\market_laws_registry.json",
   "freshness": {
     "status": "FRESH",
-    "age_minutes": 0.94,
+    "age_minutes": 2.85,
     "max_age_minutes": 30
   },
   "source_mode": "live",

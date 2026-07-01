@@ -20592,3 +20592,1131 @@
 [2026-06-30 16:20:57] Símbolo finalizado | symbol=GOLD | success=True | duration=4.6s
 [2026-06-30 16:20:57] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
 [2026-06-30 16:20:57] Pipeline finalizado | success=True | duration=11.009s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 09:15:26] Pipeline iniciado | run_id=intraday_pipeline_20260701_091526_0aeb73a5 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 09:15:26] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:15:26] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 09:15:26] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 09:15:29,433 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 09:15:29,433 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 09:15:29,433 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 09:15:29,481 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 09:15:29,481 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 09:15:29,481 - INFO - Coletando GOLD TF=M1
+    2026-07-01 09:15:32,661 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 09:15:32,661 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 09:15:32,661 - INFO - Coletando GOLD TF=M5
+    2026-07-01 09:15:33,340 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 09:15:33,340 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 09:15:33,340 - INFO - Coletando GOLD TF=M15
+    2026-07-01 09:15:34,024 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 09:15:34,024 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 09:15:34,024 - INFO - Coletando GOLD TF=H1
+    2026-07-01 09:15:34,697 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 09:15:34,697 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 09:15:34,698 - INFO - Coletando GOLD TF=H4
+    2026-07-01 09:15:35,340 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 09:15:35,340 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 09:15:35,340 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 09:15:35,579 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 09:15:35,587 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T121535Z.json
+    2026-07-01 09:15:35,587 - INFO - Conex�o MT5 encerrada
+    2026-07-01 09:15:35,590 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 09:15:35] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=8.835s
+[2026-07-01 09:15:35] Símbolo iniciado | symbol=GOLD
+[2026-07-01 09:15:35] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:15:35] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 09:15:36] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=1.191s
+[2026-07-01 09:15:36] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:15:36] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=91678
+[2026-07-01 09:15:37] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.847s
+[2026-07-01 09:15:37] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 09:15:37] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 09:15:38] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 09:15:38] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 09:15:38] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 09:15:38] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T12:15:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.65,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 09:15:39] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.336s
+[2026-07-01 09:15:39] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 09:15:39] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 09:15:39] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.201s
+[2026-07-01 09:15:39] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:15:39] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 09:15:40] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.715s
+[2026-07-01 09:15:40] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 09:15:40] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=118197 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 09:15:40] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.193s
+[2026-07-01 09:15:40] Símbolo finalizado | symbol=GOLD | success=True | duration=4.488s
+[2026-07-01 09:15:40] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:15:40] Pipeline finalizado | success=True | duration=13.345s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 09:20:02] Pipeline iniciado | run_id=intraday_pipeline_20260701_092002_d139e444 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 09:20:02] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:20:02] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 09:20:02] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 09:20:03,406 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 09:20:03,407 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 09:20:03,407 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 09:20:03,408 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 09:20:03,409 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 09:20:03,409 - INFO - Coletando GOLD TF=M1
+    2026-07-01 09:20:04,128 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 09:20:04,128 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:04,128 - INFO - Coletando GOLD TF=M5
+    2026-07-01 09:20:04,983 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 09:20:04,983 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:04,983 - INFO - Coletando GOLD TF=M15
+    2026-07-01 09:20:05,647 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 09:20:05,647 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:05,647 - INFO - Coletando GOLD TF=H1
+    2026-07-01 09:20:06,333 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 09:20:06,333 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:06,333 - INFO - Coletando GOLD TF=H4
+    2026-07-01 09:20:06,985 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 09:20:06,985 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:06,985 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 09:20:07,229 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 09:20:07,236 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T122007Z.json
+    2026-07-01 09:20:07,236 - INFO - Conex�o MT5 encerrada
+    2026-07-01 09:20:07,238 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 09:20:07] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.468s
+[2026-07-01 09:20:07] Símbolo iniciado | symbol=GOLD
+[2026-07-01 09:20:07] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:20:07] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 09:20:08] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.868s
+[2026-07-01 09:20:08] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:20:08] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=91094
+[2026-07-01 09:20:09] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.851s
+[2026-07-01 09:20:09] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 09:20:09] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 09:20:09] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 09:20:09] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 09:20:09] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 09:20:10] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T12:20:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.17,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 09:20:10] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.376s
+[2026-07-01 09:20:10] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 09:20:10] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 09:20:10] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.189s
+[2026-07-01 09:20:10] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:20:10] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 09:20:11] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.798s
+[2026-07-01 09:20:11] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 09:20:11] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=118151 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 09:20:11] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.178s
+[2026-07-01 09:20:11] Símbolo finalizado | symbol=GOLD | success=True | duration=4.268s
+[2026-07-01 09:20:11] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:20:11] Pipeline finalizado | success=True | duration=8.741s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 09:20:11] Pipeline iniciado | run_id=intraday_pipeline_20260701_092011_1bd94707 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 09:20:11] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:20:11] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 09:20:11] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 09:20:12,227 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 09:20:12,227 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 09:20:12,227 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 09:20:12,229 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 09:20:12,229 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 09:20:12,229 - INFO - Coletando GOLD TF=M1
+    2026-07-01 09:20:12,934 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 09:20:12,934 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:12,934 - INFO - Coletando GOLD TF=M5
+    2026-07-01 09:20:13,568 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 09:20:13,568 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:13,568 - INFO - Coletando GOLD TF=M15
+    2026-07-01 09:20:14,280 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 09:20:14,281 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:14,281 - INFO - Coletando GOLD TF=H1
+    2026-07-01 09:20:14,948 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 09:20:14,948 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:14,948 - INFO - Coletando GOLD TF=H4
+    2026-07-01 09:20:15,766 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 09:20:15,766 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 09:20:15,766 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 09:20:16,087 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 09:20:16,097 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T122016Z.json
+    2026-07-01 09:20:16,097 - INFO - Conex�o MT5 encerrada
+    2026-07-01 09:20:16,101 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 09:20:16] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.516s
+[2026-07-01 09:20:16] Símbolo iniciado | symbol=GOLD
+[2026-07-01 09:20:16] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:20:16] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 09:20:17] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.862s
+[2026-07-01 09:20:17] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:20:17] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=91361
+[2026-07-01 09:20:18] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.912s
+[2026-07-01 09:20:18] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 09:20:18] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 09:20:18] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 09:20:18] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 09:20:19] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 09:20:19] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T12:20:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.33,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 09:20:19] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.638s
+[2026-07-01 09:20:19] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 09:20:19] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 09:20:19] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.181s
+[2026-07-01 09:20:19] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:20:19] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 09:20:20] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.697s
+[2026-07-01 09:20:20] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 09:20:20] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=118155 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 09:20:20] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.178s
+[2026-07-01 09:20:20] Símbolo finalizado | symbol=GOLD | success=True | duration=4.478s
+[2026-07-01 09:20:20] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:20:20] Pipeline finalizado | success=True | duration=9.001s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 09:30:05] Pipeline iniciado | run_id=intraday_pipeline_20260701_093005_e09ec371 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 09:30:05] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:30:05] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 09:30:05] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 09:30:05,869 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 09:30:05,869 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 09:30:05,869 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 09:30:05,870 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 09:30:05,870 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 09:30:05,870 - INFO - Coletando GOLD TF=M1
+    2026-07-01 09:30:06,591 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 09:30:06,591 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 09:30:06,591 - INFO - Coletando GOLD TF=M5
+    2026-07-01 09:30:07,243 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 09:30:07,243 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 09:30:07,243 - INFO - Coletando GOLD TF=M15
+    2026-07-01 09:30:07,924 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 09:30:07,925 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 09:30:07,925 - INFO - Coletando GOLD TF=H1
+    2026-07-01 09:30:08,592 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 09:30:08,593 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 09:30:08,593 - INFO - Coletando GOLD TF=H4
+    2026-07-01 09:30:09,399 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 09:30:09,399 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 09:30:09,399 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 09:30:09,689 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 09:30:09,698 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T123009Z.json
+    2026-07-01 09:30:09,699 - INFO - Conex�o MT5 encerrada
+    2026-07-01 09:30:09,705 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 09:30:09] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.455s
+[2026-07-01 09:30:09] Símbolo iniciado | symbol=GOLD
+[2026-07-01 09:30:09] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:30:09] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 09:30:10] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.955s
+[2026-07-01 09:30:10] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:30:10] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=92824
+[2026-07-01 09:30:11] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.922s
+[2026-07-01 09:30:11] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 09:30:11] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 09:30:12] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 09:30:12] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 09:30:12] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 09:30:13] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T12:30:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.22,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 09:30:13] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.48s
+[2026-07-01 09:30:13] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 09:30:13] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 09:30:13] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.183s
+[2026-07-01 09:30:13] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:30:13] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 09:30:14] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.744s
+[2026-07-01 09:30:14] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 09:30:14] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=119009 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 09:30:14] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.182s
+[2026-07-01 09:30:14] Símbolo finalizado | symbol=GOLD | success=True | duration=4.473s
+[2026-07-01 09:30:14] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:30:14] Pipeline finalizado | success=True | duration=8.932s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 09:35:04] Pipeline iniciado | run_id=intraday_pipeline_20260701_093504_7f273be7 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 09:35:04] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:35:04] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 09:35:04] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 09:35:04,800 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 09:35:04,800 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 09:35:04,800 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 09:35:04,801 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 09:35:04,802 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 09:35:04,802 - INFO - Coletando GOLD TF=M1
+    2026-07-01 09:35:05,518 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 09:35:05,518 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 09:35:05,518 - INFO - Coletando GOLD TF=M5
+    2026-07-01 09:35:06,158 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 09:35:06,158 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 09:35:06,158 - INFO - Coletando GOLD TF=M15
+    2026-07-01 09:35:06,830 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 09:35:06,830 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 09:35:06,830 - INFO - Coletando GOLD TF=H1
+    2026-07-01 09:35:07,557 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 09:35:07,557 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 09:35:07,557 - INFO - Coletando GOLD TF=H4
+    2026-07-01 09:35:08,400 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 09:35:08,400 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 09:35:08,400 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 09:35:08,690 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 09:35:08,705 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T123508Z.json
+    2026-07-01 09:35:08,705 - INFO - Conex�o MT5 encerrada
+    2026-07-01 09:35:08,709 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 09:35:08] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.529s
+[2026-07-01 09:35:08] Símbolo iniciado | symbol=GOLD
+[2026-07-01 09:35:08] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:35:08] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 09:35:09] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.927s
+[2026-07-01 09:35:09] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:35:09] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=92425
+[2026-07-01 09:35:10] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.874s
+[2026-07-01 09:35:10] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 09:35:10] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 09:35:11] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 09:35:11] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 09:35:11] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 09:35:12] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T12:35:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.2,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 09:35:12] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.498s
+[2026-07-01 09:35:12] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 09:35:12] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 09:35:12] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.185s
+[2026-07-01 09:35:12] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:35:12] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 09:35:13] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.771s
+[2026-07-01 09:35:13] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 09:35:13] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=118605 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 09:35:13] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.18s
+[2026-07-01 09:35:13] Símbolo finalizado | symbol=GOLD | success=True | duration=4.443s
+[2026-07-01 09:35:13] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:35:13] Pipeline finalizado | success=True | duration=8.977s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 09:40:11] Pipeline iniciado | run_id=intraday_pipeline_20260701_094011_08d9bcea | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 09:40:11] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:40:11] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 09:40:11] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 09:40:12,455 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 09:40:12,455 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 09:40:12,455 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 09:40:12,457 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 09:40:12,457 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 09:40:12,457 - INFO - Coletando GOLD TF=M1
+    2026-07-01 09:40:13,208 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 09:40:13,208 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 09:40:13,208 - INFO - Coletando GOLD TF=M5
+    2026-07-01 09:40:13,942 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 09:40:13,942 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 09:40:13,942 - INFO - Coletando GOLD TF=M15
+    2026-07-01 09:40:14,630 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 09:40:14,630 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 09:40:14,630 - INFO - Coletando GOLD TF=H1
+    2026-07-01 09:40:15,381 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 09:40:15,381 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 09:40:15,381 - INFO - Coletando GOLD TF=H4
+    2026-07-01 09:40:16,290 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 09:40:16,290 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 09:40:16,291 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 09:40:16,570 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 09:40:16,581 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T124016Z.json
+    2026-07-01 09:40:16,581 - INFO - Conex�o MT5 encerrada
+    2026-07-01 09:40:16,586 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 09:40:16] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.801s
+[2026-07-01 09:40:16] Símbolo iniciado | symbol=GOLD
+[2026-07-01 09:40:16] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:40:16] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 09:40:17] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.981s
+[2026-07-01 09:40:17] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:40:17] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=93010
+[2026-07-01 09:40:18] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.938s
+[2026-07-01 09:40:18] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 09:40:18] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 09:40:19] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 09:40:19] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 09:40:19] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 09:40:19] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T12:40:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.33,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 09:40:20] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.472s
+[2026-07-01 09:40:20] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 09:40:20] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 09:40:20] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.183s
+[2026-07-01 09:40:20] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:40:20] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 09:40:21] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.72s
+[2026-07-01 09:40:21] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 09:40:21] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=111364 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 09:40:21] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.173s
+[2026-07-01 09:40:21] Símbolo finalizado | symbol=GOLD | success=True | duration=4.476s
+[2026-07-01 09:40:21] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:40:21] Pipeline finalizado | success=True | duration=9.283s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 09:46:46] Pipeline iniciado | run_id=intraday_pipeline_20260701_094646_b7f718f0 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 09:46:46] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:46:46] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 09:46:46] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 09:46:46,650 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 09:46:46,650 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 09:46:46,650 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 09:46:46,652 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 09:46:46,652 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 09:46:46,652 - INFO - Coletando GOLD TF=M1
+    2026-07-01 09:46:47,391 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 09:46:47,391 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 09:46:47,391 - INFO - Coletando GOLD TF=M5
+    2026-07-01 09:46:48,081 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 09:46:48,081 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 09:46:48,081 - INFO - Coletando GOLD TF=M15
+    2026-07-01 09:46:48,769 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 09:46:48,769 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 09:46:48,769 - INFO - Coletando GOLD TF=H1
+    2026-07-01 09:46:49,527 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 09:46:49,527 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 09:46:49,527 - INFO - Coletando GOLD TF=H4
+    2026-07-01 09:46:50,328 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 09:46:50,329 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 09:46:50,329 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 09:46:50,601 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 09:46:50,610 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T124650Z.json
+    2026-07-01 09:46:50,610 - INFO - Conex�o MT5 encerrada
+    2026-07-01 09:46:50,614 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 09:46:50] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.592s
+[2026-07-01 09:46:50] Símbolo iniciado | symbol=GOLD
+[2026-07-01 09:46:50] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:46:50] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 09:46:51] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.949s
+[2026-07-01 09:46:51] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:46:51] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=94268
+[2026-07-01 09:46:52] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.873s
+[2026-07-01 09:46:52] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 09:46:52] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 09:46:53] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 09:46:53] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 09:46:53] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 09:46:53] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T12:45:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 1.9,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 09:46:54] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.494s
+[2026-07-01 09:46:54] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 09:46:54] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 09:46:54] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.186s
+[2026-07-01 09:46:54] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 09:46:54] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 09:46:55] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.814s
+[2026-07-01 09:46:55] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 09:46:55] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=119485 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 09:46:55] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.178s
+[2026-07-01 09:46:55] Símbolo finalizado | symbol=GOLD | success=True | duration=4.5s
+[2026-07-01 09:46:55] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 09:46:55] Pipeline finalizado | success=True | duration=9.098s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 10:05:04] Pipeline iniciado | run_id=intraday_pipeline_20260701_100504_dd8acba1 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 10:05:04] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 10:05:04] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 10:05:04] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 10:05:04,992 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 10:05:04,992 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 10:05:04,992 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 10:05:04,995 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 10:05:04,995 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 10:05:04,995 - INFO - Coletando GOLD TF=M1
+    2026-07-01 10:05:05,704 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 10:05:05,705 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 10:05:05,705 - INFO - Coletando GOLD TF=M5
+    2026-07-01 10:05:06,367 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 10:05:06,367 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 10:05:06,367 - INFO - Coletando GOLD TF=M15
+    2026-07-01 10:05:07,057 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 10:05:07,057 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 10:05:07,058 - INFO - Coletando GOLD TF=H1
+    2026-07-01 10:05:07,782 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 10:05:07,782 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 10:05:07,782 - INFO - Coletando GOLD TF=H4
+    2026-07-01 10:05:08,642 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 10:05:08,643 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 10:05:08,643 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 10:05:08,929 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 10:05:08,940 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T130508Z.json
+    2026-07-01 10:05:08,940 - INFO - Conex�o MT5 encerrada
+    2026-07-01 10:05:08,946 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 10:05:09] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.589s
+[2026-07-01 10:05:09] Símbolo iniciado | symbol=GOLD
+[2026-07-01 10:05:09] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 10:05:09] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=WAIT
+[2026-07-01 10:05:10] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.904s
+[2026-07-01 10:05:10] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 10:05:10] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=93595
+[2026-07-01 10:05:10] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.924s
+[2026-07-01 10:05:10] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 10:05:10] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 10:05:11] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 10:05:11] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 10:05:11] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 10:05:12] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T13:05:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.2,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 10:05:12] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.509s
+[2026-07-01 10:05:12] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 10:05:12] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 10:05:12] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.194s
+[2026-07-01 10:05:12] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 10:05:12] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT_M5_CONFIRMATION"
+    }
+[2026-07-01 10:05:13] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.797s
+[2026-07-01 10:05:13] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 10:05:13] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=119183 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 10:05:13] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.186s
+[2026-07-01 10:05:13] Símbolo finalizado | symbol=GOLD | success=True | duration=4.521s
+[2026-07-01 10:05:13] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 10:05:13] Pipeline finalizado | success=True | duration=9.115s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 10:47:00] Pipeline iniciado | run_id=intraday_pipeline_20260701_104700_fc231a09 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 10:47:00] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 10:47:00] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 10:47:00] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 10:47:02,759 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 10:47:02,759 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 10:47:02,759 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 10:47:02,763 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 10:47:02,763 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 10:47:02,763 - INFO - Coletando GOLD TF=M1
+    2026-07-01 10:47:04,581 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 10:47:04,581 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 10:47:04,581 - INFO - Coletando GOLD TF=M5
+    2026-07-01 10:47:05,464 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 10:47:05,464 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 10:47:05,464 - INFO - Coletando GOLD TF=M15
+    2026-07-01 10:47:06,327 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 10:47:06,327 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 10:47:06,327 - INFO - Coletando GOLD TF=H1
+    2026-07-01 10:47:07,175 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 10:47:07,176 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 10:47:07,176 - INFO - Coletando GOLD TF=H4
+    2026-07-01 10:47:07,995 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 10:47:07,995 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 10:47:07,996 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 10:47:08,254 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 10:47:08,262 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T134708Z.json
+    2026-07-01 10:47:08,263 - INFO - Conex�o MT5 encerrada
+    2026-07-01 10:47:08,265 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 10:47:08] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=8.118s
+[2026-07-01 10:47:08] Símbolo iniciado | symbol=GOLD
+[2026-07-01 10:47:08] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 10:47:08] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=BUY_ON_CONFIRMATION
+[2026-07-01 10:47:09] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=1.218s
+[2026-07-01 10:47:09] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 10:47:09] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=88515
+[2026-07-01 10:47:10] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.995s
+[2026-07-01 10:47:10] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 10:47:10] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 10:47:11] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 10:47:11] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 10:47:11] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 10:47:12] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T13:45:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 2.2,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 10:47:12] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.575s
+[2026-07-01 10:47:12] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 10:47:12] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 10:47:12] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.192s
+[2026-07-01 10:47:12] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 10:47:12] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT_M5_CONFIRMATION"
+    }
+[2026-07-01 10:47:13] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.798s
+[2026-07-01 10:47:13] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 10:47:13] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=115562 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 10:47:13] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.2s
+[2026-07-01 10:47:13] Símbolo finalizado | symbol=GOLD | success=True | duration=4.984s
+[2026-07-01 10:47:13] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 10:47:13] Pipeline finalizado | success=True | duration=13.12s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 11:05:04] Pipeline iniciado | run_id=intraday_pipeline_20260701_110504_05427a59 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 11:05:04] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 11:05:04] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 11:05:04] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 11:05:05,429 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 11:05:05,429 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 11:05:05,429 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 11:05:05,438 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 11:05:05,439 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 11:05:05,439 - INFO - Coletando GOLD TF=M1
+    2026-07-01 11:05:07,596 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 11:05:07,596 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 11:05:07,596 - INFO - Coletando GOLD TF=M5
+    2026-07-01 11:05:08,343 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 11:05:08,343 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 11:05:08,343 - INFO - Coletando GOLD TF=M15
+    2026-07-01 11:05:09,197 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 11:05:09,197 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 11:05:09,197 - INFO - Coletando GOLD TF=H1
+    2026-07-01 11:05:10,068 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 11:05:10,071 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 11:05:10,071 - INFO - Coletando GOLD TF=H4
+    2026-07-01 11:05:10,956 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 11:05:10,956 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 11:05:10,956 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 11:05:11,296 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 11:05:11,307 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T140511Z.json
+    2026-07-01 11:05:11,307 - INFO - Conex�o MT5 encerrada
+    2026-07-01 11:05:11,312 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 11:05:11] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=6.821s
+[2026-07-01 11:05:11] Símbolo iniciado | symbol=GOLD
+[2026-07-01 11:05:11] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:05:11] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=BUY_ON_CONFIRMATION
+[2026-07-01 11:05:12] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=1.37s
+[2026-07-01 11:05:12] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:05:12] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=90406
+[2026-07-01 11:05:13] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.887s
+[2026-07-01 11:05:13] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 11:05:13] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 11:05:14] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 11:05:14] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 11:05:14] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 11:05:15] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T14:05:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.25,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 11:05:15] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.482s
+[2026-07-01 11:05:15] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 11:05:15] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 11:05:15] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.188s
+[2026-07-01 11:05:15] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:05:15] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT_M5_CONFIRMATION"
+    }
+[2026-07-01 11:05:16] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.757s
+[2026-07-01 11:05:16] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 11:05:16] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=117324 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 11:05:16] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.2s
+[2026-07-01 11:05:16] Símbolo finalizado | symbol=GOLD | success=True | duration=4.893s
+[2026-07-01 11:05:16] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 11:05:16] Pipeline finalizado | success=True | duration=11.734s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 11:10:23] Pipeline iniciado | run_id=intraday_pipeline_20260701_111023_a4082fbb | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 11:10:23] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 11:10:23] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 11:10:23] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 11:10:23,910 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 11:10:23,910 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 11:10:23,910 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 11:10:23,910 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 11:10:23,910 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 11:10:23,910 - INFO - Coletando GOLD TF=M1
+    2026-07-01 11:10:24,632 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 11:10:24,632 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 11:10:24,632 - INFO - Coletando GOLD TF=M5
+    2026-07-01 11:10:25,270 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 11:10:25,270 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 11:10:25,270 - INFO - Coletando GOLD TF=M15
+    2026-07-01 11:10:25,949 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 11:10:25,949 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 11:10:25,949 - INFO - Coletando GOLD TF=H1
+    2026-07-01 11:10:26,600 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 11:10:26,600 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 11:10:26,600 - INFO - Coletando GOLD TF=H4
+    2026-07-01 11:10:27,258 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 11:10:27,258 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 11:10:27,258 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 11:10:27,495 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 11:10:27,504 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T141027Z.json
+    2026-07-01 11:10:27,504 - INFO - Conex�o MT5 encerrada
+    2026-07-01 11:10:27,508 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 11:10:27] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=4.209s
+[2026-07-01 11:10:27] Símbolo iniciado | symbol=GOLD
+[2026-07-01 11:10:27] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:10:27] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=BUY_ON_CONFIRMATION
+[2026-07-01 11:10:28] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=0.856s
+[2026-07-01 11:10:28] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:10:28] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=89752
+[2026-07-01 11:10:29] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.844s
+[2026-07-01 11:10:29] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 11:10:29] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 11:10:29] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 11:10:29] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 11:10:30] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 11:10:30] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T14:10:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 0.51,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 11:10:30] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.318s
+[2026-07-01 11:10:30] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 11:10:30] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 11:10:30] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.197s
+[2026-07-01 11:10:30] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:10:30] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "WAIT"
+    }
+[2026-07-01 11:10:31] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.715s
+[2026-07-01 11:10:31] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 11:10:31] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=117153 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 11:10:31] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.179s
+[2026-07-01 11:10:31] Símbolo finalizado | symbol=GOLD | success=True | duration=4.118s
+[2026-07-01 11:10:31] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 11:10:31] Pipeline finalizado | success=True | duration=8.331s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json
+[2026-07-01 11:17:42] Pipeline iniciado | run_id=intraday_pipeline_20260701_111742_40d53124 | symbols=['GOLD'] | agent_only=False | skip_agent=False | skip_market_intelligence=False | skip_chronos=False | agent_mode=json
+[2026-07-01 11:17:42] Lock adquirido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 11:17:42] Etapa iniciada | step=base_dados | symbol=- | timeout=180.0s
+[2026-07-01 11:17:42] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\Base_Dados.py --mode intraday_refresh --symbol GOLD
+    2026-07-01 11:17:43,574 - INFO - Config TradingAgent carregada: C:\Users\diego\Desktop\Python\TradingAgent\tradingagent.json
+    2026-07-01 11:17:43,575 - INFO - Filtro de s�mbolos aplicado via CLI: ['GOLD']
+    2026-07-01 11:17:43,575 - INFO - Projeto=TradingAgent | modo=intraday_refresh | s�mbolos=['GOLD']
+    2026-07-01 11:17:43,576 - INFO - Conectado ao MT5 | conta=6244829 server=ActivTrades-Server
+    2026-07-01 11:17:43,577 - INFO - Server detectado=ActivTrades-Server | timezone broker=Etc/GMT-2 | timestamp_source=broker_wall_clock
+    2026-07-01 11:17:43,577 - INFO - Coletando GOLD TF=M1
+    2026-07-01 11:17:44,493 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M1.parquet
+    2026-07-01 11:17:44,493 - INFO - OK GOLD M1 | rows=5000 cols=212 live=True
+    2026-07-01 11:17:44,493 - INFO - Coletando GOLD TF=M5
+    2026-07-01 11:17:45,124 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M5.parquet
+    2026-07-01 11:17:45,124 - INFO - OK GOLD M5 | rows=5000 cols=212 live=True
+    2026-07-01 11:17:45,124 - INFO - Coletando GOLD TF=M15
+    2026-07-01 11:17:45,784 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_M15.parquet
+    2026-07-01 11:17:45,784 - INFO - OK GOLD M15 | rows=5000 cols=212 live=True
+    2026-07-01 11:17:45,784 - INFO - Coletando GOLD TF=H1
+    2026-07-01 11:17:46,438 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H1.parquet
+    2026-07-01 11:17:46,438 - INFO - OK GOLD H1 | rows=5000 cols=212 live=True
+    2026-07-01 11:17:46,438 - INFO - Coletando GOLD TF=H4
+    2026-07-01 11:17:47,084 - INFO - Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\GOLD_H4.parquet
+    2026-07-01 11:17:47,084 - INFO - OK GOLD H4 | rows=5000 cols=212 live=True
+    2026-07-01 11:17:47,084 - INFO - Consolidado habilitado | modo=intraday_refresh sufixo=intraday parquet=True csv=False diret�rio=C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated s�mbolos=['GOLD']
+    2026-07-01 11:17:47,327 - INFO - Consolidado Parquet salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\consolidated\GOLD_intraday.parquet
+    2026-07-01 11:17:47,335 - INFO - Manifest salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\manifests\base_dados_intraday_refresh_20260701T141747Z.json
+    2026-07-01 11:17:47,335 - INFO - Conex�o MT5 encerrada
+    2026-07-01 11:17:47,339 - INFO - Pipeline finalizado | modo=intraday_refresh arquivos=5 erros=0
+    done
+[2026-07-01 11:17:47] Etapa finalizada | step=base_dados | symbol=- | success=True | return_code=0 | duration=5.223s
+[2026-07-01 11:17:47] Símbolo iniciado | symbol=GOLD
+[2026-07-01 11:17:47] Etapa iniciada | step=timeframe_context | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:17:47] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\timeframe_context.py --symbol GOLD
+    Contexto salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\context\GOLD_intraday_context.json
+    S�mbolo=GOLD | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | a��o=BUY_ON_CONFIRMATION
+[2026-07-01 11:17:48] Etapa finalizada | step=timeframe_context | symbol=GOLD | success=True | return_code=0 | duration=1.098s
+[2026-07-01 11:17:48] Etapa iniciada | step=prompt_payload | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:17:48] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\context\prompt_payload.py --symbol GOLD
+    Payload factual salvo: C:\Users\diego\Desktop\Python\TradingAgent\data\payload\GOLD_intraday_payload.json
+    S�mbolo=GOLD | schema=2.1 | timeframes=['H4', 'H1', 'M15', 'M5', 'M1'] | vi�s_decis�o_inclu�do=False | bytes=91496
+[2026-07-01 11:17:49] Etapa finalizada | step=prompt_payload | symbol=GOLD | success=True | return_code=0 | duration=0.904s
+[2026-07-01 11:17:49] Etapa iniciada | step=chronos_runtime | symbol=GOLD | timeout=180.0s
+[2026-07-01 11:17:49] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_runtime.py --symbol GOLD --anchor-tf M5 --source-mode live --live-timeframes M5 M15 H1 H4 --warmup-bars 5000 --max-age-minutes 30 --event-timezone UTC
+    [2026-07-01 11:17:49] Engine: C:\Users\diego\Desktop\Python\TradingAgent\tools\market_chronos_engine_v10_1.py
+    [2026-07-01 11:17:49] Lendo e fundindo Parquets live: M5, M15, H1, H4
+    [2026-07-01 11:17:50] Processando 5000 de 5000 linhas | source_mode=live
+    [2026-07-01 11:17:50] OK
+    {
+      "mode": "runtime_builder",
+      "symbol": "GOLD",
+      "anchor_tf": "M5",
+      "source_mode": "live",
+      "event_time": "2026-07-01T14:15:00",
+      "freshness": {
+        "status": "FRESH",
+        "age_minutes": 2.85,
+        "max_age_minutes": 30
+      },
+      "processed_rows": 5000,
+      "state_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_state.json",
+      "intelligence_output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\context\\GOLD_chronos_intelligence.json",
+      "matched_laws": 0,
+      "runtime_action": "NO_MATCH",
+      "supporting_side": "NONE",
+      "blocked_actions": []
+    }
+[2026-07-01 11:17:50] Etapa finalizada | step=chronos_runtime | symbol=GOLD | success=True | return_code=0 | duration=1.425s
+[2026-07-01 11:17:50] Etapa iniciada | step=chronos_payload_bridge | symbol=GOLD | timeout=30.0s
+[2026-07-01 11:17:50] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\tools\chronos_payload_bridge.py --payload data/payload/GOLD_intraday_payload.json --chronos data/context/GOLD_chronos_intelligence.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "available": true,
+      "freshness": "FRESH",
+      "matched_count": 0,
+      "chronos_action": "NO_MATCH"
+    }
+[2026-07-01 11:17:51] Etapa finalizada | step=chronos_payload_bridge | symbol=GOLD | success=True | return_code=0 | duration=0.188s
+[2026-07-01 11:17:51] Etapa iniciada | step=market_intelligence_enrich | symbol=GOLD | timeout=120.0s
+[2026-07-01 11:17:51] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\market_intelligence.py enrich --profile data/intelligence/GOLD.json --payload data/payload/GOLD_intraday_payload.json --output data/payload/GOLD_intraday_payload.json
+    {
+      "status": "ok",
+      "output": "data\\payload\\GOLD_intraday_payload.json",
+      "preferred_action_now": "SELL_LIMIT_0.50"
+    }
+[2026-07-01 11:17:51] Etapa finalizada | step=market_intelligence_enrich | symbol=GOLD | success=True | return_code=0 | duration=0.723s
+[2026-07-01 11:17:51] Etapa iniciada | step=web_input_agent | symbol=GOLD | timeout=60.0s
+[2026-07-01 11:17:51] Comando | C:\Users\diego\AppData\Local\Programs\Python\Python311\python.exe C:\Users\diego\Desktop\Python\TradingAgent\agent\web_input_agent.py --symbol GOLD --analyst analyst_1
+    Web input gerado | symbol=GOLD | analyst=analyst_1 | profile=quick | chars=117916 | llm_called=False
+    Arquivo gerado: C:\Users\diego\Desktop\Python\TradingAgent\data\debug_llm\GOLD_analyst_1_latest_input.txt
+[2026-07-01 11:17:52] Etapa finalizada | step=web_input_agent | symbol=GOLD | success=True | return_code=0 | duration=0.178s
+[2026-07-01 11:17:52] Símbolo finalizado | symbol=GOLD | success=True | duration=4.524s
+[2026-07-01 11:17:52] Lock removido | path=C:\Users\diego\Desktop\Python\TradingAgent\data\locks\intraday_pipeline.lock
+[2026-07-01 11:17:52] Pipeline finalizado | success=True | duration=9.763s | latest=C:\Users\diego\Desktop\Python\TradingAgent\data\pipeline_results\intraday_pipeline_latest.json

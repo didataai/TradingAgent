@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "generated_at_utc": "2026-06-30T21:00:09.688303+00:00",
+  "current_registry_hash": "4fc5c2eef655cd51f598d9d03203a2799e3818284414406e3ad59c8c0e0c0b7e",
+  "candidate_registry_hash": "46ad70321bc00ce2c15994f282bafa60463e7e53bdcc1965bb4124b8a6ecd29a",
+  "current_metadata": {
+    "schema": "1.1.0",
+    "engine": "V10.1",
+    "generated_at_utc": "2026-06-26T20:43:48.990775+00:00",
+    "law_count": 6
+  },
+  "candidate_metadata": {
+    "schema": "1.1.0",
+    "engine": "V10.1",
+    "generated_at_utc": "2026-06-30T20:58:44.901867+00:00",
+    "law_count": 6
+  },
+  "summary": {
+    "added": 0,
+    "removed": 0,
+    "changed": 0,
+    "unchanged": 6
+  },
+  "added_laws": [],
+  "removed_laws": [],
+  "changed_laws": [],
+  "unchanged_law_ids": [
+    "LAW_0001A",
+    "LAW_0001B",
+    "LAW_0002A",
+    "LAW_0002B",
+    "LAW_0003A",
+    "LAW_0003B"
+  ],
+  "operational_registry": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\laws\\market_laws_registry.json",
+  "candidate_registry": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\research_staging\\20260630T205732Z\\laws\\market_laws_registry.json"
+}

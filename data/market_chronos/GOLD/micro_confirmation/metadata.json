@@ -1,0 +1,20 @@
+{
+  "script": "market_micro_break_confirmation.py",
+  "version": "5.0-attempt-episodes",
+  "generated_at_utc": "2026-07-01T16:44:56.298156+00:00",
+  "symbol": "GOLD",
+  "m1_rows_synchronized": 5000,
+  "m5_rows_synchronized": 1001,
+  "overlap_start": "2026-06-25T23:58:00",
+  "overlap_end": "2026-07-01T14:17:00",
+  "events": 2406,
+  "level_sweeps": 1158,
+  "accepted_breaks": 1248,
+  "attempts": 2406,
+  "episodes": 2097,
+  "episodes_broken": 1248,
+  "episodes_pressure_building": 2,
+  "episode_level_tolerance_atr": 0.15,
+  "episode_max_gap_candles": 20,
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\micro_confirmation"
+}
