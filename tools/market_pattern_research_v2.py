@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Market Pattern Research V2.
+"""Pesquisa canônica de padrões clássicos e contexto multi-timeframe.
 
-Correções sobre o MVP:
-- deduplica candles M15/H1 forward-filled na base M5;
-- usa timestamp próprio do timeframe quando existir;
-- tenta fallback em data/{symbol}_{tf}.parquet para TF ausente (ex.: M1);
-- evita warning de ATR totalmente NaN;
-- salva episódios de padrões ativos, não uma linha para cada candle repetido;
-- mantém pesquisa isolada das leis e do registry operacional.
+Detecta triângulos e ranges, preserva episódios ativos e enriquece cada
+rompimento de figura com a proximidade das máximas/mínimas dos últimos candles
+fechados de timeframes superiores.
+
+Hierarquia:
+leis -> figura clássica -> nível superior -> microconfirmação.
+Não publica leis nem altera registries operacionais.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ import pandas as pd
 DEFAULT_INPUT = "data/market_chronos/{symbol}/lab/{symbol}_{anchor_tf}_mtf_research_base.parquet"
 DEFAULT_FALLBACK = "data/{symbol}_{tf}.parquet"
 DEFAULT_OUTPUT = "data/market_chronos/{symbol}/patterns/research_v2"
+TF_MINUTES = {"M1": 1, "M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
 
 
 def log(msg: str) -> None:
@@ -71,12 +72,17 @@ def bool_series(df: pd.DataFrame, col: str) -> pd.Series:
     return s.astype(str).str.lower().isin({"1", "true", "yes", "sim"})
 
 
+def finish_frame(out: pd.DataFrame) -> pd.DataFrame:
+    out = out.reset_index(drop=True)
+    tr = pd.concat([(out.high-out.low), (out.high-out.close.shift()).abs(), (out.low-out.close.shift()).abs()], axis=1).max(axis=1)
+    out["atr"] = pd.to_numeric(out["atr"], errors="coerce").fillna(tr.rolling(14, min_periods=5).mean())
+    return out
+
+
 def build_frame_from_mtf(raw: pd.DataFrame, tf: str) -> pd.DataFrame:
-    p = f"{tf}_"
-    required = [f"{p}open", f"{p}high", f"{p}low", f"{p}close"]
+    p = f"{tf}_"; required = [f"{p}open", f"{p}high", f"{p}low", f"{p}close"]
     missing = [c for c in required if c not in raw.columns]
     if missing: raise ValueError("OHLC ausente: " + ", ".join(missing))
-
     time_col = next((c for c in (f"{p}event_time", f"{p}time", f"{p}datetime", f"{p}timestamp", f"{p}open_time") if c in raw.columns), None)
     event_time = pd.to_datetime(raw[time_col], errors="coerce") if time_col else raw["event_time"]
     out = pd.DataFrame({
@@ -92,25 +98,21 @@ def build_frame_from_mtf(raw: pd.DataFrame, tf: str) -> pd.DataFrame:
         "sweep_high_existing": bool_series(raw, f"{p}sweep_high"),
         "sweep_low_existing": bool_series(raw, f"{p}sweep_low"),
     }).dropna(subset=["event_time", "open", "high", "low", "close"])
-
     if time_col:
         out = out.sort_values("event_time").drop_duplicates("event_time", keep="last")
     else:
-        # Base MTF ancorada no M5: remove repetições consecutivas do candle HTF.
         changed = out[["open", "high", "low", "close"]].ne(out[["open", "high", "low", "close"]].shift()).any(axis=1)
         out = out.loc[changed]
     return finish_frame(out)
 
 
 def build_frame_from_fallback(path: Path) -> pd.DataFrame:
-    raw = normalize_time(pd.read_parquet(path))
-    aliases = {c.lower(): c for c in raw.columns}
-    def pick(name: str) -> pd.Series:
+    raw = normalize_time(pd.read_parquet(path)); aliases = {c.lower(): c for c in raw.columns}
+    def pick(name: str):
         col = aliases.get(name); return number(raw, col) if col else pd.Series(np.nan, index=raw.index)
     out = pd.DataFrame({
-        "event_time": raw["event_time"], "open": pick("open"), "high": pick("high"),
-        "low": pick("low"), "close": pick("close"), "atr": pick("atr"),
-        "vol_ratio": pick("vol_ratio"),
+        "event_time": raw.event_time, "open": pick("open"), "high": pick("high"),
+        "low": pick("low"), "close": pick("close"), "atr": pick("atr"), "vol_ratio": pick("vol_ratio"),
         "breakout_up_existing": bool_series(raw, aliases.get("breakout_up", "__missing")),
         "breakout_down_existing": bool_series(raw, aliases.get("breakout_down", "__missing")),
         "false_up_existing": bool_series(raw, aliases.get("false_breakout_up", "__missing")),
@@ -121,24 +123,15 @@ def build_frame_from_fallback(path: Path) -> pd.DataFrame:
     return finish_frame(out.sort_values("event_time").drop_duplicates("event_time", keep="last"))
 
 
-def finish_frame(out: pd.DataFrame) -> pd.DataFrame:
-    out = out.reset_index(drop=True)
-    tr = pd.concat([(out.high-out.low), (out.high-out.close.shift()).abs(), (out.low-out.close.shift()).abs()], axis=1).max(axis=1)
-    calculated = tr.rolling(14, min_periods=5).mean()
-    out["atr"] = pd.to_numeric(out["atr"], errors="coerce").fillna(calculated)
-    return out.reset_index(drop=True)
-
-
 def fit(values: np.ndarray) -> tuple[float, float, float]:
     x = np.arange(len(values), dtype=float); valid = np.isfinite(values)
     if valid.sum() < 5: return np.nan, np.nan, np.nan
-    slope, intercept = np.polyfit(x[valid], values[valid], 1)
-    pred = slope*x[valid]+intercept
+    slope, intercept = np.polyfit(x[valid], values[valid], 1); pred = slope*x[valid]+intercept
     ssr = float(np.sum((values[valid]-pred)**2)); sst = float(np.sum((values[valid]-np.mean(values[valid]))**2))
     return float(slope), float(intercept), float(1-ssr/sst if sst > 0 else 1)
 
 
-def classify(us: float, ls: float, compression: float, width_atr: float, ur2: float, lr2: float, a: argparse.Namespace) -> str | None:
+def classify(us, ls, compression, width_atr, ur2, lr2, a):
     if not all(np.isfinite(v) for v in (us,ls,compression,width_atr,ur2,lr2)) or min(ur2,lr2) < a.min_r2: return None
     uf, lf = abs(us) <= a.slope_flat, abs(ls) <= a.slope_flat
     ud, lu = us <= -a.slope_directional, ls >= a.slope_directional
@@ -156,23 +149,24 @@ def outcomes(events: pd.DataFrame, frame: pd.DataFrame, horizons: list[int]) -> 
     for h in horizons:
         mfe=[]; mae=[]; ret=[]; success=[]
         for r in out.itertuples():
-            i=int(r.bar_index); end=min(len(frame),i+h+1); a=float(r.atr)
-            if i+1>=end or not np.isfinite(a) or a<=0: mfe.append(np.nan); mae.append(np.nan); ret.append(np.nan); success.append(False); continue
+            i=int(r.bar_index); end=min(len(frame),i+h+1); atr=float(r.atr)
+            if i+1>=end or not np.isfinite(atr) or atr<=0:
+                mfe.append(np.nan); mae.append(np.nan); ret.append(np.nan); success.append(False); continue
             hi=float(np.nanmax(highs[i+1:end])); lo=float(np.nanmin(lows[i+1:end])); last=float(closes[end-1]); entry=float(r.breakout_price)
-            if r.breakout_side=="UP": m=(hi-entry)/a; d=(entry-lo)/a; rr=(last-entry)/a
-            else: m=(entry-lo)/a; d=(hi-entry)/a; rr=(entry-last)/a
+            if r.breakout_side=="UP": m=(hi-entry)/atr; d=(entry-lo)/atr; rr=(last-entry)/atr
+            else: m=(entry-lo)/atr; d=(hi-entry)/atr; rr=(entry-last)/atr
             mfe.append(m); mae.append(d); ret.append(rr); success.append(bool(m>=0.5 and m>d))
         out[f"mfe_{h}_atr"]=mfe; out[f"mae_{h}_atr"]=mae; out[f"return_{h}_atr"]=ret; out[f"success_{h}"]=success
     return out
 
 
-def detect(frame: pd.DataFrame, symbol: str, tf: str, a: argparse.Namespace) -> tuple[pd.DataFrame,pd.DataFrame]:
+def detect(frame: pd.DataFrame, symbol: str, tf: str, a) -> tuple[pd.DataFrame,pd.DataFrame]:
     events=[]; states=[]; high=frame.high.to_numpy(float); low=frame.low.to_numpy(float); close=frame.close.to_numpy(float); atr=frame.atr.to_numpy(float); vol=frame.vol_ratio.to_numpy(float)
     last_break=-999999
     for window in sorted(set(a.windows)):
         x=np.arange(window,dtype=float)
         for idx in range(window-1,len(frame)-max(a.horizons)-1):
-            start=idx-window+1; atr_window=atr[start:idx+1]; finite=atr_window[np.isfinite(atr_window)&(atr_window>0)]
+            start=idx-window+1; finite=atr[start:idx+1][np.isfinite(atr[start:idx+1]) & (atr[start:idx+1]>0)]
             if len(finite)==0: continue
             ar=float(np.median(finite)); hs=high[start:idx+1]; ls_=low[start:idx+1]
             us,ui,ur2=fit(hs); ls,li,lr2=fit(ls_)
@@ -208,29 +202,69 @@ def detect(frame: pd.DataFrame, symbol: str, tf: str, a: argparse.Namespace) -> 
     return ev,st
 
 
+def enrich_higher_tf_context(events: pd.DataFrame, frames: dict[str,pd.DataFrame], tolerance_atr: float) -> pd.DataFrame:
+    if events.empty: return events
+    out=events.copy(); ordered=sorted(TF_MINUTES, key=TF_MINUTES.get)
+    for tf in ("M5","M15","H1"):
+        out[f"{tf}_level"] = np.nan
+        out[f"{tf}_level_distance_atr"] = np.nan
+        out[f"near_{tf}_level"] = False
+        out[f"{tf}_candle_open_time"] = pd.NaT
+    counts=[]; nearest_tf=[]; nearest_dist=[]; labels=[]
+    for idx,row in out.iterrows():
+        pattern_rank=TF_MINUTES.get(str(row.timeframe),0); boundary=float(row.breakout_boundary); atr=float(row.atr)
+        found=[]
+        for tf in ("M5","M15","H1"):
+            if tf not in frames or TF_MINUTES[tf] <= pattern_rank: continue
+            frame=frames[tf]; close_times=frame.event_time + pd.Timedelta(minutes=TF_MINUTES[tf])
+            eligible=frame.loc[close_times <= pd.Timestamp(row.breakout_time)]
+            if eligible.empty: continue
+            candle=eligible.iloc[-1]; level=float(candle.high if row.breakout_side=="UP" else candle.low)
+            distance=abs(boundary-level)/atr if np.isfinite(atr) and atr>0 else np.nan
+            near=bool(np.isfinite(distance) and distance <= tolerance_atr)
+            out.at[idx,f"{tf}_level"]=level; out.at[idx,f"{tf}_level_distance_atr"]=distance
+            out.at[idx,f"near_{tf}_level"]=near; out.at[idx,f"{tf}_candle_open_time"]=candle.event_time
+            found.append((tf,distance,near))
+        near_items=[x for x in found if x[2]]
+        counts.append(len(near_items))
+        valid=[x for x in found if np.isfinite(x[1])]
+        if valid:
+            best=min(valid,key=lambda x:x[1]); nearest_tf.append(best[0]); nearest_dist.append(best[1])
+        else:
+            nearest_tf.append(None); nearest_dist.append(np.nan)
+        labels.append("MULTI_TF_CONFLUENCE" if len(near_items)>=2 else "SINGLE_HTF_CONFLUENCE" if len(near_items)==1 else "NO_HTF_CONFLUENCE")
+    out["higher_tf_confluence_count"]=counts
+    out["nearest_higher_tf"]=nearest_tf
+    out["nearest_higher_tf_distance_atr"]=nearest_dist
+    out["higher_tf_context"]=labels
+    return out
+
+
 def stats(events: pd.DataFrame,horizons:list[int])->pd.DataFrame:
     if events.empty:return pd.DataFrame()
     rows=[]
-    for keys,g in events.groupby(["timeframe","pattern_type","breakout_side"]):
-        row={"timeframe":keys[0],"pattern_type":keys[1],"breakout_side":keys[2],"sample_size":len(g),"false_breakout_rate":float(g.false_breakout.mean()),"retest_rate":float(g.retest.mean()),"avg_quality":float(g.quality_score.mean()),"avg_breakout_atr":float(g.breakout_distance_atr.mean()),"avg_volume_ratio":float(g.breakout_volume_ratio.mean()),"existing_breakout_agreement":float(g.existing_breakout_flag.mean())}
+    keys=["timeframe","pattern_type","breakout_side","higher_tf_context"]
+    for vals,g in events.groupby(keys,dropna=False):
+        row=dict(zip(keys,vals)); row.update({"sample_size":len(g),"false_breakout_rate":float(g.false_breakout.mean()),"retest_rate":float(g.retest.mean()),"avg_quality":float(g.quality_score.mean()),"avg_breakout_atr":float(g.breakout_distance_atr.mean()),"avg_volume_ratio":float(g.breakout_volume_ratio.mean()),"avg_htf_confluence_count":float(g.higher_tf_confluence_count.mean())})
         for h in horizons: row.update({f"success_rate_{h}":float(g[f"success_{h}"].mean()),f"avg_mfe_{h}_atr":float(g[f"mfe_{h}_atr"].mean()),f"avg_mae_{h}_atr":float(g[f"mae_{h}_atr"].mean()),f"avg_return_{h}_atr":float(g[f"return_{h}_atr"].mean())})
         rows.append(row)
     return pd.DataFrame(rows).sort_values(["timeframe","sample_size"],ascending=[True,False])
 
 
-def parse_args()->argparse.Namespace:
-    p=argparse.ArgumentParser(description="Market Pattern Research V2")
+def parse_args():
+    p=argparse.ArgumentParser(description="Classical pattern research with higher-TF level context")
     p.add_argument("--symbol",default="GOLD");p.add_argument("--anchor-tf",default="M5");p.add_argument("--input",default=DEFAULT_INPUT);p.add_argument("--fallback-template",default=DEFAULT_FALLBACK);p.add_argument("--output",default=DEFAULT_OUTPUT)
     p.add_argument("--timeframes",nargs="+",default=["M1","M5","M15","H1"]);p.add_argument("--windows",nargs="+",type=int,default=[12,20,30]);p.add_argument("--horizons",nargs="+",type=int,default=[3,6,12])
     p.add_argument("--min-touches",type=int,default=2);p.add_argument("--touch-tolerance-atr",type=float,default=.18);p.add_argument("--breakout-buffer-atr",type=float,default=.08);p.add_argument("--false-break-horizon",type=int,default=3);p.add_argument("--retest-horizon",type=int,default=6)
     p.add_argument("--slope-flat",type=float,default=.025);p.add_argument("--slope-directional",type=float,default=.025);p.add_argument("--min-compression",type=float,default=.25);p.add_argument("--max-range-width-atr",type=float,default=2.5);p.add_argument("--min-r2",type=float,default=.15)
+    p.add_argument("--higher-tf-level-tolerance-atr",type=float,default=.20)
     return p.parse_args()
 
 
-def main()->None:
+def main():
     a=parse_args();root=Path.cwd();symbol=a.symbol.upper();anchor=a.anchor_tf.upper();input_path=root/a.input.format(symbol=symbol,anchor_tf=anchor);out=root/a.output.format(symbol=symbol,anchor_tf=anchor);out.mkdir(parents=True,exist_ok=True)
     log(f"Lendo MTF: {input_path}");raw=normalize_time(pd.read_parquet(input_path));log(f"Linhas MTF: {len(raw)}")
-    all_ev=[];all_st=[];sources={};skipped={};rows_by_tf={}
+    all_ev=[];all_st=[];frames={};sources={};skipped={};rows_by_tf={}
     for tf in [str(x).upper() for x in a.timeframes]:
         try:
             frame=build_frame_from_mtf(raw,tf);source=str(input_path)+" (MTF deduplicado)"
@@ -238,17 +272,22 @@ def main()->None:
             fallback=root/a.fallback_template.format(symbol=symbol,tf=tf,anchor_tf=anchor)
             if not fallback.exists(): skipped[tf]=f"{exc}; fallback ausente: {fallback}";log(f"{tf}: ignorado — {skipped[tf]}");continue
             frame=build_frame_from_fallback(fallback);source=str(fallback)
-        rows_by_tf[tf]=len(frame);sources[tf]=source;log(f"{tf}: candles únicos={len(frame)} | fonte={source}")
+        frames[tf]=frame;rows_by_tf[tf]=len(frame);sources[tf]=source;log(f"{tf}: candles únicos={len(frame)} | fonte={source}")
         ev,st=detect(frame,symbol,tf,a);log(f"{tf}: eventos={len(ev)} | episódios ativos={len(st)}")
         if not ev.empty:all_ev.append(ev)
         if not st.empty:all_st.append(st)
-    ev=pd.concat(all_ev,ignore_index=True) if all_ev else pd.DataFrame();st=pd.concat(all_st,ignore_index=True) if all_st else pd.DataFrame();summary=stats(ev,sorted(set(a.horizons)))
+    ev=pd.concat(all_ev,ignore_index=True) if all_ev else pd.DataFrame();st=pd.concat(all_st,ignore_index=True) if all_st else pd.DataFrame()
+    ev=enrich_higher_tf_context(ev,frames,a.higher_tf_level_tolerance_atr)
+    summary=stats(ev,sorted(set(a.horizons)))
     ev.to_parquet(out/"pattern_events.parquet",index=False);st.to_parquet(out/"pattern_active_episodes.parquet",index=False);summary.to_csv(out/"pattern_statistics.csv",index=False,encoding="utf-8-sig")
+    if not ev.empty:
+        ev[["pattern_id","timeframe","pattern_type","breakout_time","breakout_side","breakout_boundary","higher_tf_context","higher_tf_confluence_count","nearest_higher_tf","nearest_higher_tf_distance_atr"]].to_csv(out/"pattern_breakout_context.csv",index=False,encoding="utf-8-sig")
     current=[]
     if not st.empty:
         for tf,g in st.groupby("timeframe"): current.extend(g.sort_values("event_time").tail(3).sort_values("quality_score",ascending=False).to_dict("records"))
-    save_json(out/"pattern_current_state.json",{"schema_version":"2.0","generated_at_utc":datetime.now(timezone.utc).isoformat(),"symbol":symbol,"patterns":current})
-    meta={"script":"market_pattern_research_v2.py","version":"2.0","generated_at_utc":datetime.now(timezone.utc).isoformat(),"symbol":symbol,"anchor_tf":anchor,"rows_mtf":len(raw),"rows_by_timeframe":rows_by_tf,"sources":sources,"skipped":skipped,"events":len(ev),"active_episodes":len(st),"statistics_rows":len(summary),"output":str(out)};save_json(out/"metadata.json",meta);log("OK");print(json.dumps(clean(meta),ensure_ascii=False,indent=2))
+    save_json(out/"pattern_current_state.json",{"schema_version":"2.1","generated_at_utc":datetime.now(timezone.utc).isoformat(),"symbol":symbol,"patterns":current})
+    meta={"script":"market_pattern_research_v2.py","version":"2.1-htf-context","generated_at_utc":datetime.now(timezone.utc).isoformat(),"symbol":symbol,"anchor_tf":anchor,"rows_mtf":len(raw),"rows_by_timeframe":rows_by_tf,"sources":sources,"skipped":skipped,"events":len(ev),"events_with_htf_confluence":int((ev.higher_tf_confluence_count>0).sum()) if len(ev) else 0,"events_with_multi_htf_confluence":int((ev.higher_tf_confluence_count>1).sum()) if len(ev) else 0,"active_episodes":len(st),"statistics_rows":len(summary),"higher_tf_level_tolerance_atr":a.higher_tf_level_tolerance_atr,"output":str(out)}
+    save_json(out/"metadata.json",meta);log("OK");print(json.dumps(clean(meta),ensure_ascii=False,indent=2))
 
 
 if __name__=="__main__":main()
