@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Pesquisa de figuras clássicas com contexto estrutural HTF.
-Leis -> figura -> zonas HTF -> microconfirmação. Não publica leis.
+"""Pesquisa de figuras clássicas com zonas HTF.
+Leis -> figura -> zona da borda -> próximo obstáculo -> microconfirmação.
 """
 from __future__ import annotations
 import argparse,json,math
@@ -120,36 +120,36 @@ def swings(f,side,l,r):
         ok=v[i]>=np.nanmax(v[i-l:i]) and v[i]>np.nanmax(v[i+1:i+r+1]) if side=="UP" else v[i]<=np.nanmin(v[i-l:i]) and v[i]<np.nanmin(v[i+1:i+r+1])
         if ok:rows.append((f.at[i,"event_time"],f.at[i+r,"event_time"],float(v[i])))
     return pd.DataFrame(rows,columns=["event_time","confirm_time","level"])
-def raw_relation(level,boundary,side,atr,tol):
-    d=abs(level-boundary)/atr if np.isfinite(level) and atr>0 else np.nan
-    if not np.isfinite(d):return "UNAVAILABLE",d
-    if d<=tol:return "ALIGNED_WITH_BREAKOUT",d
-    ahead=level>boundary if side=="UP" else level<boundary
-    return ("AHEAD" if ahead else "BEHIND"),d
 def cluster_zones(candidates,atr,merge_tol):
     if not candidates:return []
-    ordered=sorted(candidates,key=lambda x:x["level"]);zones=[]
-    for c in ordered:
-        if not zones or abs(c["level"]-zones[-1]["price"])/atr>merge_tol:
-            zones.append({"members":[c],"price":c["level"]})
+    zones=[]
+    for c in sorted(candidates,key=lambda x:x["level"]):
+        if not zones or abs(c["level"]-zones[-1]["price"])/atr>merge_tol:zones.append({"members":[c],"price":c["level"]})
         else:
             z=zones[-1];z["members"].append(c);weights=[SOURCE_WEIGHT[m["kind"]] for m in z["members"]];z["price"]=float(np.average([m["level"] for m in z["members"]],weights=weights))
     for z in zones:
         z["sources"]=sorted({m["kind"] for m in z["members"]});z["timeframes"]=sorted({m["tf"] for m in z["members"]},key=lambda x:TF_MINUTES[x]);z["strength"]=sum(SOURCE_WEIGHT[s] for s in z["sources"]);z["source_count"]=len(z["sources"])
     return zones
-def zone_semantics(zone,boundary,side,atr,a):
-    rel,d=raw_relation(zone["price"],boundary,side,atr,a.higher_tf_level_tolerance_atr)
-    if rel=="ALIGNED_WITH_BREAKOUT":return "STRUCTURAL_ALIGNMENT" if "SWING" in zone["sources"] else "RANGE_ALIGNMENT" if "RANGE" in zone["sources"] else "CANDLE_EXTREME_ALIGNMENT",d
-    if rel=="BEHIND":return "LEVEL_ALREADY_BEHIND",d
-    if d>a.obstacle_max_distance_atr:return "DISTANT_LEVEL_AHEAD",d
-    if "SWING" in zone["sources"]:return "STRUCTURAL_OBSTACLE_AHEAD",d
-    if "RANGE" in zone["sources"]:return "RANGE_BOUNDARY_AHEAD",d
-    return "INSIDE_HTF_CANDLE_RANGE",d
+def evaluate_zone(z,boundary,side,atr,a):
+    z=dict(z);z["distance_atr"]=abs(z["price"]-boundary)/atr;z["ahead"]=z["price"]>boundary if side=="UP" else z["price"]<boundary
+    if z["distance_atr"]<=a.higher_tf_level_tolerance_atr:z["relation"]="STRUCTURAL_ALIGNMENT" if "SWING" in z["sources"] else "RANGE_ALIGNMENT" if "RANGE" in z["sources"] else "CANDLE_EXTREME_ALIGNMENT"
+    elif not z["ahead"]:z["relation"]="LEVEL_ALREADY_BEHIND"
+    elif z["distance_atr"]>a.obstacle_max_distance_atr:z["relation"]="DISTANT_LEVEL_AHEAD"
+    elif "SWING" in z["sources"]:z["relation"]="STRUCTURAL_OBSTACLE_AHEAD"
+    elif "RANGE" in z["sources"]:z["relation"]="RANGE_BOUNDARY_AHEAD"
+    else:z["relation"]="INSIDE_HTF_CANDLE_RANGE"
+    return z
+def strength_bucket(v): return "NO_ZONE" if not v else "WEAK_ZONE" if v<=1 else "MEDIUM_ZONE" if v<=3 else "STRONG_ZONE"
+def origin_bucket(s):
+    x=set(str(s).split("+")) if s else set()
+    if "SWING" in x and "RANGE" in x:return "HAS_RANGE_AND_SWING"
+    if "SWING" in x:return "HAS_SWING"
+    if "RANGE" in x:return "HAS_RANGE"
+    return "PREVIOUS_ONLY" if "PREVIOUS" in x else "NO_ZONE"
 def enrich(ev,frames,a):
     if ev.empty:return ev
-    o=ev.copy();cache={(tf,s):swings(f,s,a.swing_left,a.swing_right) for tf,f in frames.items() for s in ("UP","DOWN")}
-    fields={"htf_zone_count":[],"htf_aligned_zone_count":[],"htf_structural_obstacle_count":[],"htf_range_limit_count":[],"htf_inside_candle_count":[],"primary_htf_zone_price":[],"primary_htf_zone_strength":[],"primary_htf_zone_sources":[],"primary_htf_zone_timeframes":[],"primary_htf_zone_relation":[],"primary_htf_zone_distance_atr":[]}
-    for i,r in o.iterrows():
+    o=ev.copy();cache={(tf,s):swings(f,s,a.swing_left,a.swing_right) for tf,f in frames.items() for s in ("UP","DOWN")};rows=[]
+    for _,r in o.iterrows():
         rank=TF_MINUTES.get(str(r.timeframe),0);bd=float(r.breakout_boundary);atr=float(r.atr);side=str(r.breakout_side);cand=[]
         for tf in ("M5","M15","H1"):
             if tf not in frames or TF_MINUTES[tf]<=rank:continue
@@ -157,41 +157,50 @@ def enrich(ev,frames,a):
             if eligible.empty:continue
             prev=eligible.iloc[-1];recent=eligible.tail(a.higher_tf_range_bars);sw=cache[(tf,side)];sw=sw.loc[sw.confirm_time<=pd.Timestamp(r.breakout_time)] if not sw.empty else sw
             levels={"PREVIOUS":float(prev.high if side=="UP" else prev.low),"RANGE":float(recent.high.max() if side=="UP" else recent.low.min()),"SWING":float(sw.iloc[-1].level) if not sw.empty else np.nan}
-            for kind,lvl in levels.items():
-                if np.isfinite(lvl):cand.append({"tf":tf,"kind":kind,"level":lvl})
-        zones=cluster_zones(cand,atr,a.zone_merge_tolerance_atr);evaluated=[]
-        for z in zones:
-            relation,d=zone_semantics(z,bd,side,atr,a);z["relation"]=relation;z["distance_atr"]=d;evaluated.append(z)
-        aligned=[z for z in evaluated if z["relation"].endswith("ALIGNMENT")];structural=[z for z in evaluated if z["relation"]=="STRUCTURAL_OBSTACLE_AHEAD"];ranges=[z for z in evaluated if z["relation"]=="RANGE_BOUNDARY_AHEAD"];inside=[z for z in evaluated if z["relation"]=="INSIDE_HTF_CANDLE_RANGE"]
-        priority=aligned or structural or ranges or inside or evaluated
-        best=min(priority,key=lambda z:(z["distance_atr"],-z["strength"])) if priority else None
-        fields["htf_zone_count"].append(len(evaluated));fields["htf_aligned_zone_count"].append(len(aligned));fields["htf_structural_obstacle_count"].append(len(structural));fields["htf_range_limit_count"].append(len(ranges));fields["htf_inside_candle_count"].append(len(inside))
-        fields["primary_htf_zone_price"].append(best["price"] if best else np.nan);fields["primary_htf_zone_strength"].append(best["strength"] if best else 0);fields["primary_htf_zone_sources"].append("+".join(best["sources"]) if best else None);fields["primary_htf_zone_timeframes"].append("+".join(best["timeframes"]) if best else None);fields["primary_htf_zone_relation"].append(best["relation"] if best else "NO_HTF_CONTEXT");fields["primary_htf_zone_distance_atr"].append(best["distance_atr"] if best else np.nan)
-    for k,v in fields.items():o[k]=v
-    o["higher_tf_context"]=np.where(o.htf_aligned_zone_count>0,"HTF_ZONE_ALIGNMENT",np.where(o.htf_structural_obstacle_count>0,"STRUCTURAL_OBSTACLE_AHEAD",np.where(o.htf_range_limit_count>0,"RANGE_BOUNDARY_AHEAD",np.where(o.htf_inside_candle_count>0,"INSIDE_HTF_CANDLE_RANGE","NO_NEAR_HTF_ZONE"))))
-    return o
-def stats(ev,hs):
+            cand.extend({"tf":tf,"kind":k,"level":v} for k,v in levels.items() if np.isfinite(v))
+        zones=[evaluate_zone(z,bd,side,atr,a) for z in cluster_zones(cand,atr,a.zone_merge_tolerance_atr)]
+        aligned=[z for z in zones if z["relation"].endswith("ALIGNMENT")]
+        ahead=[z for z in zones if z["ahead"] and z["distance_atr"]>a.higher_tf_level_tolerance_atr]
+        breakout=min(aligned,key=lambda z:(z["distance_atr"],-z["strength"])) if aligned else None
+        obstacle=min(ahead,key=lambda z:z["distance_atr"]) if ahead else None
+        near_obstacle=obstacle if obstacle and obstacle["distance_atr"]<=a.obstacle_max_distance_atr else None
+        if breakout and near_obstacle:context="ALIGNED_WITH_NEAR_OBSTACLE"
+        elif breakout:context="HTF_ZONE_ALIGNMENT_CLEAR_SPACE"
+        elif near_obstacle:context=near_obstacle["relation"]
+        else:context="NO_NEAR_HTF_ZONE"
+        ref=breakout or near_obstacle
+        rows.append({
+            "htf_zone_count":len(zones),"higher_tf_context":context,
+            "breakout_zone_present":bool(breakout),"breakout_zone_price":breakout["price"] if breakout else np.nan,"breakout_zone_strength":breakout["strength"] if breakout else 0,"breakout_zone_sources":"+".join(breakout["sources"]) if breakout else None,"breakout_zone_timeframes":"+".join(breakout["timeframes"]) if breakout else None,"breakout_zone_relation":breakout["relation"] if breakout else "NO_ALIGNMENT","breakout_zone_distance_atr":breakout["distance_atr"] if breakout else np.nan,
+            "next_obstacle_present":bool(near_obstacle),"next_obstacle_price":near_obstacle["price"] if near_obstacle else np.nan,"next_obstacle_distance_atr":near_obstacle["distance_atr"] if near_obstacle else np.nan,"next_obstacle_strength":near_obstacle["strength"] if near_obstacle else 0,"next_obstacle_sources":"+".join(near_obstacle["sources"]) if near_obstacle else None,"next_obstacle_timeframes":"+".join(near_obstacle["timeframes"]) if near_obstacle else None,"next_obstacle_relation":near_obstacle["relation"] if near_obstacle else "NO_NEAR_OBSTACLE",
+            "available_space_atr":near_obstacle["distance_atr"] if near_obstacle else np.nan,"alignment_and_obstacle":bool(breakout and near_obstacle),
+            "zone_strength_bucket":strength_bucket(ref["strength"] if ref else 0),"zone_origin_bucket":origin_bucket("+".join(ref["sources"]) if ref else None)
+        })
+    return pd.concat([o.reset_index(drop=True),pd.DataFrame(rows)],axis=1)
+def aggregate(ev,keys,hs):
     if ev.empty:return pd.DataFrame()
-    rows=[];keys=["timeframe","pattern_type","breakout_side","higher_tf_context","primary_htf_zone_relation","primary_htf_zone_sources"]
+    rows=[]
     for vals,g in ev.groupby(keys,dropna=False):
-        r=dict(zip(keys,vals));r.update(sample_size=len(g),false_breakout_rate=float(g.false_breakout.mean()),retest_rate=float(g.retest.mean()),avg_quality=float(g.quality_score.mean()),avg_breakout_atr=float(g.breakout_distance_atr.mean()),avg_volume_ratio=float(g.breakout_volume_ratio.mean()),avg_zone_strength=float(g.primary_htf_zone_strength.mean()),avg_zone_count=float(g.htf_zone_count.mean()))
+        if not isinstance(vals,tuple):vals=(vals,)
+        r=dict(zip(keys,vals));r.update(sample_size=len(g),false_breakout_rate=float(g.false_breakout.mean()),retest_rate=float(g.retest.mean()),avg_quality=float(g.quality_score.mean()),avg_breakout_atr=float(g.breakout_distance_atr.mean()),aligned_rate=float(g.breakout_zone_present.mean()),near_obstacle_rate=float(g.next_obstacle_present.mean()),avg_available_space_atr=float(g.available_space_atr.mean()) if g.available_space_atr.notna().any() else np.nan)
         for h in hs:r.update({f"success_rate_{h}":float(g[f"success_{h}"].mean()),f"avg_mfe_{h}_atr":float(g[f"mfe_{h}_atr"].mean()),f"avg_mae_{h}_atr":float(g[f"mae_{h}_atr"].mean()),f"avg_return_{h}_atr":float(g[f"return_{h}_atr"].mean())})
         rows.append(r)
-    return pd.DataFrame(rows).sort_values(["timeframe","sample_size"],ascending=[True,False])
+    return pd.DataFrame(rows).sort_values("sample_size",ascending=False)
 def parse_args():
     p=argparse.ArgumentParser();p.add_argument("--symbol",default="GOLD");p.add_argument("--anchor-tf",default="M5");p.add_argument("--input",default=DEFAULT_INPUT);p.add_argument("--fallback-template",default=DEFAULT_FALLBACK);p.add_argument("--output",default=DEFAULT_OUTPUT);p.add_argument("--timeframes",nargs="+",default=["M1","M5","M15","H1"]);p.add_argument("--windows",nargs="+",type=int,default=[12,20,30]);p.add_argument("--horizons",nargs="+",type=int,default=[3,6,12]);p.add_argument("--min-touches",type=int,default=2);p.add_argument("--touch-tolerance-atr",type=float,default=.18);p.add_argument("--breakout-buffer-atr",type=float,default=.08);p.add_argument("--false-break-horizon",type=int,default=3);p.add_argument("--retest-horizon",type=int,default=6);p.add_argument("--slope-flat",type=float,default=.025);p.add_argument("--slope-directional",type=float,default=.025);p.add_argument("--min-compression",type=float,default=.25);p.add_argument("--max-range-width-atr",type=float,default=2.5);p.add_argument("--min-r2",type=float,default=.15);p.add_argument("--higher-tf-level-tolerance-atr",type=float,default=.20);p.add_argument("--higher-tf-range-bars",type=int,default=6);p.add_argument("--swing-left",type=int,default=2);p.add_argument("--swing-right",type=int,default=2);p.add_argument("--obstacle-max-distance-atr",type=float,default=1.0);p.add_argument("--zone-merge-tolerance-atr",type=float,default=.10);return p.parse_args()
 def main():
     a=parse_args();root=Path.cwd();symbol=a.symbol.upper();anchor=a.anchor_tf.upper();inp=root/a.input.format(symbol=symbol,anchor_tf=anchor);out=root/a.output.format(symbol=symbol,anchor_tf=anchor);out.mkdir(parents=True,exist_ok=True);log(f"Lendo MTF: {inp}");raw=normalize_time(pd.read_parquet(inp));log(f"Linhas MTF: {len(raw)}")
-    E,S,frames,sources,skipped,rows=[],[],{},{},{},{}
+    E,S,frames,rows=[],[],{},{}
     for tf in [str(x).upper() for x in a.timeframes]:
-        try:f=build_frame_from_mtf(raw,tf);src=str(inp)+" (MTF deduplicado)"
-        except ValueError as e:
+        try:f=build_frame_from_mtf(raw,tf)
+        except ValueError:
             fb=root/a.fallback_template.format(symbol=symbol,tf=tf,anchor_tf=anchor)
-            if not fb.exists():skipped[tf]=f"{e}; fallback ausente: {fb}";continue
-            f=build_frame_from_fallback(fb);src=str(fb)
-        frames[tf]=f;rows[tf]=len(f);sources[tf]=src;ev,st=detect(f,symbol,tf,a);log(f"{tf}: eventos={len(ev)} | episódios={len(st)}");E.extend([ev] if not ev.empty else []);S.extend([st] if not st.empty else [])
-    ev=pd.concat(E,ignore_index=True) if E else pd.DataFrame();st=pd.concat(S,ignore_index=True) if S else pd.DataFrame();ev=enrich(ev,frames,a);sm=stats(ev,sorted(set(a.horizons)))
-    ev.to_parquet(out/"pattern_events.parquet",index=False);st.to_parquet(out/"pattern_active_episodes.parquet",index=False);sm.to_csv(out/"pattern_statistics.csv",index=False,encoding="utf-8-sig")
-    if not ev.empty:ev[["pattern_id","timeframe","pattern_type","breakout_time","breakout_side","breakout_boundary","higher_tf_context","htf_zone_count","htf_aligned_zone_count","htf_structural_obstacle_count","htf_range_limit_count","htf_inside_candle_count","primary_htf_zone_price","primary_htf_zone_strength","primary_htf_zone_sources","primary_htf_zone_timeframes","primary_htf_zone_relation","primary_htf_zone_distance_atr"]].to_csv(out/"pattern_breakout_context.csv",index=False,encoding="utf-8-sig")
-    meta={"script":"market_pattern_research_v2.py","version":"2.3-htf-zones","generated_at_utc":datetime.now(timezone.utc).isoformat(),"symbol":symbol,"rows_by_timeframe":rows,"events":len(ev),"events_with_aligned_zone":int((ev.htf_aligned_zone_count>0).sum()) if len(ev) else 0,"events_with_structural_obstacle":int((ev.htf_structural_obstacle_count>0).sum()) if len(ev) else 0,"events_with_range_limit":int((ev.htf_range_limit_count>0).sum()) if len(ev) else 0,"events_inside_htf_candle_range":int((ev.htf_inside_candle_count>0).sum()) if len(ev) else 0,"active_episodes":len(st),"statistics_rows":len(sm),"zone_merge_tolerance_atr":a.zone_merge_tolerance_atr,"output":str(out)};save_json(out/"metadata.json",meta);print(json.dumps(clean(meta),ensure_ascii=False,indent=2))
+            if not fb.exists():continue
+            f=build_frame_from_fallback(fb)
+        frames[tf]=f;rows[tf]=len(f);ev,st=detect(f,symbol,tf,a);log(f"{tf}: eventos={len(ev)} | episódios={len(st)}");E.extend([ev] if not ev.empty else []);S.extend([st] if not st.empty else [])
+    ev=pd.concat(E,ignore_index=True) if E else pd.DataFrame();st=pd.concat(S,ignore_index=True) if S else pd.DataFrame();ev=enrich(ev,frames,a);hs=sorted(set(a.horizons))
+    detailed=aggregate(ev,["timeframe","pattern_type","breakout_side","higher_tf_context"],hs);context=aggregate(ev,["higher_tf_context"],hs);strength=aggregate(ev,["zone_strength_bucket"],hs);origin=aggregate(ev,["zone_origin_bucket"],hs)
+    ev.to_parquet(out/"pattern_events.parquet",index=False);st.to_parquet(out/"pattern_active_episodes.parquet",index=False);detailed.to_csv(out/"pattern_statistics.csv",index=False,encoding="utf-8-sig");context.to_csv(out/"pattern_context_summary.csv",index=False,encoding="utf-8-sig");strength.to_csv(out/"pattern_zone_strength_summary.csv",index=False,encoding="utf-8-sig");origin.to_csv(out/"pattern_zone_origin_summary.csv",index=False,encoding="utf-8-sig")
+    if not ev.empty:ev[["pattern_id","timeframe","pattern_type","breakout_time","breakout_side","breakout_boundary","higher_tf_context","breakout_zone_present","breakout_zone_price","breakout_zone_strength","breakout_zone_sources","breakout_zone_timeframes","breakout_zone_relation","next_obstacle_present","next_obstacle_price","next_obstacle_distance_atr","next_obstacle_strength","next_obstacle_sources","next_obstacle_timeframes","next_obstacle_relation","available_space_atr","alignment_and_obstacle","zone_strength_bucket","zone_origin_bucket"]].to_csv(out/"pattern_breakout_context.csv",index=False,encoding="utf-8-sig")
+    meta={"script":"market_pattern_research_v2.py","version":"2.4-breakout-zone-next-obstacle","generated_at_utc":datetime.now(timezone.utc).isoformat(),"symbol":symbol,"rows_by_timeframe":rows,"events":len(ev),"events_with_breakout_zone":int(ev.breakout_zone_present.sum()) if len(ev) else 0,"events_with_next_obstacle":int(ev.next_obstacle_present.sum()) if len(ev) else 0,"events_with_alignment_and_obstacle":int(ev.alignment_and_obstacle.sum()) if len(ev) else 0,"events_with_clear_space_after_alignment":int((ev.breakout_zone_present&~ev.next_obstacle_present).sum()) if len(ev) else 0,"active_episodes":len(st),"context_summary_rows":len(context),"strength_summary_rows":len(strength),"origin_summary_rows":len(origin),"output":str(out)};save_json(out/"metadata.json",meta);print(json.dumps(clean(meta),ensure_ascii=False,indent=2))
 if __name__=="__main__":main()
