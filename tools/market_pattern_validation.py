@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 DEFAULT_INPUT = "data/market_chronos/{symbol}/lab/{symbol}_{anchor_tf}_mtf_research_base.parquet"
+DEFAULT_FALLBACK = "data/{symbol}_{tf}.parquet"
 DEFAULT_EVENTS = "data/market_chronos/{symbol}/patterns/research_v2/pattern_events.parquet"
 DEFAULT_OUTPUT = "data/market_chronos/{symbol}/patterns/research_v2/validation"
 TF_MINUTES = {"M1": 1, "M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
@@ -114,6 +115,24 @@ def build_timeframe(raw: pd.DataFrame, timeframe: str) -> pd.DataFrame:
         ).any(axis=1)
         out = out.loc[changed]
     return out.sort_values("event_time").reset_index(drop=True)
+
+
+def build_fallback(path: Path) -> pd.DataFrame:
+    raw = normalize_time(pd.read_parquet(path))
+    aliases = {column.lower(): column for column in raw.columns}
+    missing = [name for name in ("open", "high", "low", "close") if name not in aliases]
+    if missing:
+        raise ValueError("OHLC ausente no fallback: " + ", ".join(missing))
+    out = pd.DataFrame(
+        {
+            "event_time": raw["event_time"],
+            "open": numeric(raw, aliases["open"]),
+            "high": numeric(raw, aliases["high"]),
+            "low": numeric(raw, aliases["low"]),
+            "close": numeric(raw, aliases["close"]),
+        }
+    ).dropna(subset=["event_time", "open", "high", "low", "close"])
+    return out.sort_values("event_time").drop_duplicates("event_time", keep="last").reset_index(drop=True)
 
 
 def add_real_time_outcomes(
@@ -218,6 +237,16 @@ def wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float,
     return max(0.0, center - margin), min(1.0, center + margin)
 
 
+def safe_mean(series: pd.Series) -> float:
+    valid = pd.to_numeric(series, errors="coerce").dropna()
+    return float(valid.mean()) if not valid.empty else np.nan
+
+
+def safe_median(series: pd.Series) -> float:
+    valid = pd.to_numeric(series, errors="coerce").dropna()
+    return float(valid.median()) if not valid.empty else np.nan
+
+
 def aggregate_long(
     events: pd.DataFrame,
     group_columns: list[str],
@@ -246,18 +275,18 @@ def aggregate_long(
                     "horizon_minutes": minutes,
                     "sample_size": sample_size,
                     "sample_status": "ADEQUATE" if sample_size >= min_sample else "INSUFFICIENT_SAMPLE",
-                    "false_breakout_rate": float(valid["false_breakout"].mean()) if sample_size else np.nan,
-                    "retest_rate": float(valid["retest"].mean()) if sample_size else np.nan,
+                    "false_breakout_rate": safe_mean(valid["false_breakout"]) if sample_size else np.nan,
+                    "retest_rate": safe_mean(valid["retest"]) if sample_size else np.nan,
                     "success_rate": success_rate,
                     "success_ci95_low": ci_low,
                     "success_ci95_high": ci_high,
-                    "avg_mfe_atr": float(valid[f"mfe_{minutes}m_atr"].mean()) if sample_size else np.nan,
-                    "median_mfe_atr": float(valid[f"mfe_{minutes}m_atr"].median()) if sample_size else np.nan,
-                    "avg_mae_atr": float(valid[f"mae_{minutes}m_atr"].mean()) if sample_size else np.nan,
-                    "median_mae_atr": float(valid[f"mae_{minutes}m_atr"].median()) if sample_size else np.nan,
-                    "avg_return_atr": float(valid[f"return_{minutes}m_atr"].mean()) if sample_size else np.nan,
-                    "median_return_atr": float(valid[f"return_{minutes}m_atr"].median()) if sample_size else np.nan,
-                    "avg_available_space_atr": float(valid["available_space_atr"].mean()) if sample_size and valid["available_space_atr"].notna().any() else np.nan,
+                    "avg_mfe_atr": safe_mean(valid[f"mfe_{minutes}m_atr"]) if sample_size else np.nan,
+                    "median_mfe_atr": safe_median(valid[f"mfe_{minutes}m_atr"]) if sample_size else np.nan,
+                    "avg_mae_atr": safe_mean(valid[f"mae_{minutes}m_atr"]) if sample_size else np.nan,
+                    "median_mae_atr": safe_median(valid[f"mae_{minutes}m_atr"]) if sample_size else np.nan,
+                    "avg_return_atr": safe_mean(valid[f"return_{minutes}m_atr"]) if sample_size else np.nan,
+                    "median_return_atr": safe_median(valid[f"return_{minutes}m_atr"]) if sample_size else np.nan,
+                    "avg_available_space_atr": safe_mean(valid["available_space_atr"]) if sample_size else np.nan,
                 }
             )
             rows.append(row)
@@ -296,14 +325,18 @@ def stability_table(train_test: pd.DataFrame, min_sample: int) -> pd.DataFrame:
         )
         enough = train_n >= min_sample and test_n >= min_sample
 
-        if enough and same_success_direction and same_return_direction:
-            status = "STABLE_CANDIDATE"
-        elif train_n == 0 or test_n == 0:
+        if train_n == 0 or test_n == 0:
             status = "MISSING_SPLIT"
         elif not enough:
             status = "INSUFFICIENT_SAMPLE"
-        else:
+        elif not (same_success_direction and same_return_direction):
             status = "UNSTABLE"
+        elif train_success >= 0.5 and test_success >= 0.5 and train_return > 0 and test_return > 0:
+            status = "STABLE_POSITIVE"
+        elif train_success < 0.5 and test_success < 0.5 and train_return < 0 and test_return < 0:
+            status = "STABLE_NEGATIVE"
+        else:
+            status = "STABLE_NEUTRAL"
 
         row = dict(zip(keys, values))
         row.update(
@@ -333,6 +366,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--symbol", default="GOLD")
     parser.add_argument("--anchor-tf", default="M5")
     parser.add_argument("--input", default=DEFAULT_INPUT)
+    parser.add_argument("--fallback-template", default=DEFAULT_FALLBACK)
     parser.add_argument("--events", default=DEFAULT_EVENTS)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
     parser.add_argument("--timeframes", nargs="+", default=["M1", "M5", "M15", "H1"])
@@ -365,14 +399,26 @@ def main() -> None:
 
     requested_timeframes = [str(value).upper() for value in args.timeframes]
     frames: dict[str, pd.DataFrame] = {}
+    sources: dict[str, str] = {}
     skipped: dict[str, str] = {}
     for timeframe in requested_timeframes:
         try:
             frames[timeframe] = build_timeframe(raw, timeframe)
-            log(f"{timeframe}: candles={len(frames[timeframe])}")
+            sources[timeframe] = str(input_path) + " (MTF)"
         except ValueError as exc:
-            skipped[timeframe] = str(exc)
-            log(f"{timeframe}: ignorado — {exc}")
+            fallback = root / args.fallback_template.format(symbol=symbol, tf=timeframe, anchor_tf=anchor_tf)
+            if not fallback.exists():
+                skipped[timeframe] = f"{exc}; fallback ausente: {fallback}"
+                log(f"{timeframe}: ignorado — {skipped[timeframe]}")
+                continue
+            try:
+                frames[timeframe] = build_fallback(fallback)
+                sources[timeframe] = str(fallback)
+            except ValueError as fallback_exc:
+                skipped[timeframe] = str(fallback_exc)
+                log(f"{timeframe}: ignorado — {fallback_exc}")
+                continue
+        log(f"{timeframe}: candles={len(frames[timeframe])} | fonte={sources[timeframe]}")
 
     events = events.loc[events["timeframe"].isin(frames)].copy()
     events = add_real_time_outcomes(events, frames, sorted(set(args.horizons_minutes)))
@@ -407,9 +453,10 @@ def main() -> None:
     split_counts = (
         events.groupby(["timeframe", "temporal_split"]).size().rename("events").reset_index().to_dict("records")
     )
+    status_counts = stability["stability_status"].value_counts().to_dict() if not stability.empty else {}
     metadata = {
         "script": "market_pattern_validation.py",
-        "version": "1.0-time-normalized-temporal-validation",
+        "version": "1.1-fallback-and-explicit-stability",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "symbol": symbol,
         "anchor_tf": anchor_tf,
@@ -419,11 +466,15 @@ def main() -> None:
         "train_ratio": args.train_ratio,
         "min_sample": args.min_sample,
         "split_counts": split_counts,
+        "sources": sources,
         "skipped_timeframes": skipped,
         "by_timeframe_rows": len(by_timeframe),
         "train_test_rows": len(train_test),
         "stability_rows": len(stability),
-        "stable_candidates": int((stability["stability_status"] == "STABLE_CANDIDATE").sum()) if not stability.empty else 0,
+        "stability_status_counts": status_counts,
+        "stable_positive": int((stability["stability_status"] == "STABLE_POSITIVE").sum()) if not stability.empty else 0,
+        "stable_negative": int((stability["stability_status"] == "STABLE_NEGATIVE").sum()) if not stability.empty else 0,
+        "stable_neutral": int((stability["stability_status"] == "STABLE_NEUTRAL").sum()) if not stability.empty else 0,
         "output": str(output_path),
     }
     save_json(output_path / "metadata.json", metadata)
