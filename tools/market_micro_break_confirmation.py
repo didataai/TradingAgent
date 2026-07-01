@@ -6,17 +6,15 @@ Usa arquivos raw sincronizados:
 - data/{symbol}_M1.parquet
 - data/{symbol}_M5.parquet
 
-Hipótese:
-- SELL: último M5 fechado é RED; o M1 anterior também deve ser RED e o
-  candle atual deve romper sua mínima;
-- BUY: último M5 fechado é GREEN; o M1 anterior também deve ser GREEN e o
-  candle atual deve romper sua máxima.
+Estados:
+- WICK_ONLY -> LEVEL_SWEEP -> WAIT_FOR_CONFIRMATION
+- CLOSE_BREAK -> BREAK_ACCEPTED -> CONFIRMATION_CANDIDATE
+- BREAK_ACCEPTED com retorno ao nível:
+  - RETEST_HELD: toca a zona, não fecha de volta e retoma a direção;
+  - RETEST_FAILED: fecha novamente do lado inválido do nível;
+  - NO_RETEST: não retorna à zona dentro da janela.
 
-Classificação semântica:
-- WICK_ONLY  -> LEVEL_SWEEP / WAIT_FOR_CONFIRMATION
-- CLOSE_BREAK + SAME_COLOR -> BREAK_ACCEPTED / CONFIRMATION_CANDIDATE
-- CLOSE_BREAK + OPPOSITE_COLOR -> DIRECTION_MISMATCH
-
+A cor do candle M1 anterior permanece como feature contextual, nunca como gate.
 A execução é abortada quando M1 e M5 não possuem sobreposição temporal real.
 Não altera leis, registries ou bases originais.
 """
@@ -70,6 +68,50 @@ def prepare_context(m5: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def classify_retest(frame: pd.DataFrame, idx: int, side: str, level: float, atr: float, args: argparse.Namespace) -> dict[str, Any]:
+    end = min(len(frame), idx + args.retest_horizon + 1)
+    tolerance = args.retest_tolerance_atr * atr
+    result: dict[str, Any] = {
+        "retest_state": "NO_RETEST",
+        "retest_event_time": pd.NaT,
+        "retest_entry_price": np.nan,
+        "retest_delay_candles": np.nan,
+        "retest_touched": False,
+        "retest_closed_invalid": False,
+    }
+
+    for j in range(idx + 1, end):
+        candle = frame.iloc[j]
+        if side == "BUY":
+            touched = float(candle["low"]) <= level + tolerance
+            closed_invalid = float(candle["close"]) < level - tolerance
+            held = touched and not closed_invalid and float(candle["close"]) >= level
+        else:
+            touched = float(candle["high"]) >= level - tolerance
+            closed_invalid = float(candle["close"]) > level + tolerance
+            held = touched and not closed_invalid and float(candle["close"]) <= level
+
+        if not touched:
+            continue
+
+        result.update({
+            "retest_event_time": candle["event_time"],
+            "retest_entry_price": float(candle["close"]),
+            "retest_delay_candles": j - idx,
+            "retest_touched": True,
+            "retest_closed_invalid": bool(closed_invalid),
+        })
+        if closed_invalid:
+            result["retest_state"] = "RETEST_FAILED"
+        elif held:
+            result["retest_state"] = "RETEST_HELD"
+        else:
+            result["retest_state"] = "RETEST_AMBIGUOUS"
+        return result
+
+    return result
+
+
 def build_events(m1: pd.DataFrame, m5: pd.DataFrame, args: argparse.Namespace) -> pd.DataFrame:
     m1 = m1.sort_values("event_time").reset_index(drop=True).copy()
     m5_ctx = prepare_context(m5)
@@ -84,7 +126,8 @@ def build_events(m1: pd.DataFrame, m5: pd.DataFrame, args: argparse.Namespace) -
     )
 
     rows: list[dict[str, Any]] = []
-    for i in range(1, len(aligned) - max(args.horizons) - 1):
+    max_future = max(max(args.horizons), args.retest_horizon + max(args.horizons))
+    for i in range(1, len(aligned) - max_future - 1):
         cur = aligned.iloc[i]
         prev = aligned.iloc[i - 1]
         side = str(cur.get("m5_side", "NONE"))
@@ -113,21 +156,30 @@ def build_events(m1: pd.DataFrame, m5: pd.DataFrame, args: argparse.Namespace) -
 
         break_mode = "CLOSE_BREAK" if close_break else "WICK_ONLY"
         micro_state = "BREAK_ACCEPTED" if close_break else "LEVEL_SWEEP"
-        runtime_action = (
-            "WAIT_FOR_CONFIRMATION" if micro_state == "LEVEL_SWEEP"
-            else "CONFIRMATION_CANDIDATE" if color_relation == "SAME_COLOR"
-            else "DIRECTION_MISMATCH"
-        )
+        runtime_action = "CONFIRMATION_CANDIDATE" if close_break else "WAIT_FOR_CONFIRMATION"
         entry = float(cur["close"])
+
         fail_end = min(len(aligned), i + args.false_break_horizon + 1)
         future_close = aligned.iloc[i + 1:fail_end]["close"]
         false_breakout = False
         if len(future_close):
             false_breakout = bool((future_close < level).any()) if side == "BUY" else bool((future_close > level).any())
 
+        retest = {
+            "retest_state": "NOT_APPLICABLE",
+            "retest_event_time": pd.NaT,
+            "retest_entry_price": np.nan,
+            "retest_delay_candles": np.nan,
+            "retest_touched": False,
+            "retest_closed_invalid": False,
+        }
+        if close_break:
+            retest = classify_retest(aligned, i, side, level, atr, args)
+
         row: dict[str, Any] = {
             "symbol": args.symbol.upper(),
             "event_time": cur["event_time"],
+            "event_index": i,
             "m5_close_time": cur["m5_close_time"],
             "m5_color": cur["m5_color"],
             "side": side,
@@ -141,6 +193,7 @@ def build_events(m1: pd.DataFrame, m5: pd.DataFrame, args: argparse.Namespace) -
             "atr": atr,
             "break_distance_atr": abs(entry-level)/atr,
             "false_breakout": false_breakout,
+            **retest,
             "m1_prev_open": float(prev["open"]),
             "m1_prev_high": float(prev["high"]),
             "m1_prev_low": float(prev["low"]),
@@ -152,15 +205,27 @@ def build_events(m1: pd.DataFrame, m5: pd.DataFrame, args: argparse.Namespace) -
         }
         for h in sorted(set(args.horizons)):
             mfe, mae, ret, success = measure(aligned, i, entry, side, atr, h)
-            row[f"mfe_{h}_atr"] = mfe
-            row[f"mae_{h}_atr"] = mae
-            row[f"return_{h}_atr"] = ret
-            row[f"success_{h}"] = success
+            row[f"breakout_mfe_{h}_atr"] = mfe
+            row[f"breakout_mae_{h}_atr"] = mae
+            row[f"breakout_return_{h}_atr"] = ret
+            row[f"breakout_success_{h}"] = success
+
+            if retest["retest_state"] == "RETEST_HELD":
+                retest_idx = i + int(retest["retest_delay_candles"])
+                rmfe, rmae, rret, rsuccess = measure(
+                    aligned, retest_idx, float(retest["retest_entry_price"]), side, atr, h
+                )
+            else:
+                rmfe, rmae, rret, rsuccess = np.nan, np.nan, np.nan, False
+            row[f"retest_mfe_{h}_atr"] = rmfe
+            row[f"retest_mae_{h}_atr"] = rmae
+            row[f"retest_return_{h}_atr"] = rret
+            row[f"retest_success_{h}"] = rsuccess
         rows.append(row)
     return pd.DataFrame(rows)
 
 
-def aggregate(events: pd.DataFrame, horizons: list[int]) -> pd.DataFrame:
+def aggregate_breaks(events: pd.DataFrame, horizons: list[int]) -> pd.DataFrame:
     if events.empty:
         return pd.DataFrame()
     rows = []
@@ -173,15 +238,15 @@ def aggregate(events: pd.DataFrame, horizons: list[int]) -> pd.DataFrame:
             "avg_break_distance_atr": float(group["break_distance_atr"].mean()),
         })
         for h in horizons:
-            row[f"success_rate_{h}"] = float(group[f"success_{h}"].mean())
-            row[f"avg_mfe_{h}_atr"] = float(group[f"mfe_{h}_atr"].mean())
-            row[f"avg_mae_{h}_atr"] = float(group[f"mae_{h}_atr"].mean())
-            row[f"avg_return_{h}_atr"] = float(group[f"return_{h}_atr"].mean())
+            row[f"success_rate_{h}"] = float(group[f"breakout_success_{h}"].mean())
+            row[f"avg_mfe_{h}_atr"] = float(group[f"breakout_mfe_{h}_atr"].mean())
+            row[f"avg_mae_{h}_atr"] = float(group[f"breakout_mae_{h}_atr"].mean())
+            row[f"avg_return_{h}_atr"] = float(group[f"breakout_return_{h}_atr"].mean())
         rows.append(row)
     return pd.DataFrame(rows).sort_values(["side", "sample_size"], ascending=[True, False])
 
 
-def comparison(summary: pd.DataFrame, horizon: int) -> pd.DataFrame:
+def compare_color(summary: pd.DataFrame, horizon: int) -> pd.DataFrame:
     if summary.empty:
         return pd.DataFrame()
     rows = []
@@ -208,14 +273,67 @@ def comparison(summary: pd.DataFrame, horizon: int) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def aggregate_retests(events: pd.DataFrame, horizons: list[int]) -> pd.DataFrame:
+    accepted = events[events["break_mode"].eq("CLOSE_BREAK")].copy()
+    if accepted.empty:
+        return pd.DataFrame()
+    rows = []
+    for (side, state), group in accepted.groupby(["side", "retest_state"], dropna=False):
+        row: dict[str, Any] = {
+            "side": side,
+            "retest_state": state,
+            "sample_size": len(group),
+            "share_of_accepted": len(group) / len(accepted[accepted["side"].eq(side)]),
+            "avg_retest_delay_candles": float(group["retest_delay_candles"].mean()) if group["retest_delay_candles"].notna().any() else np.nan,
+        }
+        for h in horizons:
+            row[f"breakout_success_rate_{h}"] = float(group[f"breakout_success_{h}"].mean())
+            row[f"breakout_avg_return_{h}_atr"] = float(group[f"breakout_return_{h}_atr"].mean())
+            row[f"breakout_avg_mae_{h}_atr"] = float(group[f"breakout_mae_{h}_atr"].mean())
+            held = group[group["retest_state"].eq("RETEST_HELD")]
+            row[f"retest_success_rate_{h}"] = float(held[f"retest_success_{h}"].mean()) if len(held) else np.nan
+            row[f"retest_avg_return_{h}_atr"] = float(held[f"retest_return_{h}_atr"].mean()) if len(held) else np.nan
+            row[f"retest_avg_mae_{h}_atr"] = float(held[f"retest_mae_{h}_atr"].mean()) if len(held) else np.nan
+        rows.append(row)
+    return pd.DataFrame(rows).sort_values(["side", "sample_size"], ascending=[True, False])
+
+
+def fair_retest_comparison(events: pd.DataFrame, horizon: int) -> pd.DataFrame:
+    held = events[(events["break_mode"].eq("CLOSE_BREAK")) & (events["retest_state"].eq("RETEST_HELD"))].copy()
+    if held.empty:
+        return pd.DataFrame()
+    rows = []
+    for side, group in held.groupby("side"):
+        rows.append({
+            "side": side,
+            "sample_size": len(group),
+            f"breakout_success_rate_{horizon}": float(group[f"breakout_success_{horizon}"].mean()),
+            f"retest_success_rate_{horizon}": float(group[f"retest_success_{horizon}"].mean()),
+            f"success_lift_{horizon}": float(group[f"retest_success_{horizon}"].mean() - group[f"breakout_success_{horizon}"].mean()),
+            f"breakout_avg_return_{horizon}_atr": float(group[f"breakout_return_{horizon}_atr"].mean()),
+            f"retest_avg_return_{horizon}_atr": float(group[f"retest_return_{horizon}_atr"].mean()),
+            f"return_lift_{horizon}_atr": float(group[f"retest_return_{horizon}_atr"].mean() - group[f"breakout_return_{horizon}_atr"].mean()),
+            f"breakout_avg_mae_{horizon}_atr": float(group[f"breakout_mae_{horizon}_atr"].mean()),
+            f"retest_avg_mae_{horizon}_atr": float(group[f"retest_mae_{horizon}_atr"].mean()),
+            f"mae_reduction_{horizon}_atr": float(group[f"breakout_mae_{horizon}_atr"].mean() - group[f"retest_mae_{horizon}_atr"].mean()),
+            "retest_preferred": bool(
+                group[f"retest_success_{horizon}"].mean() > group[f"breakout_success_{horizon}"].mean()
+                and group[f"retest_return_{horizon}_atr"].mean() > group[f"breakout_return_{horizon}_atr"].mean()
+            ),
+        })
+    return pd.DataFrame(rows)
+
+
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Synchronized M5 to M1 micro break confirmation research")
+    p = argparse.ArgumentParser(description="Synchronized M5 to M1 micro break and retest research")
     p.add_argument("--symbol", default="GOLD")
     p.add_argument("--m1-input", default=DEFAULT_M1)
     p.add_argument("--m5-input", default=DEFAULT_M5)
     p.add_argument("--output", default=DEFAULT_OUTPUT)
     p.add_argument("--horizons", nargs="+", type=int, default=[3, 5, 10])
     p.add_argument("--false-break-horizon", type=int, default=3)
+    p.add_argument("--retest-horizon", type=int, default=8)
+    p.add_argument("--retest-tolerance-atr", type=float, default=0.10)
     p.add_argument("--doji-body-ratio", type=float, default=0.10)
     return p.parse_args()
 
@@ -252,21 +370,27 @@ def main() -> None:
         ((m5["event_time"] + pd.Timedelta(minutes=5)) >= overlap_start - pd.Timedelta(minutes=5))
         & ((m5["event_time"] + pd.Timedelta(minutes=5)) <= overlap_end)
     ].copy()
-    if len(m1_sync) < max(args.horizons) + 3 or len(m5_sync) < 2:
-        raise RuntimeError(f"Sobreposição insuficiente: M1={len(m1_sync)}, M5={len(m5_sync)}")
 
     horizons = sorted(set(args.horizons))
+    min_required = max(horizons) + args.retest_horizon + 3
+    if len(m1_sync) < min_required or len(m5_sync) < 2:
+        raise RuntimeError(f"Sobreposição insuficiente: M1={len(m1_sync)}, M5={len(m5_sync)}")
+
     events = build_events(m1_sync, m5_sync, args)
-    summary = aggregate(events, horizons)
-    compare = comparison(summary, max(horizons))
+    summary = aggregate_breaks(events, horizons)
+    color_compare = compare_color(summary, max(horizons))
+    retest_summary = aggregate_retests(events, horizons)
+    retest_fair = fair_retest_comparison(events, max(horizons))
 
     events.to_parquet(output / "micro_break_events.parquet", index=False)
     summary.to_csv(output / "micro_break_summary.csv", index=False, encoding="utf-8-sig")
-    compare.to_csv(output / "micro_break_same_vs_opposite.csv", index=False, encoding="utf-8-sig")
+    color_compare.to_csv(output / "micro_break_same_vs_opposite.csv", index=False, encoding="utf-8-sig")
+    retest_summary.to_csv(output / "micro_break_retest_summary.csv", index=False, encoding="utf-8-sig")
+    retest_fair.to_csv(output / "micro_break_retest_fair_comparison.csv", index=False, encoding="utf-8-sig")
 
     metadata = {
         "script": "market_micro_break_confirmation.py",
-        "version": "3.0-consolidated",
+        "version": "4.0-consolidated-retest",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "symbol": symbol,
         "m1_input": str(m1_path),
@@ -275,10 +399,6 @@ def main() -> None:
         "m5_rows_total": len(m5),
         "m1_rows_synchronized": len(m1_sync),
         "m5_rows_synchronized": len(m5_sync),
-        "m1_min": m1_min,
-        "m1_max": m1_max,
-        "m5_close_min": m5_close_min,
-        "m5_close_max": m5_close_max,
         "overlap_start": overlap_start,
         "overlap_end": overlap_end,
         "events": len(events),
@@ -286,8 +406,11 @@ def main() -> None:
         "sell_events": int((events["side"] == "SELL").sum()) if len(events) else 0,
         "level_sweeps": int((events["micro_state"] == "LEVEL_SWEEP").sum()) if len(events) else 0,
         "accepted_breaks": int((events["micro_state"] == "BREAK_ACCEPTED").sum()) if len(events) else 0,
-        "summary_rows": len(summary),
-        "comparison_rows": len(compare),
+        "retest_held": int((events["retest_state"] == "RETEST_HELD").sum()) if len(events) else 0,
+        "retest_failed": int((events["retest_state"] == "RETEST_FAILED").sum()) if len(events) else 0,
+        "no_retest": int((events["retest_state"] == "NO_RETEST").sum()) if len(events) else 0,
+        "retest_horizon": args.retest_horizon,
+        "retest_tolerance_atr": args.retest_tolerance_atr,
         "horizons": horizons,
         "output": str(output),
     }
