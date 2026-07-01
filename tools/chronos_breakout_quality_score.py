@@ -7,6 +7,11 @@ displacement, participation, momentum, location e trend.
 
 Magnitude é simétrica: body_atr, range_atr e vol_ratio altos favorecem tanto UP
 quanto DOWN. Momentum, localização e tendência permanecem direcionais.
+
+Faixas operacionais:
+- LOW: score <= 1
+- VALID: score 2 ou 3
+- PREMIUM: score 4 ou 5
 """
 from __future__ import annotations
 
@@ -91,18 +96,48 @@ def bucket_label(score: pd.Series) -> pd.Series:
     ).astype(str)
 
 
+def operational_band(score: pd.Series) -> pd.Series:
+    result = pd.Series("LOW", index=score.index, dtype="object")
+    result.loc[score.between(2, 3)] = "VALID"
+    result.loc[score.ge(4)] = "PREMIUM"
+    return result
+
+
 def metrics(group: pd.DataFrame, horizon: int) -> dict[str, Any]:
     n = len(group)
     if not n:
-        return {"sample_size": 0, "success_rate": np.nan, "avg_return_atr": np.nan,
-                "median_return_atr": np.nan, "avg_mfe_atr": np.nan, "avg_mae_atr": np.nan}
+        return {
+            "sample_size": 0,
+            "success_rate": np.nan,
+            "avg_return_atr": np.nan,
+            "median_return_atr": np.nan,
+            "avg_mfe_atr": np.nan,
+            "avg_mae_atr": np.nan,
+            "avg_win_atr": np.nan,
+            "avg_loss_atr": np.nan,
+            "payoff_ratio": np.nan,
+            "profit_factor": np.nan,
+        }
+
+    returns = pd.to_numeric(group[f"return_{horizon}m_atr"], errors="coerce").dropna()
+    wins = returns.loc[returns > 0]
+    losses = returns.loc[returns < 0]
+    avg_win = float(wins.mean()) if len(wins) else np.nan
+    avg_loss = float(losses.mean()) if len(losses) else np.nan
+    gross_profit = float(wins.sum()) if len(wins) else 0.0
+    gross_loss = abs(float(losses.sum())) if len(losses) else 0.0
+
     return {
         "sample_size": n,
         "success_rate": float(group[f"success_{horizon}m"].mean()),
-        "avg_return_atr": float(group[f"return_{horizon}m_atr"].mean()),
-        "median_return_atr": float(group[f"return_{horizon}m_atr"].median()),
+        "avg_return_atr": float(returns.mean()),
+        "median_return_atr": float(returns.median()),
         "avg_mfe_atr": float(group[f"mfe_{horizon}m_atr"].mean()),
         "avg_mae_atr": float(group[f"mae_{horizon}m_atr"].mean()),
+        "avg_win_atr": avg_win,
+        "avg_loss_atr": avg_loss,
+        "payoff_ratio": avg_win / abs(avg_loss) if math.isfinite(avg_win) and math.isfinite(avg_loss) and avg_loss != 0 else np.nan,
+        "profit_factor": gross_profit / gross_loss if gross_loss > 0 else np.nan,
     }
 
 
@@ -198,66 +233,144 @@ def main() -> None:
                       "score_location", "score_trend"]
     data["breakout_quality_score"] = data[family_columns].sum(axis=1).astype("int8")
     data["breakout_quality_class"] = bucket_label(data.breakout_quality_score)
+    data["operational_band"] = operational_band(data.breakout_quality_score)
 
     summaries: list[dict[str, Any]] = []
     block_rows: list[dict[str, Any]] = []
+    operational_rows: list[dict[str, Any]] = []
+    operational_block_rows: list[dict[str, Any]] = []
     horizons = sorted(set(args.horizons_minutes))
+
     for horizon in horizons:
         independent = pd.concat(
             [miner.independent(group, horizon) for _, group in data.groupby("side")],
             ignore_index=True,
         ).sort_values("event_time")
-        keys = ["side", "breakout_quality_score", "breakout_quality_class"]
-        for (side, score, quality_class), group in independent.groupby(keys, dropna=False):
-            row = {"side": side, "horizon_minutes": horizon, "score": int(score),
-                   "quality_class": quality_class, **metrics(group, horizon)}
-            summaries.append(row)
+
+        for (side, score, quality_class), group in independent.groupby(
+            ["side", "breakout_quality_score", "breakout_quality_class"], dropna=False
+        ):
+            summaries.append({
+                "side": side,
+                "horizon_minutes": horizon,
+                "score": int(score),
+                "quality_class": quality_class,
+                **metrics(group, horizon),
+            })
             ordered = group.sort_values("event_time").copy()
-            ordered["block"] = pd.qcut(ordered.event_time.rank(method="first"), 5,
-                                         labels=False, duplicates="drop")
+            ordered["block"] = pd.qcut(
+                ordered.event_time.rank(method="first"), 5, labels=False, duplicates="drop"
+            )
             for block, block_group in ordered.groupby("block"):
                 if len(block_group) < args.min_block_size:
                     continue
-                block_rows.append({"side": side, "horizon_minutes": horizon,
-                                   "score": int(score), "quality_class": quality_class,
-                                   "block": int(block), **metrics(block_group, horizon)})
+                block_rows.append({
+                    "side": side,
+                    "horizon_minutes": horizon,
+                    "score": int(score),
+                    "quality_class": quality_class,
+                    "block": int(block),
+                    **metrics(block_group, horizon),
+                })
+
+        for (side, band), group in independent.groupby(["side", "operational_band"], dropna=False):
+            operational_rows.append({
+                "side": side,
+                "horizon_minutes": horizon,
+                "operational_band": band,
+                "score_min": int(group.breakout_quality_score.min()),
+                "score_max": int(group.breakout_quality_score.max()),
+                **metrics(group, horizon),
+            })
+            ordered = group.sort_values("event_time").copy()
+            ordered["block"] = pd.qcut(
+                ordered.event_time.rank(method="first"), 5, labels=False, duplicates="drop"
+            )
+            for block, block_group in ordered.groupby("block"):
+                if len(block_group) < args.min_block_size:
+                    continue
+                operational_block_rows.append({
+                    "side": side,
+                    "horizon_minutes": horizon,
+                    "operational_band": band,
+                    "block": int(block),
+                    **metrics(block_group, horizon),
+                })
 
     summary = pd.DataFrame(summaries).sort_values(["horizon_minutes", "side", "score"])
     blocks = pd.DataFrame(block_rows)
+    operational_summary = pd.DataFrame(operational_rows).sort_values(
+        ["horizon_minutes", "side", "operational_band"]
+    )
+    operational_blocks = pd.DataFrame(operational_block_rows)
+
     stability_rows: list[dict[str, Any]] = []
     if not blocks.empty:
         for (side, horizon, score, quality_class), group in blocks.groupby(
             ["side", "horizon_minutes", "score", "quality_class"]
         ):
             stability_rows.append({
-                "side": side, "horizon_minutes": int(horizon), "score": int(score),
-                "quality_class": quality_class, "valid_blocks": len(group),
+                "side": side,
+                "horizon_minutes": int(horizon),
+                "score": int(score),
+                "quality_class": quality_class,
+                "valid_blocks": len(group),
                 "positive_return_blocks": int((group.avg_return_atr > 0).sum()),
                 "negative_return_blocks": int((group.avg_return_atr < 0).sum()),
                 "avg_block_return_atr": float(group.avg_return_atr.mean()),
                 "min_block_return_atr": float(group.avg_return_atr.min()),
                 "max_block_return_atr": float(group.avg_return_atr.max()),
                 "avg_block_success_rate": float(group.success_rate.mean()),
+                "avg_block_profit_factor": float(group.profit_factor.mean()),
             })
     stability = pd.DataFrame(stability_rows)
 
+    operational_stability_rows: list[dict[str, Any]] = []
+    if not operational_blocks.empty:
+        for (side, horizon, band), group in operational_blocks.groupby(
+            ["side", "horizon_minutes", "operational_band"]
+        ):
+            operational_stability_rows.append({
+                "side": side,
+                "horizon_minutes": int(horizon),
+                "operational_band": band,
+                "valid_blocks": len(group),
+                "positive_return_blocks": int((group.avg_return_atr > 0).sum()),
+                "negative_return_blocks": int((group.avg_return_atr < 0).sum()),
+                "avg_block_return_atr": float(group.avg_return_atr.mean()),
+                "min_block_return_atr": float(group.avg_return_atr.min()),
+                "max_block_return_atr": float(group.avg_return_atr.max()),
+                "avg_block_success_rate": float(group.success_rate.mean()),
+                "avg_block_profit_factor": float(group.profit_factor.mean()),
+            })
+    operational_stability = pd.DataFrame(operational_stability_rows).sort_values(
+        ["horizon_minutes", "side", "operational_band"]
+    )
+
     outcomes = [c for c in data.columns if c.startswith(("success_", "return_", "mfe_", "mae_"))]
     keep = ["event_time", "side", "breakout_quality_score", "breakout_quality_class",
-            *family_columns, *outcomes]
+            "operational_band", *family_columns, *outcomes]
     data[keep].to_parquet(output / "breakout_quality_events.parquet", index=False)
     summary.to_csv(output / "breakout_quality_summary.csv", index=False, encoding="utf-8-sig")
     blocks.to_csv(output / "breakout_quality_blocks.csv", index=False, encoding="utf-8-sig")
     stability.to_csv(output / "breakout_quality_stability.csv", index=False, encoding="utf-8-sig")
+    operational_summary.to_csv(output / "breakout_operational_summary.csv", index=False, encoding="utf-8-sig")
+    operational_stability.to_csv(output / "breakout_operational_stability.csv", index=False, encoding="utf-8-sig")
 
     metadata = {
         "script": "chronos_breakout_quality_score.py",
-        "version": "2.0-symmetric-strength",
+        "version": "2.1-operational-bands",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "symbol": symbol,
         "events": len(data),
         "score_min": int(data.breakout_quality_score.min()),
         "score_max": int(data.breakout_quality_score.max()),
         "score_distribution": data.breakout_quality_score.value_counts().sort_index().to_dict(),
+        "operational_bands": {
+            "LOW": "score <= 1",
+            "VALID": "score 2-3",
+            "PREMIUM": "score 4-5",
+        },
         "families": {
             "displacement": ["body_atr", "range_atr"],
             "participation": ["vol_ratio", "vol_spike_1p5"],
