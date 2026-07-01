@@ -45,9 +45,9 @@ def anatomy(o):
     out["close_location"]=(out.close-out.low)/r;out["range_atr"]=r/out.atr;return out
 def load_m1(path,symbol):
     columns=["time","open","high","low","close","tick_volume","symbol","timeframe","is_live_bar"]
-    try:raw=pd.read_parquet(path,columns=columns,filters=[("timeframe","=","M1")])
+    try:raw=pd.read_parquet(path,columns=columns,filters=[("timeframe","==","M1"),("symbol","==",symbol)])
     except Exception:
-        raw=pd.read_parquet(path);raw=raw.loc[raw.timeframe.astype(str).str.upper().eq("M1")] if "timeframe" in raw.columns else raw
+        raw=pd.read_parquet(path,columns=columns);raw=raw.loc[raw.timeframe.astype(str).str.upper().eq("M1")] if "timeframe" in raw.columns else raw
     if "symbol" in raw.columns:raw=raw.loc[raw.symbol.astype(str).str.upper().eq(symbol)]
     if "is_live_bar" in raw.columns:raw=raw.loc[pd.to_numeric(raw.is_live_bar,errors="coerce").fillna(0).eq(0)]
     raw=normalize_time(raw);a={c.lower():c for c in raw.columns};missing=[x for x in ("open","high","low","close") if x not in a]
@@ -64,7 +64,7 @@ def body_bucket(v):return "UNKNOWN" if not np.isfinite(v) else "SMALL_BODY" if v
 def range_bucket(v):return "UNKNOWN" if not np.isfinite(v) else "LOW_RANGE" if v<.75 else "NORMAL_RANGE" if v<1.25 else "EXPANSION_RANGE"
 def volume_bucket(v):return "UNKNOWN" if not np.isfinite(v) else "LOW_VOLUME" if v<.8 else "NORMAL_VOLUME" if v<1.5 else "HIGH_VOLUME"
 def last_closed(frame,event_time):
-    e=frame.loc[frame.closed_time<=event_time];return None if e.empty else e.iloc[-1]
+    idx=int(frame.closed_time.searchsorted(event_time,side="right"))-1;return None if idx<0 else frame.iloc[idx]
 def detect(m1,contexts,horizons,include_double_breaks):
     rows=[]
     for i in range(1,len(m1)-max(horizons)-1):
