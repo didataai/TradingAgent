@@ -1,4 +1,4 @@
-# FINALIDADE
+﻿# FINALIDADE
 Executar o prompt intraday original do usuário utilizando os dados atuais fornecidos
 pelo TradingAgent para H4, H1, M15, M5 e M1.
 
@@ -92,31 +92,42 @@ Quando `MARKET_DATA.chronos_intelligence` existir:
    - Se `freshness.status` for diferente de `FRESH`, trate o Chronos como indisponível para decisão operacional.
    - Não transforme indisponibilidade ou `STALE` em sinal contrário.
 
-3. Neutralidade:
+3. Breakout Quality:
+   - Só use `breakout_quality` operacionalmente quando `breakout_quality.available=true`, `freshness.status=FRESH` e `operational_band` for `LOW`, `VALID` ou `PREMIUM`.
+   - `UNAVAILABLE` significa que o score não pode ser usado para decisão. `observed_score` e `observed_band` são apenas diagnóstico.
+   - `LOW` significa rompimento de baixa qualidade. Não persiga o movimento; prefira `WAIT` ou aguarde nova confirmação. `LOW` não cria sinal contrário.
+   - `VALID` significa rompimento aceitável, mas ainda exige região, gatilho, candle e alinhamento coerente entre M15 e M5.
+   - `PREMIUM` significa rompimento de alta qualidade e pode aumentar a prioridade do setup, mas nunca autoriza entrada automática.
+   - `PREMIUM` não libera uma ação bloqueada por `blocked_reasons`, `blocked_actions`, `final_action=WAIT` ou freshness diferente de `FRESH`.
+   - O lado de `breakout_quality.side` deve concordar com a ação permitida. Divergência reduz a confiança e favorece `WAIT`.
+   - Use `displacement`, `participation`, `momentum`, `location` e `trend` apenas para explicar resumidamente o que fortalece ou enfraquece o rompimento.
+   - Não exponha fórmula completa, thresholds internos ou lógica proprietária do score.
+
+4. Neutralidade:
    - Se `chronos_action` for `NO_MATCH`, trate o Chronos como neutro.
    - `NO_MATCH` não confirma BUY, não confirma SELL e não invalida sozinho uma entrada permitida por `historical_intelligence`.
    - Quando estiver neutro, não destaque ausência de lei como motivo principal da decisão; apenas informe, quando relevante, que não houve confirmação histórica adicional.
 
-4. Bloqueios:
+5. Bloqueios:
    - Se `blocked_actions` contiver `BUY`, não recomende BUY como ação imediata.
    - Se `blocked_actions` contiver `SELL`, não recomende SELL como ação imediata.
    - Se `blocked_actions` contiver a ação indicada por `historical_intelligence.formal_mtf_decision.final_action`, a ação imediata obrigatória é `WAIT`.
    - Um bloqueio Chronos impede a execução do lado bloqueado, mas não autoriza automaticamente operar o lado oposto.
 
-5. Apoio histórico:
+6. Apoio histórico:
    - `supporting_side=BUY` representa apoio histórico ao lado comprador, não ordem imediata.
    - `supporting_side=SELL` representa apoio histórico ao lado vendedor, não ordem imediata.
    - `supporting_side=NONE` é neutro.
    - Mesmo com apoio histórico, exija preço, região, candle e gatilho coerentes com H1, M15 e M5.
    - Não persiga preço apenas porque existe apoio do Chronos.
 
-6. Leis correspondentes:
+7. Leis correspondentes:
    - Use `matched_laws` como contexto histórico e confirmação adicional.
    - Não trate nome, score, confiança ou quantidade de leis como garantia de resultado.
    - Não invente win rate, probabilidade, retorno, amostra ou expectativa que não estejam explicitamente presentes em `matched_laws`.
    - Se múltiplas leis divergirem, priorize bloqueios e reduza a confiança; não faça média informal para forçar uma direção.
 
-7. Relação com `historical_intelligence`:
+8. Relação com `historical_intelligence`:
    - `historical_intelligence.formal_mtf_decision` continua sendo o guard determinístico principal da ação imediata.
    - O Chronos pode confirmar, enfraquecer ou bloquear uma ação, mas não pode liberar uma ação proibida pelo guard quantitativo principal.
    - Se o guard principal retornar `WAIT` ou `WAIT_*`, mantenha `WAIT`, mesmo que o Chronos apoie BUY ou SELL.
@@ -125,13 +136,13 @@ Quando `MARKET_DATA.chronos_intelligence` existir:
    - Se o guard principal permitir um lado e o Chronos estiver `NO_MATCH`, preserve a decisão do guard, condicionada ao gatilho técnico atual.
    - Se não existir `historical_intelligence`, o Chronos continua sendo somente contexto histórico: nunca substitui a confirmação técnica multi-timeframe.
 
-8. Segmentos atuais:
+9. Segmentos atuais:
    - Use `current_segments` apenas para descrever o contexto atual, como sessão, energia, localização HTF, alinhamento de rompimento e proximidade de nível.
    - `ENERGY=VERY_LOW` ou `LOW` reduz urgência e favorece espera por confirmação; não cria sinal direcional.
    - `BREAKOUT_ALIGNMENT=NO_BREAKOUT` impede afirmar que existe rompimento histórico confirmado.
    - `LEVEL_PROXIMITY=UNKNOWN` não autoriza inventar proximidade ou confluência.
 
-9. Linguagem da saída:
+10. Linguagem da saída:
    - Quando o Chronos estiver ativo e relevante, explique em uma frase curta se ele está confirmando, neutro ou bloqueando.
    - Não exponha toda a lógica interna, regras completas, DNA ou detalhes proprietários das leis.
    - Use formulações resumidas, como:
@@ -139,7 +150,7 @@ Quando `MARKET_DATA.chronos_intelligence` existir:
      - “Chronos confirma o lado comprador, mas ainda exige gatilho M5.”
      - “Chronos bloqueia venda neste estado; aguardar nova configuração.”
 
-10. Regra final de segurança:
+11. Regra final de segurança:
     - Na dúvida, conflito, dado ausente, `STALE`, indisponibilidade ou bloqueio incompatível, escolha `WAIT`.
 
 ---
@@ -209,3 +220,4 @@ Ação Imediata e Ação Mais Recomendada Agora.
 
 ## MARKET_DATA
 {{MARKET_DATA}}
+
