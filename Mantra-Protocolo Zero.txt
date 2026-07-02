@@ -12,6 +12,21 @@
 # Seg consolidacao - Terca mais rompimentos - Quarta conso - 
 # Quarta, , muitos stops, devido a rompimentos falsos - ele chega a fechar fora da figura, porem volta.. e sequencia de candle nao respeotada tb .
 # usar stop 300 pts ou mais, 
+# Esperar m5 , m1 alinhamento de candle - prestar atenção para entrada no trade
+# Esperar consolidacao candles .# Nao entrar em candle esticado 
+# Alinhamento de candle nao precisa estar fechado - e sim - no range de venda ou comprra- sem min ou max. 5m
+
+#------------------------------------------
+# Quarta - Preço fazia falso rompimento em suporte e resistencia - sem volume....pela manha...
+# porem teve horarios de rompimento forte..compra....final da tarde apos as 16, teve volume mais direcional tb.candles 
+# negativos em todos os tfs, rompendo fundo,
+#------------------------------------------
+
+#------------------------------------------
+# Quinta -
+#  Preço 
+
+#------------------------------------------
 
 Hoje é um novo dia.
 

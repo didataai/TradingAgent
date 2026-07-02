@@ -1,0 +1,28 @@
+{
+  "script": "market_context_hierarchical_miner.py",
+  "version": "1.0",
+  "generated_at_utc": "2026-07-01T19:56:33.822440+00:00",
+  "symbol": "GOLD",
+  "events": 74548,
+  "merged_events": 74548,
+  "features_tested": 37,
+  "promising_features": [
+    "ctx_body_atr_bucket",
+    "ctx_body_direction",
+    "ctx_range_atr_bucket",
+    "ctx_dist_ema20_atr_bucket",
+    "ctx_sweep_high",
+    "ctx_dist_donchian_high20_atr_bucket",
+    "ctx_dist_donchian_low20_atr_bucket",
+    "ctx_sweep_low"
+  ],
+  "single_robust": 114,
+  "pair_robust": 749,
+  "horizons_minutes": [
+    5,
+    15,
+    30,
+    60
+  ],
+  "output": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\context_hierarchical_miner"
+}
