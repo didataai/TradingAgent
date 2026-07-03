@@ -1,0 +1,9 @@
+{
+  "mt5": {
+    "path": "C:/Program Files/MetaTrader 5/terminal64.exe",
+    "account": 123456789,
+    "server": "YourBroker-Server",
+    "password_env": "MT5_PERSONAL_PASSWORD",
+    "broker_timezone": "Etc/GMT-2"
+  }
+}
