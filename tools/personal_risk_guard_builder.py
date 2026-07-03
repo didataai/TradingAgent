@@ -5,34 +5,25 @@ Personal Risk Guard Builder
 ===========================
 
 Le o CSV mais recente do Personal Trade Auditor e gera uma inteligencia pessoal
-mais operacional, sem tratar falso rompimento como erro automaticamente.
+operacional para uso diario.
 
-Tambem gera um JSON unico para colar no ChatGPT/Web:
-    data/personal_trade_auditor/<SYMBOL>/web_decision_payload_latest.json
+Organizacao V3:
+    data/personal_trade_auditor/<SYMBOL>/daily/<YYYY-MM-DD>/summary.json
+    data/personal_trade_auditor/<SYMBOL>/daily/<YYYY-MM-DD>/web_decision_payload.json
 
-Esse JSON junta:
-- resumo da auditoria pessoal;
-- Personal Risk Guard;
-- execution quality summary, se existir;
-- arquivos de contexto de mercado disponiveis no TradingAgent;
-- instrucoes operacionais do Diego.
-
-Regras Diego V1:
-- M5 bloqueado e trava dura:
-  * SELL bloqueado se M5 atual rompeu maxima do candle anterior.
-  * BUY bloqueado se M5 atual rompeu minima do candle anterior.
-- FALSE_BREAKOUT_CONTEXT sozinho nao e erro.
-- Falso rompimento vira erro quando aparece junto de:
-  * M5 bloqueado;
-  * entrada em candle esticado;
-  * venda perto da minima / compra perto da maxima;
-  * loss rapido por stop, sugerindo stop curto ou entrada cedo.
+Tambem mantem atalhos latest para o fluxo rapido:
+    data/personal_trade_auditor/<SYMBOL>/latest/summary.json
+    data/personal_trade_auditor/<SYMBOL>/latest/web_decision_payload.json
 
 Uso principal:
     python tools/personal_risk_guard_builder.py --symbol GOLD --data-symbol GOLD
 
-Depois cole no ChatGPT o arquivo:
-    data/personal_trade_auditor/GOLD/web_decision_payload_latest.json
+Depois cole no ChatGPT/Web:
+    data/personal_trade_auditor/GOLD/latest/web_decision_payload.json
+
+Opcional:
+    --report-date YYYY-MM-DD  # forca a data da pasta diaria
+    --keep-legacy-latest      # tambem grava nomes antigos *_latest.json na raiz do simbolo
 """
 
 from __future__ import annotations
@@ -45,20 +36,28 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover
+    ZoneInfo = None  # type: ignore
+
+
+BRT_TZ = "America/Sao_Paulo"
 DEFAULT_BASE_DIR = Path("data/personal_trade_auditor")
 DEFAULT_DATA_DIR = Path("data")
 
 
 def _args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Gera Personal Risk Guard e payload web para decisao operacional.")
+    p = argparse.ArgumentParser(description="Gera resumo diario e payload web para decisao operacional.")
     p.add_argument("--symbol", required=True, help="Ex.: GOLD")
     p.add_argument("--data-symbol", default=None, help="Simbolo da base local, ex.: GOLD")
     p.add_argument("--audit-csv", default=None, help="CSV do auditor. Default: latest do simbolo.")
     p.add_argument("--base-dir", default=str(DEFAULT_BASE_DIR))
     p.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
+    p.add_argument("--report-date", default=None, help="Data da pasta diaria YYYY-MM-DD. Default: data das operacoes no CSV.")
     p.add_argument("--min-occurrences", type=int, default=2)
-    p.add_argument("--keep-history", action="store_true", help="Tambem grava arquivos com timestamp. Default: apenas latest.")
     p.add_argument("--max-json-chars", type=int, default=12000, help="Limite aproximado por arquivo de contexto bruto.")
+    p.add_argument("--keep-legacy-latest", action="store_true", help="Tambem grava arquivos *_latest.json na raiz antiga do simbolo.")
     return p.parse_args()
 
 
@@ -77,6 +76,28 @@ def _split_tags(value: Any) -> List[str]:
     return [x.strip() for x in str(value).split(",") if x.strip()]
 
 
+def _json_default(value: Any) -> Any:
+    if isinstance(value, pd.Timestamp):
+        return value.isoformat()
+    if pd.isna(value):
+        return None
+    return str(value)
+
+
+def _write_json(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default), encoding="utf-8")
+
+
+def _load_json_if_exists(path: Path) -> Optional[Dict[str, Any]]:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8-sig"))
+    except Exception as exc:
+        return {"_load_error": str(exc), "_path": str(path)}
+
+
 def _load_csv(args: argparse.Namespace) -> pd.DataFrame:
     if args.audit_csv:
         path = Path(args.audit_csv)
@@ -88,55 +109,53 @@ def _load_csv(args: argparse.Namespace) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
-def _load_json_if_exists(path: Path) -> Optional[Dict[str, Any]]:
-    if not path.exists():
-        return None
-    try:
-        with path.open("r", encoding="utf-8-sig") as f:
-            return json.load(f)
-    except Exception as exc:
-        return {"_load_error": str(exc), "_path": str(path)}
+def _resolve_report_date(args: argparse.Namespace, df: pd.DataFrame) -> str:
+    if args.report_date:
+        return str(args.report_date)
+    if "entry_time_brt" in df.columns and not df.empty:
+        ts = pd.to_datetime(df["entry_time_brt"], errors="coerce").dropna()
+        if not ts.empty:
+            return ts.dt.strftime("%Y-%m-%d").mode().iloc[0]
+    if ZoneInfo is not None:
+        return datetime.now(ZoneInfo(BRT_TZ)).strftime("%Y-%m-%d")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 def _compact_json(obj: Any, max_chars: int) -> Any:
-    """Compacta objetos grandes para caber bem em prompt web."""
     try:
-        raw = json.dumps(obj, ensure_ascii=False)
+        raw = json.dumps(obj, ensure_ascii=False, default=_json_default)
     except Exception:
         return str(obj)[:max_chars]
     if len(raw) <= max_chars:
         return obj
-
     if isinstance(obj, dict):
-        preferred_keys = [
+        preferred = [
             "symbol", "current_price", "market_status", "timestamp", "generated_at", "as_of",
             "final_action", "action", "preferred_action_now", "blocked_actions", "blocked_reasons",
             "chronos_action", "available", "freshness", "supporting_side", "breakout_quality",
-            "historical_intelligence", "formal_mtf_decision", "mtf_alignment",
-            "timeframes", "H1", "M15", "M5", "M1", "levels", "support", "resistance",
-            "summary", "operational_summary", "signals", "warnings", "context",
+            "historical_intelligence", "formal_mtf_decision", "mtf_alignment", "timeframes",
+            "H1", "M15", "M5", "M1", "levels", "supports", "resistances", "summary",
+            "operational_summary", "signals", "warnings", "context", "current_bar", "previous_closed_bar",
+            "indicators_exact", "derived_metrics_exact", "algorithmic_annotations", "exact_reference_levels",
         ]
         out: Dict[str, Any] = {}
-        for key in preferred_keys:
+        for key in preferred:
             if key in obj:
-                out[key] = _compact_json(obj[key], max_chars=max(800, max_chars // 4))
+                out[key] = _compact_json(obj[key], max_chars=max(800, max_chars // 5))
         if out:
             out["_compact_note"] = f"Objeto original era grande ({len(raw)} chars); mantidas chaves operacionais."
             return out
-        out = {}
         for i, (key, value) in enumerate(obj.items()):
-            if i >= 30:
+            if i >= 35:
                 break
             out[str(key)] = _compact_json(value, max_chars=800)
-        out["_compact_note"] = f"Objeto original era grande ({len(raw)} chars); truncado para primeiras chaves."
+        out["_compact_note"] = f"Objeto original era grande ({len(raw)} chars); truncado."
         return out
-
     if isinstance(obj, list):
         return {
             "_compact_note": f"Lista original tinha {len(obj)} itens e {len(raw)} chars; mantidos primeiros 20.",
             "items": [_compact_json(x, max_chars=800) for x in obj[:20]],
         }
-
     return raw[:max_chars]
 
 
@@ -264,7 +283,7 @@ def _build_guard(df: pd.DataFrame, findings: pd.DataFrame, min_occurrences: int)
 
     return {
         "available": True,
-        "version": "personal-risk-guard-v2-web-payload",
+        "version": "personal-risk-guard-v3-daily-folders",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "source": "personal_trade_auditor_latest_csv",
         "summary": {
@@ -306,8 +325,8 @@ def _latest_trade_examples(df: pd.DataFrame, max_rows: int = 8) -> List[Dict[str
     cols = [c for c in keep if c in df.columns]
     if not cols:
         return []
-    sample = df.sort_values("entry_time_brt" if "entry_time_brt" in df.columns else cols[0]).tail(max_rows)
-    return sample[cols].to_dict(orient="records")
+    sort_col = "entry_time_brt" if "entry_time_brt" in df.columns else cols[0]
+    return df.sort_values(sort_col).tail(max_rows)[cols].to_dict(orient="records")
 
 
 def _build_market_context(args: argparse.Namespace) -> Dict[str, Any]:
@@ -332,24 +351,49 @@ def _build_market_context(args: argparse.Namespace) -> Dict[str, Any]:
     return out
 
 
-def _build_web_payload(
+def _build_daily_summary(
     args: argparse.Namespace,
     df: pd.DataFrame,
     findings: pd.DataFrame,
     guard: Dict[str, Any],
+    report_date: str,
 ) -> Dict[str, Any]:
-    symbol = args.symbol.upper()
-    out_dir = Path(args.base_dir) / symbol
-    execution_summary = _load_json_if_exists(out_dir / "personal_trade_execution_summary_latest.json")
-    audit_summary = _load_json_if_exists(out_dir / "personal_trade_audit_summary_latest.json")
-    intelligence = _load_json_if_exists(out_dir / "personal_trade_intelligence_latest.json")
+    symbol_dir = Path(args.base_dir) / args.symbol.upper()
+    execution_summary = _load_json_if_exists(symbol_dir / "personal_trade_execution_summary_latest.json")
+    audit_summary = _load_json_if_exists(symbol_dir / "personal_trade_audit_summary_latest.json")
+    intelligence = _load_json_if_exists(symbol_dir / "personal_trade_intelligence_latest.json")
 
     return {
-        "schema_version": "trading-web-decision-payload-v1",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "symbol": symbol,
+        "schema_version": "personal-daily-trading-summary-v1",
+        "symbol": args.symbol.upper(),
         "data_symbol": args.data_symbol or args.symbol,
-        "intended_use": "Cole este JSON no ChatGPT/Web para pedir analise educacional de setup, entradas possiveis, bloqueios e pontos de atencao. Nao e ordem automatica.",
+        "report_date": report_date,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "audit_summary": audit_summary,
+        "execution_quality_summary": execution_summary,
+        "personal_trade_intelligence": intelligence,
+        "personal_risk_guard": guard,
+        "daily_lessons": {
+            "hard_blocks_to_respect_next_day": guard.get("active_personal_blocks", []),
+            "dominant_error_patterns": guard.get("dominant_error_patterns", []),
+            "soft_warning_summary": guard.get("soft_warning_summary", []),
+        },
+        "recent_trade_examples": _latest_trade_examples(df, max_rows=12),
+        "trade_level_findings_sample": findings.tail(15).to_dict(orient="records") if not findings.empty else [],
+    }
+
+
+def _build_web_payload(
+    args: argparse.Namespace,
+    daily_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    return {
+        "schema_version": "trading-web-decision-payload-v2-daily",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "symbol": args.symbol.upper(),
+        "data_symbol": args.data_symbol or args.symbol,
+        "report_date": daily_summary.get("report_date"),
+        "intended_use": "Cole este JSON no ChatGPT/Web para analise educacional de setup, entradas possiveis, bloqueios e pontos de atencao. Nao e ordem automatica.",
         "decision_request_template": {
             "ask": "Analise o mercado com base neste JSON e responda em: Pontos-chave, Suporte/Resistencia, Rompimento ou Consolidacao, Trade Liberado/Blocked, Cenarios de Compra, Cenarios de Venda, Invalidation e Alertas Pessoais.",
             "style": "simples, direto, sem expor logica proprietaria em excesso",
@@ -363,14 +407,12 @@ def _build_web_payload(
                 "buy_blocked": "preco/M5 atual abaixo da minima do candle M5 anterior",
             },
             "region_logic": "Vender resistencia e comprar suporte; se romper com volume/horario forte, evitar fade automatico e preferir pullback/confirmacao.",
-            "time_filters": ["09:00-10:00 possivel janela de rompimento/continuidade", "12:30-13:30 possivel janela de rompimento/volume"],
+            "time_filters": [
+                "09:00-10:00 possivel janela de rompimento/continuidade",
+                "12:30-13:30 possivel janela de rompimento/volume",
+            ],
         },
-        "personal_risk_guard": guard,
-        "personal_trade_audit_summary": audit_summary,
-        "personal_trade_intelligence": intelligence,
-        "execution_quality_summary": execution_summary,
-        "recent_trade_examples": _latest_trade_examples(df),
-        "trade_level_findings_sample": findings.tail(10).to_dict(orient="records") if not findings.empty else [],
+        "daily_summary": daily_summary,
         "market_context": _build_market_context(args),
         "response_constraints_for_assistant": [
             "Nao dar garantia de lucro.",
@@ -382,47 +424,44 @@ def _build_web_payload(
     }
 
 
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
 def main() -> int:
     args = _args()
     df = _load_csv(args)
+    report_date = _resolve_report_date(args, df)
     findings = _build_trade_level_findings(df)
     guard = _build_guard(df, findings, args.min_occurrences)
-    web_payload = _build_web_payload(args, df, findings, guard)
+    daily_summary = _build_daily_summary(args, df, findings, guard, report_date)
+    web_payload = _build_web_payload(args, daily_summary)
 
-    out_dir = Path(args.base_dir) / args.symbol.upper()
-    out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    symbol_dir = Path(args.base_dir) / args.symbol.upper()
+    day_dir = symbol_dir / "daily" / report_date
+    latest_dir = symbol_dir / "latest"
 
-    latest_findings = out_dir / "personal_risk_guard_findings_latest.csv"
-    latest_guard = out_dir / "personal_risk_guard_latest.json"
-    latest_web = out_dir / "web_decision_payload_latest.json"
+    summary_path = day_dir / "summary.json"
+    web_path = day_dir / "web_decision_payload.json"
+    latest_summary = latest_dir / "summary.json"
+    latest_web = latest_dir / "web_decision_payload.json"
 
-    findings.to_csv(latest_findings, index=False, encoding="utf-8")
-    _write_json(latest_guard, guard)
+    _write_json(summary_path, daily_summary)
+    _write_json(web_path, web_payload)
+    _write_json(latest_summary, daily_summary)
     _write_json(latest_web, web_payload)
 
-    if args.keep_history:
-        findings_path = out_dir / f"personal_risk_guard_findings_{stamp}.csv"
-        guard_path = out_dir / f"personal_risk_guard_{stamp}.json"
-        web_path = out_dir / f"web_decision_payload_{stamp}.json"
-        findings.to_csv(findings_path, index=False, encoding="utf-8")
-        _write_json(guard_path, guard)
-        _write_json(web_path, web_payload)
-        print(f"[OK] Findings histórico: {findings_path}")
-        print(f"[OK] Guard histórico: {guard_path}")
-        print(f"[OK] Web payload histórico: {web_path}")
+    if args.keep_legacy_latest:
+        _write_json(symbol_dir / "personal_risk_guard_latest.json", guard)
+        _write_json(symbol_dir / "web_decision_payload_latest.json", web_payload)
+        _write_json(symbol_dir / "daily_summary_latest.json", daily_summary)
 
-    print(f"[OK] Findings latest: {latest_findings}")
-    print(f"[OK] Guard latest: {latest_guard}")
-    print(f"[OK] Web payload latest: {latest_web}")
+    print(f"[OK] Daily summary: {summary_path}")
+    print(f"[OK] Daily web payload: {web_path}")
+    print(f"[OK] Latest summary: {latest_summary}")
+    print(f"[OK] Latest web payload: {latest_web}")
     print(json.dumps({
-        "guard": guard,
-        "web_decision_payload_latest": str(latest_web),
-        "note": "Cole o conteudo do web_decision_payload_latest.json no ChatGPT/Web para analise operacional.",
+        "report_date": report_date,
+        "daily_folder": str(day_dir),
+        "files_to_keep_per_day": ["summary.json", "web_decision_payload.json"],
+        "paste_this_in_chatgpt": str(latest_web),
+        "active_personal_blocks": guard.get("active_personal_blocks", []),
     }, ensure_ascii=False, indent=2))
     return 0
 
