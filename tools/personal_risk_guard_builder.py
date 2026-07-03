@@ -51,7 +51,7 @@ def _args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Gera resumo diario e payload web para decisao operacional.")
     p.add_argument("--symbol", required=True, help="Ex.: GOLD")
     p.add_argument("--data-symbol", default=None, help="Simbolo da base local, ex.: GOLD")
-    p.add_argument("--audit-csv", default=None, help="CSV do auditor. Default: latest do simbolo.")
+    p.add_argument("--audit-csv", default=None, help="CSV do auditor. Default: latest do simbolo ou CSV datado mais recente.")
     p.add_argument("--base-dir", default=str(DEFAULT_BASE_DIR))
     p.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     p.add_argument("--report-date", default=None, help="Data da pasta diaria YYYY-MM-DD. Default: data das operacoes no CSV.")
@@ -79,8 +79,11 @@ def _split_tags(value: Any) -> List[str]:
 def _json_default(value: Any) -> Any:
     if isinstance(value, pd.Timestamp):
         return value.isoformat()
-    if pd.isna(value):
-        return None
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
     return str(value)
 
 
@@ -98,13 +101,44 @@ def _load_json_if_exists(path: Path) -> Optional[Dict[str, Any]]:
         return {"_load_error": str(exc), "_path": str(path)}
 
 
+def _latest_file(folder: Path, pattern: str) -> Optional[Path]:
+    if not folder.exists():
+        return None
+    files = [p for p in folder.glob(pattern) if p.is_file()]
+    if not files:
+        return None
+    return sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)[0]
+
+
+def _load_latest_json(symbol_dir: Path, exact_name: str, pattern: str) -> Optional[Dict[str, Any]]:
+    exact = symbol_dir / exact_name
+    obj = _load_json_if_exists(exact)
+    if obj is not None:
+        return obj
+    latest = _latest_file(symbol_dir, pattern)
+    if latest is None:
+        return None
+    return _load_json_if_exists(latest)
+
+
 def _load_csv(args: argparse.Namespace) -> pd.DataFrame:
+    symbol_dir = Path(args.base_dir) / args.symbol.upper()
     if args.audit_csv:
         path = Path(args.audit_csv)
+        if not path.exists():
+            raise FileNotFoundError(f"CSV nao encontrado: {path}")
     else:
-        path = Path(args.base_dir) / args.symbol.upper() / "personal_trade_audit_latest.csv"
-    if not path.exists():
-        raise FileNotFoundError(f"CSV nao encontrado: {path}")
+        path = symbol_dir / "personal_trade_audit_latest.csv"
+        if not path.exists():
+            fallback = _latest_file(symbol_dir, "personal_trade_audit_*.csv")
+            if fallback is None:
+                raise FileNotFoundError(
+                    "CSV nao encontrado. Procurei: "
+                    f"{path} e {symbol_dir / 'personal_trade_audit_*.csv'}. "
+                    "Rode primeiro o personal_trade_auditor.py ou passe --audit-csv."
+                )
+            path = fallback
+            print(f"[WARN] personal_trade_audit_latest.csv nao encontrado; usando CSV mais recente: {path}")
     print(f"[INFO] Lendo auditoria: {path}")
     return pd.read_csv(path)
 
@@ -285,7 +319,7 @@ def _build_guard(df: pd.DataFrame, findings: pd.DataFrame, min_occurrences: int)
         "available": True,
         "version": "personal-risk-guard-v3-daily-folders",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "source": "personal_trade_auditor_latest_csv",
+        "source": "personal_trade_auditor_latest_or_most_recent_csv",
         "summary": {
             "total_trades": total,
             "wins": wins,
@@ -359,9 +393,9 @@ def _build_daily_summary(
     report_date: str,
 ) -> Dict[str, Any]:
     symbol_dir = Path(args.base_dir) / args.symbol.upper()
-    execution_summary = _load_json_if_exists(symbol_dir / "personal_trade_execution_summary_latest.json")
-    audit_summary = _load_json_if_exists(symbol_dir / "personal_trade_audit_summary_latest.json")
-    intelligence = _load_json_if_exists(symbol_dir / "personal_trade_intelligence_latest.json")
+    execution_summary = _load_latest_json(symbol_dir, "personal_trade_execution_summary_latest.json", "personal_trade_execution_summary_*.json")
+    audit_summary = _load_latest_json(symbol_dir, "personal_trade_audit_summary_latest.json", "personal_trade_audit_summary_*.json")
+    intelligence = _load_latest_json(symbol_dir, "personal_trade_intelligence_latest.json", "personal_trade_intelligence_*.json")
 
     return {
         "schema_version": "personal-daily-trading-summary-v1",
@@ -383,10 +417,7 @@ def _build_daily_summary(
     }
 
 
-def _build_web_payload(
-    args: argparse.Namespace,
-    daily_summary: Dict[str, Any],
-) -> Dict[str, Any]:
+def _build_web_payload(args: argparse.Namespace, daily_summary: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "schema_version": "trading-web-decision-payload-v2-daily",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
