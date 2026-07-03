@@ -13,20 +13,15 @@ auditados. A ideia e separar:
 - saida ruim;
 - ideia boa com execucao/stop ruim.
 
-Entrada:
-- CSV gerado pelo personal_trade_auditor.py;
-- base intraday parquet do TradingAgent.
+Correcao importante:
+- MFE e MAE sao metricas de excursao e nunca devem ser negativas.
+- Quando nao houve movimento a favor, MFE = 0.
+- Quando nao houve movimento contra, MAE = 0.
 
 Uso:
     python tools/personal_trade_execution_audit.py ^
       --symbol GOLD ^
       --data-symbol GOLD
-
-Ou informando CSV especifico:
-    python tools/personal_trade_execution_audit.py ^
-      --symbol GOLD ^
-      --data-symbol GOLD ^
-      --audit-csv data/personal_trade_auditor/GOLD/personal_trade_audit_latest.csv
 """
 
 from __future__ import annotations
@@ -124,8 +119,7 @@ def _load_context(path: Path) -> pd.DataFrame:
 
     tf_col = next((c for c in ("timeframe", "tf", "period") if c in df.columns), None)
     df["context_timeframe"] = df[tf_col].astype(str).str.upper() if tf_col else "UNKNOWN"
-    df = df.dropna(subset=["context_time_utc"]).sort_values("context_time_utc")
-    return df
+    return df.dropna(subset=["context_time_utc"]).sort_values("context_time_utc")
 
 
 def _m1_frame(context: pd.DataFrame) -> pd.DataFrame:
@@ -138,6 +132,12 @@ def _m1_frame(context: pd.DataFrame) -> pd.DataFrame:
 
 def _price_slice(m1: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
     return m1[(m1["context_time_utc"] >= start) & (m1["context_time_utc"] <= end)].copy()
+
+
+def _clamp_nonnegative(value: float) -> float:
+    if math.isnan(value):
+        return value
+    return max(0.0, float(value))
 
 
 def _calc_mfe_mae_for_trade(row: pd.Series, m1: pd.DataFrame, horizon_minutes: int, post_exit_minutes: int) -> Dict[str, Any]:
@@ -168,22 +168,22 @@ def _calc_mfe_mae_for_trade(row: pd.Series, m1: pd.DataFrame, horizon_minutes: i
     high = pd.to_numeric(bars["high"], errors="coerce").max()
     low = pd.to_numeric(bars["low"], errors="coerce").min()
     if side == "BUY":
-        mfe = float(high - entry_price)
-        mae = float(entry_price - low)
+        mfe = _clamp_nonnegative(float(high - entry_price))
+        mae = _clamp_nonnegative(float(entry_price - low))
     else:
-        mfe = float(entry_price - low)
-        mae = float(high - entry_price)
+        mfe = _clamp_nonnegative(float(entry_price - low))
+        mae = _clamp_nonnegative(float(high - entry_price))
 
     post_exit_mfe = None
-    if exit_time is not None:
+    if exit_time is not None and not math.isnan(exit_price):
         post_bars = _price_slice(m1, exit_time, exit_time + pd.Timedelta(minutes=post_exit_minutes))
         if not post_bars.empty and "high" in post_bars.columns and "low" in post_bars.columns:
             post_high = pd.to_numeric(post_bars["high"], errors="coerce").max()
             post_low = pd.to_numeric(post_bars["low"], errors="coerce").min()
             if side == "BUY":
-                post_exit_mfe = float(post_high - exit_price) if not math.isnan(exit_price) else None
+                post_exit_mfe = _clamp_nonnegative(float(post_high - exit_price))
             else:
-                post_exit_mfe = float(exit_price - post_low) if not math.isnan(exit_price) else None
+                post_exit_mfe = _clamp_nonnegative(float(exit_price - post_low))
 
     return {
         "mfe_points": round(mfe, 5),
@@ -233,7 +233,6 @@ def _classify_execution(row: Dict[str, Any], mfe_good_points: float, stop_tight_
     else:
         tags.append("TRADE_FLAT")
 
-    # Erros ja detectados no auditor principal que viram qualidade de execucao.
     existing_errors = str(row.get("error_tags", ""))
     if "M5_BLOCKED" in existing_errors:
         tags.append("M5_HARD_BLOCK_VIOLATED")
