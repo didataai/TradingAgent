@@ -4,39 +4,24 @@
 Personal Trade Auditor
 ======================
 
-Audita o historico real de operacoes do MetaTrader 5 e cruza cada entrada com
-contexto intraday ja existente no TradingAgent.
+Audita o historico real de operacoes do MetaTrader 5 e cruza cada entrada com a
+base intraday do TradingAgent.
 
-Objetivos:
-- usar outra conta/senha/path do MT5 sem mexer no tradingagent.json principal;
-- importar historico de trades diretamente da conta;
-- reconstruir operacoes por position_id;
-- enriquecer cada trade com contexto H1/M15/M5/M1 mais proximo da entrada;
-- classificar erros recorrentes com regras simples;
-- gerar relatorios CSV/JSON para evoluir depois em Personal Risk Guard.
+Ponto importante:
+- `--mt5-symbol` e o nome do ativo na conta/broker, ex.: XAUUSD.
+- `--data-symbol` e o nome da base local do TradingAgent, ex.: GOLD.
 
-Seguranca:
-- nao hardcode credenciais neste arquivo;
-- prefira variaveis de ambiente ou um arquivo local ignorado pelo Git;
-- nunca versione senha, conta real, servidor privado ou historico operacional.
+Assim e possivel auditar uma conta onde o ouro aparece como XAUUSD usando a base
+local `data/consolidated/GOLD_intraday.parquet`.
 
-Exemplo:
+Uso recomendado:
     python tools/personal_trade_auditor.py ^
       --symbol GOLD ^
+      --mt5-symbol XAUUSD ^
+      --data-symbol GOLD ^
       --from-date 2026-07-01 ^
-      --to-date 2026-07-02 ^
+      --to-date 2026-07-01 ^
       --mt5-config config/personal_mt5.local.json
-
-Arquivo local sugerido, nao versionar:
-{
-  "mt5": {
-    "path": "C:/Program Files/MetaTrader 5/terminal64.exe",
-    "account": 123456,
-    "server": "Broker-Server",
-    "password_env": "MT5_PERSONAL_PASSWORD",
-    "broker_timezone": "Etc/GMT-2"
-  }
-}
 """
 
 from __future__ import annotations
@@ -46,10 +31,10 @@ import json
 import math
 import os
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -60,31 +45,33 @@ except Exception:  # pragma: no cover
 
 
 BRT_TZ = "America/Sao_Paulo"
-DEFAULT_OUTPUT_DIR = Path("data/personal_trade_auditor")
 DEFAULT_DATA_DIR = Path("data")
+DEFAULT_OUTPUT_DIR = Path("data/personal_trade_auditor")
 
 
 @dataclass
 class AuditConfig:
     symbol: str
+    mt5_symbol: str
+    data_symbol: str
     from_date: str
     to_date: str
     mt5_path: Optional[str]
     mt5_account: Optional[int]
     mt5_password: Optional[str]
     mt5_server: Optional[str]
-    broker_timezone: str
     data_dir: Path
     output_dir: Path
     lookback_minutes: int
-    include_open_positions: bool
+    no_symbol_filter: bool
 
 
 @dataclass
-class ReconstructedTrade:
+class TradeRecord:
     trade_id: str
     position_id: int
-    symbol: str
+    mt5_symbol: str
+    data_symbol: str
     side: str
     entry_time_utc: str
     entry_time_brt: str
@@ -102,25 +89,24 @@ class ReconstructedTrade:
     magic: int
 
 
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Audita trades reais do MT5 e cruza com contexto intraday do TradingAgent."
-    )
-    parser.add_argument("--symbol", required=True, help="Simbolo do ativo, ex.: GOLD")
-    parser.add_argument("--from-date", required=True, help="Data inicial YYYY-MM-DD ou datetime ISO")
-    parser.add_argument("--to-date", required=True, help="Data final YYYY-MM-DD ou datetime ISO")
-    parser.add_argument("--mt5-config", default=None, help="Arquivo local com credenciais MT5. Nao versionar.")
-    parser.add_argument("--mt5-path", default=None, help="Path do terminal64.exe da conta a auditar")
-    parser.add_argument("--mt5-account", type=int, default=None, help="Numero da conta MT5")
-    parser.add_argument("--mt5-password", default=None, help="Senha MT5. Prefira variavel de ambiente.")
-    parser.add_argument("--mt5-password-env", default=None, help="Nome da variavel de ambiente com a senha")
-    parser.add_argument("--mt5-server", default=None, help="Servidor MT5")
-    parser.add_argument("--broker-timezone", default=None, help="Timezone do broker, ex.: Etc/GMT-2")
-    parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR), help="Diretorio data do TradingAgent")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Diretorio de saida")
-    parser.add_argument("--lookback-minutes", type=int, default=240, help="Janela maxima para contexto anterior")
-    parser.add_argument("--include-open-positions", action="store_true", help="Inclui posicoes abertas, quando possivel")
-    return parser.parse_args()
+def _args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Audita trades reais do MT5 contra a base intraday do TradingAgent.")
+    p.add_argument("--symbol", required=True, help="Alias operacional/logico, ex.: GOLD")
+    p.add_argument("--mt5-symbol", default=None, help="Simbolo real no broker, ex.: XAUUSD")
+    p.add_argument("--data-symbol", default=None, help="Simbolo da base local, ex.: GOLD")
+    p.add_argument("--from-date", required=True, help="Data inicial YYYY-MM-DD ou datetime ISO")
+    p.add_argument("--to-date", required=True, help="Data final YYYY-MM-DD ou datetime ISO")
+    p.add_argument("--mt5-config", default=None, help="Arquivo local com credenciais MT5. Nao versionar.")
+    p.add_argument("--mt5-path", default=None)
+    p.add_argument("--mt5-account", type=int, default=None)
+    p.add_argument("--mt5-password", default=None)
+    p.add_argument("--mt5-password-env", default=None)
+    p.add_argument("--mt5-server", default=None)
+    p.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
+    p.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    p.add_argument("--lookback-minutes", type=int, default=240)
+    p.add_argument("--no-symbol-filter", action="store_true", help="Nao filtra deals por simbolo MT5")
+    return p.parse_args()
 
 
 def _load_json(path: Optional[str]) -> Dict[str, Any]:
@@ -153,27 +139,25 @@ def _resolve_password(args: argparse.Namespace, config: Dict[str, Any]) -> Optio
 
 def _build_config(args: argparse.Namespace) -> AuditConfig:
     config = _load_json(args.mt5_config)
-    mt5_account = args.mt5_account or _nested_get(config, "mt5", "account")
-    if mt5_account is not None:
-        mt5_account = int(mt5_account)
-
+    account = args.mt5_account or _nested_get(config, "mt5", "account")
     return AuditConfig(
         symbol=args.symbol,
+        mt5_symbol=(args.mt5_symbol or _nested_get(config, "mt5", "symbol") or args.symbol),
+        data_symbol=(args.data_symbol or _nested_get(config, "data", "symbol") or args.symbol),
         from_date=args.from_date,
         to_date=args.to_date,
         mt5_path=args.mt5_path or _nested_get(config, "mt5", "path"),
-        mt5_account=mt5_account,
+        mt5_account=int(account) if account is not None else None,
         mt5_password=_resolve_password(args, config),
         mt5_server=args.mt5_server or _nested_get(config, "mt5", "server"),
-        broker_timezone=args.broker_timezone or _nested_get(config, "mt5", "broker_timezone", default="Etc/GMT-2"),
         data_dir=Path(args.data_dir),
         output_dir=Path(args.output_dir),
         lookback_minutes=args.lookback_minutes,
-        include_open_positions=bool(args.include_open_positions),
+        no_symbol_filter=bool(args.no_symbol_filter),
     )
 
 
-def _parse_dt(value: str, tz_name: str = BRT_TZ, end_of_day: bool = False) -> datetime:
+def _parse_dt(value: str, end_of_day: bool = False) -> datetime:
     if "T" in value or " " in value:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
     else:
@@ -182,16 +166,14 @@ def _parse_dt(value: str, tz_name: str = BRT_TZ, end_of_day: bool = False) -> da
             dt = dt + timedelta(days=1)
     if dt.tzinfo is None:
         if ZoneInfo is not None:
-            dt = dt.replace(tzinfo=ZoneInfo(tz_name))
+            dt = dt.replace(tzinfo=ZoneInfo(BRT_TZ))
         else:
             dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
 
 def _dt_to_iso(dt: Optional[datetime]) -> Optional[str]:
-    if dt is None:
-        return None
-    return dt.astimezone(timezone.utc).isoformat()
+    return None if dt is None else dt.astimezone(timezone.utc).isoformat()
 
 
 def _dt_to_brt(dt: Optional[datetime]) -> Optional[str]:
@@ -204,7 +186,7 @@ def _dt_to_brt(dt: Optional[datetime]) -> Optional[str]:
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
     try:
-        if value is None or (isinstance(value, float) and math.isnan(value)):
+        if value is None or pd.isna(value):
             return default
         return float(value)
     except Exception:
@@ -215,67 +197,75 @@ def _connect_mt5(cfg: AuditConfig):
     try:
         import MetaTrader5 as mt5  # type: ignore
     except Exception as exc:
-        raise RuntimeError(
-            "Biblioteca MetaTrader5 nao instalada. Instale com: pip install MetaTrader5"
-        ) from exc
+        raise RuntimeError("Biblioteca MetaTrader5 nao instalada. Instale com: pip install MetaTrader5") from exc
 
-    init_kwargs: Dict[str, Any] = {}
+    kwargs: Dict[str, Any] = {}
     if cfg.mt5_path:
-        init_kwargs["path"] = cfg.mt5_path
+        kwargs["path"] = cfg.mt5_path
 
-    if not mt5.initialize(**init_kwargs):
-        code, msg = mt5.last_error()
-        raise RuntimeError(f"Falha ao inicializar MT5: {code} {msg}")
+    if not mt5.initialize(**kwargs):
+        raise RuntimeError(f"Falha ao inicializar MT5: {mt5.last_error()}")
 
     if cfg.mt5_account and cfg.mt5_password and cfg.mt5_server:
         if not mt5.login(cfg.mt5_account, password=cfg.mt5_password, server=cfg.mt5_server):
-            code, msg = mt5.last_error()
+            err = mt5.last_error()
             mt5.shutdown()
-            raise RuntimeError(f"Falha ao logar no MT5: {code} {msg}")
+            raise RuntimeError(f"Falha ao logar no MT5: {err}")
 
+    info = mt5.account_info()
+    if info:
+        d = info._asdict()
+        print(f"[INFO] Conta logada: login={d.get('login')} server={d.get('server')} balance={d.get('balance')}")
     return mt5
 
 
 def _fetch_deals(cfg: AuditConfig) -> pd.DataFrame:
     start_utc = _parse_dt(cfg.from_date, end_of_day=False)
     end_utc = _parse_dt(cfg.to_date, end_of_day=True)
+    print(f"[INFO] Intervalo UTC: {start_utc.isoformat()} -> {end_utc.isoformat()}")
+
     mt5 = _connect_mt5(cfg)
     try:
         raw = mt5.history_deals_get(start_utc, end_utc)
         if raw is None:
-            code, msg = mt5.last_error()
-            raise RuntimeError(f"history_deals_get retornou None: {code} {msg}")
-        rows = [deal._asdict() for deal in raw]
+            raise RuntimeError(f"history_deals_get retornou None: {mt5.last_error()}")
+        rows = [x._asdict() for x in raw]
     finally:
         mt5.shutdown()
 
     df = pd.DataFrame(rows)
+    print(f"[INFO] Deals brutas no periodo: {len(df)}")
     if df.empty:
         return df
-
-    if "symbol" in df.columns:
-        df = df[df["symbol"].astype(str).str.upper() == cfg.symbol.upper()].copy()
 
     if "time" in df.columns:
         df["time_utc"] = pd.to_datetime(df["time"], unit="s", utc=True, errors="coerce")
     elif "time_msc" in df.columns:
         df["time_utc"] = pd.to_datetime(df["time_msc"], unit="ms", utc=True, errors="coerce")
 
+    if "symbol" in df.columns:
+        counts = df["symbol"].fillna("").astype(str).value_counts().head(20)
+        print("[INFO] Deals por simbolo:")
+        print(counts.to_string())
+        if not cfg.no_symbol_filter:
+            before = len(df)
+            df = df[df["symbol"].astype(str).str.upper() == cfg.mt5_symbol.upper()].copy()
+            print(f"[INFO] Filtro mt5_symbol={cfg.mt5_symbol}: {before} -> {len(df)} deals")
+
     return df.sort_values("time_utc") if "time_utc" in df.columns else df
 
 
 def _deal_side(row: pd.Series) -> str:
-    # MT5: DEAL_TYPE_BUY=0, DEAL_TYPE_SELL=1. Mantemos fallback textual.
-    value = row.get("type")
+    # MT5 comum: DEAL_TYPE_BUY=0, DEAL_TYPE_SELL=1.
     try:
-        ivalue = int(value)
-        if ivalue == 0:
+        value = int(row.get("type", -1))
+        if value == 0:
             return "BUY"
-        if ivalue == 1:
+        if value == 1:
             return "SELL"
     except Exception:
         pass
-    text = str(value).upper()
+    text = str(row.get("type", "")).upper()
     if "BUY" in text:
         return "BUY"
     if "SELL" in text:
@@ -284,7 +274,6 @@ def _deal_side(row: pd.Series) -> str:
 
 
 def _is_entry_in(row: pd.Series) -> bool:
-    # MT5: DEAL_ENTRY_IN=0, OUT=1, INOUT=2, OUT_BY=3.
     try:
         return int(row.get("entry", -1)) == 0
     except Exception:
@@ -301,47 +290,43 @@ def _is_entry_out(row: pd.Series) -> bool:
 def _reconstruct_trades(deals: pd.DataFrame, cfg: AuditConfig) -> pd.DataFrame:
     if deals.empty:
         return pd.DataFrame()
-
+    deals = deals.copy()
     if "position_id" not in deals.columns:
         deals["position_id"] = deals.get("position", deals.index)
 
-    trades: List[ReconstructedTrade] = []
+    records: List[TradeRecord] = []
     for position_id, group in deals.groupby("position_id", dropna=False):
         group = group.sort_values("time_utc")
-        entry_rows = group[group.apply(_is_entry_in, axis=1)]
-        exit_rows = group[group.apply(_is_entry_out, axis=1)]
-
-        if entry_rows.empty:
-            # Fallback: primeira deal BUY/SELL com volume positivo.
-            entry_rows = group[group.apply(lambda r: _deal_side(r) in ("BUY", "SELL"), axis=1)]
-        if entry_rows.empty:
+        if int(position_id) == 0 if pd.notna(position_id) else False:
+            # Transferencias/balanco geralmente usam position_id zero.
             continue
 
-        entry = entry_rows.iloc[0]
-        exits = exit_rows if not exit_rows.empty else group.iloc[1:]
-        exit_row = exits.iloc[-1] if len(exits) else None
-
-        entry_time = entry.get("time_utc")
-        exit_time = None if exit_row is None else exit_row.get("time_utc")
-        if pd.isna(entry_time):
+        entries = group[group.apply(_is_entry_in, axis=1)]
+        exits = group[group.apply(_is_entry_out, axis=1)]
+        if entries.empty:
+            entries = group[group.apply(lambda r: _deal_side(r) in ("BUY", "SELL"), axis=1)]
+        if entries.empty:
             continue
-        entry_dt = pd.Timestamp(entry_time).to_pydatetime()
-        exit_dt = None if exit_time is None or pd.isna(exit_time) else pd.Timestamp(exit_time).to_pydatetime()
 
-        side = _deal_side(entry)
+        entry = entries.iloc[0]
+        exit_row = exits.iloc[-1] if len(exits) else (group.iloc[-1] if len(group) > 1 else None)
+        entry_dt = pd.Timestamp(entry.get("time_utc")).to_pydatetime()
+        exit_dt = None
+        if exit_row is not None and pd.notna(exit_row.get("time_utc")):
+            exit_dt = pd.Timestamp(exit_row.get("time_utc")).to_pydatetime()
+
         profit = _safe_float(group.get("profit", pd.Series(dtype=float)).sum())
         commission = _safe_float(group.get("commission", pd.Series(dtype=float)).sum())
         swap = _safe_float(group.get("swap", pd.Series(dtype=float)).sum())
-        net_profit = profit + commission + swap
-        duration = None
-        if exit_dt:
-            duration = (exit_dt - entry_dt).total_seconds() / 60.0
+        duration = None if exit_dt is None else (exit_dt - entry_dt).total_seconds() / 60.0
 
-        trade = ReconstructedTrade(
-            trade_id=f"{cfg.symbol}-{int(position_id) if pd.notna(position_id) else len(trades)}",
+        mt5_symbol = str(entry.get("symbol", cfg.mt5_symbol) or cfg.mt5_symbol)
+        record = TradeRecord(
+            trade_id=f"{cfg.symbol}-{int(position_id) if pd.notna(position_id) else len(records)}",
             position_id=int(position_id) if pd.notna(position_id) else -1,
-            symbol=cfg.symbol,
-            side=side,
+            mt5_symbol=mt5_symbol,
+            data_symbol=cfg.data_symbol,
+            side=_deal_side(entry),
             entry_time_utc=_dt_to_iso(entry_dt) or "",
             entry_time_brt=_dt_to_brt(entry_dt) or "",
             entry_price=_safe_float(entry.get("price")),
@@ -352,68 +337,60 @@ def _reconstruct_trades(deals: pd.DataFrame, cfg: AuditConfig) -> pd.DataFrame:
             profit=profit,
             commission=commission,
             swap=swap,
-            net_profit=net_profit,
+            net_profit=profit + commission + swap,
             duration_minutes=duration,
             comment=str(entry.get("comment", "") or ""),
             magic=int(_safe_float(entry.get("magic"), 0)),
         )
-        trades.append(trade)
+        records.append(record)
 
-    return pd.DataFrame([asdict(t) for t in trades]).sort_values("entry_time_utc")
+    if not records:
+        return pd.DataFrame()
+    return pd.DataFrame([asdict(x) for x in records]).sort_values("entry_time_utc")
 
 
-def _load_intraday_context(cfg: AuditConfig) -> Optional[pd.DataFrame]:
+def _find_context_file(cfg: AuditConfig) -> Optional[Path]:
     candidates = [
-        cfg.data_dir / "consolidated" / f"{cfg.symbol}_intraday.parquet",
-        cfg.data_dir / "consolidated" / f"{cfg.symbol.upper()}_intraday.parquet",
-        cfg.data_dir / "consolidated" / f"{cfg.symbol.capitalize()}_intraday.parquet",
+        cfg.data_dir / "consolidated" / f"{cfg.data_symbol}_intraday.parquet",
+        cfg.data_dir / "consolidated" / f"{cfg.data_symbol.upper()}_intraday.parquet",
+        cfg.data_dir / "consolidated" / f"{cfg.data_symbol.capitalize()}_intraday.parquet",
     ]
-    path = next((p for p in candidates if p.exists()), None)
-    if path is None:
-        return None
+    return next((p for p in candidates if p.exists()), None)
 
+
+def _load_context(cfg: AuditConfig) -> Optional[pd.DataFrame]:
+    path = _find_context_file(cfg)
+    if path is None:
+        print(f"[WARN] Consolidado intraday nao encontrado para data_symbol={cfg.data_symbol}")
+        return None
+    print(f"[INFO] Contexto usado: {path}")
     df = pd.read_parquet(path)
     df.columns = [str(c) for c in df.columns]
 
-    # Normalizacao flexivel de tempo.
-    time_col = None
-    for candidate in ("time_utc", "datetime_utc", "timestamp_utc", "time", "datetime", "timestamp", "time_brt"):
-        if candidate in df.columns:
-            time_col = candidate
-            break
+    time_col = next((c for c in ("time_utc", "datetime_utc", "timestamp_utc", "time", "datetime", "timestamp", "time_brt") if c in df.columns), None)
     if time_col is None:
+        print("[WARN] Contexto sem coluna de tempo reconhecida.")
         return None
 
-    if time_col == "time_brt":
-        if ZoneInfo is not None:
-            df["context_time_utc"] = pd.to_datetime(df[time_col], errors="coerce").dt.tz_localize(
-                BRT_TZ, nonexistent="shift_forward", ambiguous="NaT"
-            ).dt.tz_convert("UTC")
-        else:
-            df["context_time_utc"] = pd.to_datetime(df[time_col], errors="coerce", utc=True)
+    if time_col == "time_brt" and ZoneInfo is not None:
+        df["context_time_utc"] = pd.to_datetime(df[time_col], errors="coerce").dt.tz_localize(
+            BRT_TZ, nonexistent="shift_forward", ambiguous="NaT"
+        ).dt.tz_convert("UTC")
     else:
         df["context_time_utc"] = pd.to_datetime(df[time_col], errors="coerce", utc=True)
 
-    tf_col = None
-    for candidate in ("timeframe", "tf", "period"):
-        if candidate in df.columns:
-            tf_col = candidate
-            break
-    if tf_col:
-        df["context_timeframe"] = df[tf_col].astype(str).str.upper()
-    else:
-        df["context_timeframe"] = "UNKNOWN"
-
+    tf_col = next((c for c in ("timeframe", "tf", "period") if c in df.columns), None)
+    df["context_timeframe"] = df[tf_col].astype(str).str.upper() if tf_col else "UNKNOWN"
     return df.dropna(subset=["context_time_utc"]).sort_values("context_time_utc")
 
 
-def _latest_context_before(df: pd.DataFrame, entry_time_utc: str, tf: str, lookback_minutes: int) -> Dict[str, Any]:
+def _context_before(df: pd.DataFrame, entry_time_utc: str, tf: str, lookback_minutes: int) -> Dict[str, Any]:
     if df is None or df.empty:
         return {}
     entry_ts = pd.to_datetime(entry_time_utc, utc=True)
     frame = df
     if "context_timeframe" in frame.columns and (frame["context_timeframe"] != "UNKNOWN").any():
-        frame = frame[frame["context_timeframe"] == tf.upper()]
+        frame = frame[frame["context_timeframe"] == tf]
     if frame.empty:
         return {}
     min_ts = entry_ts - pd.Timedelta(minutes=lookback_minutes)
@@ -422,10 +399,10 @@ def _latest_context_before(df: pd.DataFrame, entry_time_utc: str, tf: str, lookb
         return {}
     row = frame.iloc[-1]
     keep = [
-        "context_time_utc", "context_timeframe", "open", "high", "low", "close", "tick_volume", "spread",
+        "context_time_utc", "context_timeframe", "open", "high", "low", "close", "tick_volume", "spread", "spread_z",
         "RSI", "MACD", "MACD_signal", "MACD_hist", "ATR", "ADX", "EMA_20", "EMA_50", "SMA_10", "SMA_50",
-        "body_direction", "structure_state", "volume_ratio", "volume_pace_ratio", "range_atr", "body_atr",
-        "close_pos", "ema20_slope_5", "ema50_slope_5", "dist_ema20_atr", "dist_ema50_atr",
+        "body_direction", "structure_state", "volume_ratio", "volume_pace_ratio", "range_atr", "body_atr", "close_pos",
+        "ema20_slope_5", "ema50_slope_5", "dist_ema20_atr", "dist_ema50_atr",
         "breakout_up", "breakout_down", "false_breakout_up", "false_breakout_down", "sweep_high", "sweep_low",
         "bos_up", "bos_dn", "choch_up", "choch_dn", "Volume_Spike", "vol_spike_1p5", "vol_spike_2p0",
         "session_name",
@@ -442,21 +419,7 @@ def _latest_context_before(df: pd.DataFrame, entry_time_utc: str, tf: str, lookb
     return out
 
 
-def _enrich_trades(trades: pd.DataFrame, context: Optional[pd.DataFrame], cfg: AuditConfig) -> pd.DataFrame:
-    if trades.empty:
-        return trades
-    rows: List[Dict[str, Any]] = []
-    for _, trade in trades.iterrows():
-        item = trade.to_dict()
-        if context is not None:
-            for tf in ("H1", "M15", "M5", "M1"):
-                item.update(_latest_context_before(context, trade["entry_time_utc"], tf, cfg.lookback_minutes))
-        item.update(_classify_trade_errors(item))
-        rows.append(item)
-    return pd.DataFrame(rows)
-
-
-def _bias_from_structure(value: Any) -> Optional[str]:
+def _bias(value: Any) -> Optional[str]:
     try:
         v = float(value)
         if v > 0:
@@ -464,15 +427,16 @@ def _bias_from_structure(value: Any) -> Optional[str]:
         if v < 0:
             return "DOWN"
     except Exception:
-        text = str(value).upper()
-        if "BULL" in text or text == "UP":
+        t = str(value).upper()
+        if "BULL" in t or t == "UP":
             return "UP"
-        if "BEAR" in text or text == "DOWN":
+        if "BEAR" in t or t == "DOWN":
             return "DOWN"
     return None
 
 
-def _side_to_direction(side: str) -> Optional[str]:
+def _side_dir(side: str) -> Optional[str]:
+    side = side.upper()
     if side == "BUY":
         return "UP"
     if side == "SELL":
@@ -480,16 +444,14 @@ def _side_to_direction(side: str) -> Optional[str]:
     return None
 
 
-def _classify_trade_errors(row: Dict[str, Any]) -> Dict[str, Any]:
+def _classify(row: Dict[str, Any]) -> Dict[str, Any]:
     tags: List[str] = []
     warnings: List[str] = []
-    side_dir = _side_to_direction(str(row.get("side", "")).upper())
-    net = _safe_float(row.get("net_profit"))
+    side_dir = _side_dir(str(row.get("side", "")))
 
-    # Contexto por timeframe.
     for tf in ("H1", "M15"):
-        bias = _bias_from_structure(row.get(f"{tf}_structure_state"))
-        if side_dir and bias and side_dir != bias:
+        b = _bias(row.get(f"{tf}_structure_state"))
+        if side_dir and b and side_dir != b:
             tags.append(f"COUNTER_{tf}")
 
     m5_volume = _safe_float(row.get("M5_volume_ratio"), default=float("nan"))
@@ -515,124 +477,122 @@ def _classify_trade_errors(row: Dict[str, Any]) -> Dict[str, Any]:
     if _safe_float(row.get("M5_vol_spike_1p5")) == 0 and _safe_float(row.get("M5_breakout_down")) == 1:
         warnings.append("BREAKOUT_DOWN_WITHOUT_VOLUME_SPIKE")
 
-    if net < 0:
-        quality = "LOSS"
-    elif net > 0:
-        quality = "WIN"
-    else:
-        quality = "FLAT"
-
+    net = _safe_float(row.get("net_profit"))
     return {
-        "result_quality": quality,
+        "result_quality": "WIN" if net > 0 else ("LOSS" if net < 0 else "FLAT"),
         "error_tags": ",".join(sorted(set(tags))),
         "warning_tags": ",".join(sorted(set(warnings))),
         "error_tag_count": len(set(tags)),
     }
 
 
-def _summarize(audited: pd.DataFrame) -> Dict[str, Any]:
-    if audited.empty:
+def _enrich(trades: pd.DataFrame, context: Optional[pd.DataFrame], cfg: AuditConfig) -> pd.DataFrame:
+    if trades.empty:
+        return trades
+    rows: List[Dict[str, Any]] = []
+    for _, trade in trades.iterrows():
+        item = trade.to_dict()
+        if context is not None:
+            for tf in ("H1", "M15", "M5", "M1"):
+                item.update(_context_before(context, trade["entry_time_utc"], tf, cfg.lookback_minutes))
+        item.update(_classify(item))
+        rows.append(item)
+    return pd.DataFrame(rows)
+
+
+def _summarize(df: pd.DataFrame) -> Dict[str, Any]:
+    if df.empty:
         return {"total_trades": 0, "message": "Nenhum trade encontrado."}
 
-    total = int(len(audited))
-    wins = int((audited["net_profit"] > 0).sum())
-    losses = int((audited["net_profit"] < 0).sum())
+    total = int(len(df))
+    wins = int((df["net_profit"] > 0).sum())
+    losses = int((df["net_profit"] < 0).sum())
     flats = total - wins - losses
-    net = _safe_float(audited["net_profit"].sum())
-    gross_profit = _safe_float(audited.loc[audited["net_profit"] > 0, "net_profit"].sum())
-    gross_loss = abs(_safe_float(audited.loc[audited["net_profit"] < 0, "net_profit"].sum()))
-    profit_factor = None if gross_loss == 0 else gross_profit / gross_loss
+    gross_profit = _safe_float(df.loc[df["net_profit"] > 0, "net_profit"].sum())
+    gross_loss = abs(_safe_float(df.loc[df["net_profit"] < 0, "net_profit"].sum()))
+    pf = None if gross_loss == 0 else gross_profit / gross_loss
 
     tag_rows: List[Dict[str, Any]] = []
-    for _, row in audited.iterrows():
-        tags = [t for t in str(row.get("error_tags", "")).split(",") if t]
-        for tag in tags:
+    for _, row in df.iterrows():
+        for tag in [x for x in str(row.get("error_tags", "")).split(",") if x]:
             tag_rows.append({"tag": tag, "net_profit": row.get("net_profit", 0.0), "is_loss": row.get("net_profit", 0.0) < 0})
 
+    top_tags: List[Dict[str, Any]] = []
     if tag_rows:
         tag_df = pd.DataFrame(tag_rows)
-        by_tag = []
-        for tag, g in tag_df.groupby("tag"):
-            by_tag.append(
-                {
-                    "tag": tag,
-                    "occurrences": int(len(g)),
-                    "loss_count": int(g["is_loss"].sum()),
-                    "net_profit": round(_safe_float(g["net_profit"].sum()), 2),
-                    "avg_profit": round(_safe_float(g["net_profit"].mean()), 2),
-                }
-            )
-        top_error_tags = sorted(by_tag, key=lambda x: (x["net_profit"], -x["occurrences"]))[:20]
-    else:
-        top_error_tags = []
+        for tag, group in tag_df.groupby("tag"):
+            top_tags.append({
+                "tag": tag,
+                "occurrences": int(len(group)),
+                "loss_count": int(group["is_loss"].sum()),
+                "net_profit": round(_safe_float(group["net_profit"].sum()), 2),
+                "avg_profit": round(_safe_float(group["net_profit"].mean()), 2),
+            })
+        top_tags = sorted(top_tags, key=lambda x: (x["net_profit"], -x["occurrences"]))[:20]
 
     return {
         "total_trades": total,
         "wins": wins,
         "losses": losses,
         "flats": flats,
-        "win_rate": round(wins / total, 4) if total else None,
-        "net_profit": round(net, 2),
+        "win_rate": round(wins / total, 4),
+        "net_profit": round(_safe_float(df["net_profit"].sum()), 2),
         "gross_profit": round(gross_profit, 2),
         "gross_loss": round(gross_loss, 2),
-        "profit_factor": None if profit_factor is None else round(profit_factor, 4),
-        "top_error_tags": top_error_tags,
+        "profit_factor": None if pf is None else round(pf, 4),
+        "top_error_tags": top_tags,
     }
 
 
-def _write_outputs(audited: pd.DataFrame, summary: Dict[str, Any], cfg: AuditConfig) -> None:
+def _write(df: pd.DataFrame, summary: Dict[str, Any], cfg: AuditConfig) -> None:
     out_dir = cfg.output_dir / cfg.symbol.upper()
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    csv_path = out_dir / f"personal_trade_audit_{stamp}.csv"
+    json_path = out_dir / f"personal_trade_audit_summary_{stamp}.json"
+    latest_csv = out_dir / "personal_trade_audit_latest.csv"
+    latest_json = out_dir / "personal_trade_audit_summary_latest.json"
 
-    audited_path = out_dir / f"personal_trade_audit_{stamp}.csv"
-    summary_path = out_dir / f"personal_trade_audit_summary_{stamp}.json"
-    latest_audited = out_dir / "personal_trade_audit_latest.csv"
-    latest_summary = out_dir / "personal_trade_audit_summary_latest.json"
+    df.to_csv(csv_path, index=False, encoding="utf-8")
+    df.to_csv(latest_csv, index=False, encoding="utf-8")
+    json_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    latest_json.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    audited.to_csv(audited_path, index=False, encoding="utf-8")
-    audited.to_csv(latest_audited, index=False, encoding="utf-8")
-    with summary_path.open("w", encoding="utf-8") as f:
-        json.dump(summary, f, ensure_ascii=False, indent=2)
-    with latest_summary.open("w", encoding="utf-8") as f:
-        json.dump(summary, f, ensure_ascii=False, indent=2)
-
-    print(f"[OK] Trades auditados: {len(audited)}")
-    print(f"[OK] CSV: {audited_path}")
-    print(f"[OK] Summary: {summary_path}")
+    print(f"[OK] Trades auditados: {len(df)}")
+    print(f"[OK] CSV: {csv_path}")
+    print(f"[OK] Summary: {json_path}")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
 def main() -> int:
-    args = _parse_args()
+    args = _args()
     cfg = _build_config(args)
 
     if not cfg.mt5_account:
-        print("[ERRO] Conta MT5 nao informada. Use --mt5-account ou mt5.account no arquivo local.", file=sys.stderr)
+        print("[ERRO] Conta MT5 nao informada.", file=sys.stderr)
         return 2
     if not cfg.mt5_password:
         print("[ERRO] Senha MT5 nao informada. Use --mt5-password-env ou mt5.password_env.", file=sys.stderr)
         return 2
     if not cfg.mt5_server:
-        print("[ERRO] Servidor MT5 nao informado. Use --mt5-server ou mt5.server.", file=sys.stderr)
+        print("[ERRO] Servidor MT5 nao informado.", file=sys.stderr)
         return 2
 
-    print(f"[INFO] Auditor iniciado | symbol={cfg.symbol} | from={cfg.from_date} | to={cfg.to_date}")
+    print(
+        f"[INFO] Auditor iniciado | symbol={cfg.symbol} | mt5_symbol={cfg.mt5_symbol} | "
+        f"data_symbol={cfg.data_symbol} | from={cfg.from_date} | to={cfg.to_date}"
+    )
     deals = _fetch_deals(cfg)
-    print(f"[INFO] Deals carregadas: {len(deals)}")
-
     trades = _reconstruct_trades(deals, cfg)
     print(f"[INFO] Trades reconstruidos: {len(trades)}")
 
-    context = _load_intraday_context(cfg)
-    if context is None:
-        print("[WARN] Consolidado intraday nao encontrado ou sem coluna de tempo. Auditoria seguira sem contexto de mercado.")
-    else:
+    context = _load_context(cfg)
+    if context is not None:
         print(f"[INFO] Contexto intraday carregado: {len(context)} linhas")
 
-    audited = _enrich_trades(trades, context, cfg)
+    audited = _enrich(trades, context, cfg)
     summary = _summarize(audited)
-    _write_outputs(audited, summary, cfg)
+    _write(audited, summary, cfg)
     return 0
 
 
