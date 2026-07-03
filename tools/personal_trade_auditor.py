@@ -14,6 +14,14 @@ Ponto importante:
 Assim e possivel auditar uma conta onde o ouro aparece como XAUUSD usando a base
 local `data/consolidated/GOLD_intraday.parquet`.
 
+A V2 adiciona leitura operacional do regime no momento da entrada:
+- janelas provaveis de rompimento;
+- volume/energia no M5;
+- fade de rompimento real;
+- compra em resistencia / venda em suporte;
+- compra em suporte / venda em resistencia;
+- M5 liberado/bloqueado conforme regra operacional do Diego.
+
 Uso recomendado:
     python tools/personal_trade_auditor.py ^
       --symbol GOLD ^
@@ -34,7 +42,7 @@ import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -64,6 +72,8 @@ class AuditConfig:
     output_dir: Path
     lookback_minutes: int
     no_symbol_filter: bool
+    zone_window_bars: int
+    zone_tolerance_atr: float
 
 
 @dataclass
@@ -106,6 +116,8 @@ def _args() -> argparse.Namespace:
     p.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     p.add_argument("--lookback-minutes", type=int, default=240)
     p.add_argument("--no-symbol-filter", action="store_true", help="Nao filtra deals por simbolo MT5")
+    p.add_argument("--zone-window-bars", type=int, default=48, help="Barras anteriores do M5 para suporte/resistencia local")
+    p.add_argument("--zone-tolerance-atr", type=float, default=0.25, help="Tolerancia em ATR para perto de suporte/resistencia")
     return p.parse_args()
 
 
@@ -154,6 +166,8 @@ def _build_config(args: argparse.Namespace) -> AuditConfig:
         output_dir=Path(args.output_dir),
         lookback_minutes=args.lookback_minutes,
         no_symbol_filter=bool(args.no_symbol_filter),
+        zone_window_bars=args.zone_window_bars,
+        zone_tolerance_atr=args.zone_tolerance_atr,
     )
 
 
@@ -189,6 +203,15 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         if value is None or pd.isna(value):
             return default
         return float(value)
+    except Exception:
+        return default
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        if value is None or pd.isna(value):
+            return default
+        return int(value)
     except Exception:
         return default
 
@@ -256,7 +279,6 @@ def _fetch_deals(cfg: AuditConfig) -> pd.DataFrame:
 
 
 def _deal_side(row: pd.Series) -> str:
-    # MT5 comum: DEAL_TYPE_BUY=0, DEAL_TYPE_SELL=1.
     try:
         value = int(row.get("type", -1))
         if value == 0:
@@ -297,8 +319,7 @@ def _reconstruct_trades(deals: pd.DataFrame, cfg: AuditConfig) -> pd.DataFrame:
     records: List[TradeRecord] = []
     for position_id, group in deals.groupby("position_id", dropna=False):
         group = group.sort_values("time_utc")
-        if int(position_id) == 0 if pd.notna(position_id) else False:
-            # Transferencias/balanco geralmente usam position_id zero.
+        if pd.notna(position_id) and _safe_int(position_id) == 0:
             continue
 
         entries = group[group.apply(_is_entry_in, axis=1)]
@@ -321,28 +342,29 @@ def _reconstruct_trades(deals: pd.DataFrame, cfg: AuditConfig) -> pd.DataFrame:
         duration = None if exit_dt is None else (exit_dt - entry_dt).total_seconds() / 60.0
 
         mt5_symbol = str(entry.get("symbol", cfg.mt5_symbol) or cfg.mt5_symbol)
-        record = TradeRecord(
-            trade_id=f"{cfg.symbol}-{int(position_id) if pd.notna(position_id) else len(records)}",
-            position_id=int(position_id) if pd.notna(position_id) else -1,
-            mt5_symbol=mt5_symbol,
-            data_symbol=cfg.data_symbol,
-            side=_deal_side(entry),
-            entry_time_utc=_dt_to_iso(entry_dt) or "",
-            entry_time_brt=_dt_to_brt(entry_dt) or "",
-            entry_price=_safe_float(entry.get("price")),
-            exit_time_utc=_dt_to_iso(exit_dt),
-            exit_time_brt=_dt_to_brt(exit_dt),
-            exit_price=None if exit_row is None else _safe_float(exit_row.get("price")),
-            volume=_safe_float(entry.get("volume")),
-            profit=profit,
-            commission=commission,
-            swap=swap,
-            net_profit=profit + commission + swap,
-            duration_minutes=duration,
-            comment=str(entry.get("comment", "") or ""),
-            magic=int(_safe_float(entry.get("magic"), 0)),
+        records.append(
+            TradeRecord(
+                trade_id=f"{cfg.symbol}-{_safe_int(position_id, len(records))}",
+                position_id=_safe_int(position_id, -1),
+                mt5_symbol=mt5_symbol,
+                data_symbol=cfg.data_symbol,
+                side=_deal_side(entry),
+                entry_time_utc=_dt_to_iso(entry_dt) or "",
+                entry_time_brt=_dt_to_brt(entry_dt) or "",
+                entry_price=_safe_float(entry.get("price")),
+                exit_time_utc=_dt_to_iso(exit_dt),
+                exit_time_brt=_dt_to_brt(exit_dt),
+                exit_price=None if exit_row is None else _safe_float(exit_row.get("price")),
+                volume=_safe_float(entry.get("volume")),
+                profit=profit,
+                commission=commission,
+                swap=swap,
+                net_profit=profit + commission + swap,
+                duration_minutes=duration,
+                comment=str(entry.get("comment", "") or ""),
+                magic=_safe_int(entry.get("magic"), 0),
+            )
         )
-        records.append(record)
 
     if not records:
         return pd.DataFrame()
@@ -384,17 +406,25 @@ def _load_context(cfg: AuditConfig) -> Optional[pd.DataFrame]:
     return df.dropna(subset=["context_time_utc"]).sort_values("context_time_utc")
 
 
-def _context_before(df: pd.DataFrame, entry_time_utc: str, tf: str, lookback_minutes: int) -> Dict[str, Any]:
+def _frame_for_tf(df: pd.DataFrame, tf: str) -> pd.DataFrame:
     if df is None or df.empty:
-        return {}
-    entry_ts = pd.to_datetime(entry_time_utc, utc=True)
-    frame = df
-    if "context_timeframe" in frame.columns and (frame["context_timeframe"] != "UNKNOWN").any():
-        frame = frame[frame["context_timeframe"] == tf]
+        return pd.DataFrame()
+    if "context_timeframe" in df.columns and (df["context_timeframe"] != "UNKNOWN").any():
+        return df[df["context_timeframe"] == tf.upper()].copy()
+    return df.copy()
+
+
+def _context_slice_before(df: pd.DataFrame, entry_time_utc: str, tf: str, lookback_minutes: int) -> pd.DataFrame:
+    frame = _frame_for_tf(df, tf)
     if frame.empty:
-        return {}
+        return frame
+    entry_ts = pd.to_datetime(entry_time_utc, utc=True)
     min_ts = entry_ts - pd.Timedelta(minutes=lookback_minutes)
-    frame = frame[(frame["context_time_utc"] <= entry_ts) & (frame["context_time_utc"] >= min_ts)]
+    return frame[(frame["context_time_utc"] <= entry_ts) & (frame["context_time_utc"] >= min_ts)].copy()
+
+
+def _context_before(df: pd.DataFrame, entry_time_utc: str, tf: str, lookback_minutes: int) -> Dict[str, Any]:
+    frame = _context_slice_before(df, entry_time_utc, tf, lookback_minutes)
     if frame.empty:
         return {}
     row = frame.iloc[-1]
@@ -444,10 +474,107 @@ def _side_dir(side: str) -> Optional[str]:
     return None
 
 
-def _classify(row: Dict[str, Any]) -> Dict[str, Any]:
+def _entry_hour_brt(entry_time_utc: str) -> Tuple[int, int]:
+    ts = pd.to_datetime(entry_time_utc, utc=True)
+    if ZoneInfo is not None:
+        ts = ts.tz_convert(BRT_TZ)
+    return int(ts.hour), int(ts.minute)
+
+
+def _in_minutes(hour: int, minute: int) -> int:
+    return hour * 60 + minute
+
+
+def _time_window_tag(entry_time_utc: str) -> str:
+    hour, minute = _entry_hour_brt(entry_time_utc)
+    cur = _in_minutes(hour, minute)
+    if _in_minutes(9, 0) <= cur <= _in_minutes(10, 0):
+        return "TIME_BREAKOUT_WINDOW_09_10"
+    if _in_minutes(12, 30) <= cur <= _in_minutes(13, 30):
+        return "TIME_BREAKOUT_WINDOW_1230_1330"
+    return "TIME_RANGE_OR_LOWER_CONTINUATION_WINDOW"
+
+
+def _nearest_zone_from_m5(context: Optional[pd.DataFrame], entry_time_utc: str, cfg: AuditConfig) -> Dict[str, Any]:
+    if context is None or context.empty:
+        return {}
+    m5 = _context_slice_before(context, entry_time_utc, "M5", max(cfg.lookback_minutes, cfg.zone_window_bars * 5 + 10))
+    if m5.empty:
+        return {}
+    m5 = m5.tail(cfg.zone_window_bars)
+    if "high" not in m5.columns or "low" not in m5.columns:
+        return {}
+    highs = pd.to_numeric(m5["high"], errors="coerce").dropna()
+    lows = pd.to_numeric(m5["low"], errors="coerce").dropna()
+    if highs.empty or lows.empty:
+        return {}
+    support = float(lows.min())
+    resistance = float(highs.max())
+    last = m5.iloc[-1]
+    atr = _safe_float(last.get("ATR"), default=0.0)
+    if atr <= 0:
+        rng = max(resistance - support, 0.0)
+        atr = rng / 5 if rng > 0 else 1.0
+    tolerance = max(atr * cfg.zone_tolerance_atr, 0.01)
+    return {
+        "zone_support_m5": support,
+        "zone_resistance_m5": resistance,
+        "zone_tolerance": tolerance,
+        "zone_distance_to_support": None,
+        "zone_distance_to_resistance": None,
+    }
+
+
+def _m5_current_previous(context: Optional[pd.DataFrame], entry_time_utc: str, cfg: AuditConfig) -> Tuple[Optional[pd.Series], Optional[pd.Series]]:
+    if context is None or context.empty:
+        return None, None
+    m5 = _context_slice_before(context, entry_time_utc, "M5", max(cfg.lookback_minutes, 40))
+    if len(m5) < 2:
+        return None, None
+    return m5.iloc[-1], m5.iloc[-2]
+
+
+def _m5_permission(side: str, current: Optional[pd.Series], previous: Optional[pd.Series]) -> str:
+    if current is None or previous is None:
+        return "M5_PERMISSION_UNKNOWN"
+    cur_close = _safe_float(current.get("close"), default=float("nan"))
+    cur_low = _safe_float(current.get("low"), default=float("nan"))
+    cur_high = _safe_float(current.get("high"), default=float("nan"))
+    prev_open = _safe_float(previous.get("open"), default=float("nan"))
+    prev_close = _safe_float(previous.get("close"), default=float("nan"))
+    prev_high = _safe_float(previous.get("high"), default=float("nan"))
+    prev_low = _safe_float(previous.get("low"), default=float("nan"))
+    body_top = max(prev_open, prev_close)
+    body_bottom = min(prev_open, prev_close)
+    inside_prev_body = body_bottom <= cur_close <= body_top
+
+    side = side.upper()
+    if side == "SELL":
+        if not math.isnan(cur_high) and not math.isnan(prev_high) and cur_high > prev_high:
+            return "M5_BLOCKED_SELL_ABOVE_PREV_HIGH"
+        if inside_prev_body or (not math.isnan(cur_low) and not math.isnan(prev_low) and cur_low < prev_low):
+            return "M5_ALLOWED_SELL"
+        return "M5_NEUTRAL_SELL"
+    if side == "BUY":
+        if not math.isnan(cur_low) and not math.isnan(prev_low) and cur_low < prev_low:
+            return "M5_BLOCKED_BUY_BELOW_PREV_LOW"
+        if inside_prev_body or (not math.isnan(cur_high) and not math.isnan(prev_high) and cur_high > prev_high):
+            return "M5_ALLOWED_BUY"
+        return "M5_NEUTRAL_BUY"
+    return "M5_PERMISSION_UNKNOWN"
+
+
+def _classify(row: Dict[str, Any], context: Optional[pd.DataFrame], cfg: AuditConfig) -> Dict[str, Any]:
     tags: List[str] = []
     warnings: List[str] = []
-    side_dir = _side_dir(str(row.get("side", "")))
+    regime_tags: List[str] = []
+    side = str(row.get("side", "")).upper()
+    side_dir = _side_dir(side)
+    entry_price = _safe_float(row.get("entry_price"), default=float("nan"))
+
+    time_tag = _time_window_tag(str(row.get("entry_time_utc")))
+    regime_tags.append(time_tag)
+    in_breakout_window = time_tag.startswith("TIME_BREAKOUT_WINDOW")
 
     for tf in ("H1", "M15"):
         b = _bias(row.get(f"{tf}_structure_state"))
@@ -455,12 +582,19 @@ def _classify(row: Dict[str, Any]) -> Dict[str, Any]:
             tags.append(f"COUNTER_{tf}")
 
     m5_volume = _safe_float(row.get("M5_volume_ratio"), default=float("nan"))
-    if not math.isnan(m5_volume) and m5_volume < 0.70:
+    m5_pace = _safe_float(row.get("M5_volume_pace_ratio"), default=float("nan"))
+    volume_expansion = False
+    if (not math.isnan(m5_volume) and m5_volume >= 1.20) or (not math.isnan(m5_pace) and m5_pace >= 1.20):
+        volume_expansion = True
+        regime_tags.append("VOLUME_EXPANSION_AT_ENTRY")
+    elif not math.isnan(m5_volume) and m5_volume < 0.70:
         tags.append("LOW_VOLUME_ENTRY")
+        regime_tags.append("LOW_VOLUME_AT_ENTRY")
 
     m5_range = _safe_float(row.get("M5_range_atr"), default=float("nan"))
     if not math.isnan(m5_range) and m5_range > 1.20:
         tags.append("AFTER_LONG_M5_CANDLE")
+        regime_tags.append("M5_EXTENDED_CANDLE")
 
     m5_spread_z = _safe_float(row.get("M5_spread_z"), default=float("nan"))
     if not math.isnan(m5_spread_z) and m5_spread_z > 2.0:
@@ -472,18 +606,81 @@ def _classify(row: Dict[str, Any]) -> Dict[str, Any]:
     if side_dir == "DOWN" and not math.isnan(close_pos) and close_pos < 0.15:
         tags.append("SELL_NEAR_CANDLE_LOW")
 
-    if _safe_float(row.get("M5_vol_spike_1p5")) == 0 and _safe_float(row.get("M5_breakout_up")) == 1:
+    breakout_up = _safe_int(row.get("M5_breakout_up"), 0) == 1
+    breakout_down = _safe_int(row.get("M5_breakout_down"), 0) == 1
+    false_up = _safe_int(row.get("M5_false_breakout_up"), 0) == 1 or _safe_int(row.get("M5_sweep_high"), 0) == 1
+    false_down = _safe_int(row.get("M5_false_breakout_down"), 0) == 1 or _safe_int(row.get("M5_sweep_low"), 0) == 1
+
+    if breakout_up and volume_expansion and in_breakout_window:
+        regime_tags.append("REAL_BREAKOUT_UP_CONTEXT")
+        if side == "SELL":
+            tags.append("FADED_REAL_BREAKOUT_UP")
+    if breakout_down and volume_expansion and in_breakout_window:
+        regime_tags.append("REAL_BREAKOUT_DOWN_CONTEXT")
+        if side == "BUY":
+            tags.append("FADED_REAL_BREAKOUT_DOWN")
+    if (false_up or (breakout_up and not volume_expansion and not in_breakout_window)):
+        regime_tags.append("FALSE_BREAKOUT_UP_CONTEXT")
+    if (false_down or (breakout_down and not volume_expansion and not in_breakout_window)):
+        regime_tags.append("FALSE_BREAKOUT_DOWN_CONTEXT")
+
+    if _safe_float(row.get("M5_vol_spike_1p5")) == 0 and breakout_up:
         warnings.append("BREAKOUT_UP_WITHOUT_VOLUME_SPIKE")
-    if _safe_float(row.get("M5_vol_spike_1p5")) == 0 and _safe_float(row.get("M5_breakout_down")) == 1:
+    if _safe_float(row.get("M5_vol_spike_1p5")) == 0 and breakout_down:
         warnings.append("BREAKOUT_DOWN_WITHOUT_VOLUME_SPIKE")
 
+    zone = _nearest_zone_from_m5(context, str(row.get("entry_time_utc")), cfg)
+    support = _safe_float(zone.get("zone_support_m5"), default=float("nan"))
+    resistance = _safe_float(zone.get("zone_resistance_m5"), default=float("nan"))
+    tolerance = _safe_float(zone.get("zone_tolerance"), default=float("nan"))
+    near_support = False
+    near_resistance = False
+    if not math.isnan(entry_price) and not math.isnan(tolerance):
+        if not math.isnan(support):
+            zone["zone_distance_to_support"] = round(entry_price - support, 5)
+            near_support = abs(entry_price - support) <= tolerance
+        if not math.isnan(resistance):
+            zone["zone_distance_to_resistance"] = round(resistance - entry_price, 5)
+            near_resistance = abs(resistance - entry_price) <= tolerance
+
+    if side == "BUY" and near_support:
+        regime_tags.append("BUY_AT_SUPPORT")
+    if side == "SELL" and near_resistance:
+        regime_tags.append("SELL_AT_RESISTANCE")
+    if side == "BUY" and near_resistance:
+        tags.append("BUY_AT_RESISTANCE")
+    if side == "SELL" and near_support:
+        tags.append("SELL_AT_SUPPORT")
+
+    current_m5, previous_m5 = _m5_current_previous(context, str(row.get("entry_time_utc")), cfg)
+    m5_permission = _m5_permission(side, current_m5, previous_m5)
+    if m5_permission.startswith("M5_BLOCKED"):
+        tags.append(m5_permission)
+    elif m5_permission.startswith("M5_ALLOWED"):
+        regime_tags.append(m5_permission)
+
+    if in_breakout_window and volume_expansion:
+        market_regime = "BREAKOUT_CONTINUATION_CONTEXT"
+    elif "FALSE_BREAKOUT_UP_CONTEXT" in regime_tags or "FALSE_BREAKOUT_DOWN_CONTEXT" in regime_tags:
+        market_regime = "FALSE_BREAKOUT_CONTEXT"
+    elif near_support or near_resistance:
+        market_regime = "RANGE_FADE_ZONE_CONTEXT"
+    else:
+        market_regime = "CHOP_OR_NO_CLEAR_ZONE_CONTEXT"
+
     net = _safe_float(row.get("net_profit"))
-    return {
+    out = {
         "result_quality": "WIN" if net > 0 else ("LOSS" if net < 0 else "FLAT"),
+        "market_regime_at_entry": market_regime,
+        "time_window_tag": time_tag,
+        "m5_permission_tag": m5_permission,
         "error_tags": ",".join(sorted(set(tags))),
         "warning_tags": ",".join(sorted(set(warnings))),
+        "regime_tags": ",".join(sorted(set(regime_tags))),
         "error_tag_count": len(set(tags)),
     }
+    out.update(zone)
+    return out
 
 
 def _enrich(trades: pd.DataFrame, context: Optional[pd.DataFrame], cfg: AuditConfig) -> pd.DataFrame:
@@ -495,9 +692,85 @@ def _enrich(trades: pd.DataFrame, context: Optional[pd.DataFrame], cfg: AuditCon
         if context is not None:
             for tf in ("H1", "M15", "M5", "M1"):
                 item.update(_context_before(context, trade["entry_time_utc"], tf, cfg.lookback_minutes))
-        item.update(_classify(item))
+        item.update(_classify(item, context, cfg))
         rows.append(item)
     return pd.DataFrame(rows)
+
+
+def _tag_summary(df: pd.DataFrame, column: str) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    if df.empty or column not in df.columns:
+        return []
+    for _, row in df.iterrows():
+        for tag in [x for x in str(row.get(column, "")).split(",") if x]:
+            rows.append({"tag": tag, "net_profit": row.get("net_profit", 0.0), "is_loss": row.get("net_profit", 0.0) < 0})
+    if not rows:
+        return []
+    tag_df = pd.DataFrame(rows)
+    out: List[Dict[str, Any]] = []
+    for tag, group in tag_df.groupby("tag"):
+        out.append({
+            "tag": tag,
+            "occurrences": int(len(group)),
+            "loss_count": int(group["is_loss"].sum()),
+            "net_profit": round(_safe_float(group["net_profit"].sum()), 2),
+            "avg_profit": round(_safe_float(group["net_profit"].mean()), 2),
+        })
+    return sorted(out, key=lambda x: (x["net_profit"], -x["occurrences"]))[:30]
+
+
+def _regime_summary(df: pd.DataFrame) -> List[Dict[str, Any]]:
+    if df.empty or "market_regime_at_entry" not in df.columns:
+        return []
+    out: List[Dict[str, Any]] = []
+    for regime, group in df.groupby("market_regime_at_entry"):
+        total = int(len(group))
+        wins = int((group["net_profit"] > 0).sum())
+        out.append({
+            "regime": str(regime),
+            "trades": total,
+            "wins": wins,
+            "losses": int((group["net_profit"] < 0).sum()),
+            "win_rate": round(wins / total, 4) if total else None,
+            "net_profit": round(_safe_float(group["net_profit"].sum()), 2),
+            "avg_profit": round(_safe_float(group["net_profit"].mean()), 2),
+        })
+    return sorted(out, key=lambda x: x["net_profit"])
+
+
+def _build_personal_intelligence(summary: Dict[str, Any]) -> Dict[str, Any]:
+    active_blocks: List[str] = []
+    recommendations: List[Dict[str, Any]] = []
+    for item in summary.get("top_error_tags", []):
+        tag = item.get("tag")
+        if not tag:
+            continue
+        if item.get("net_profit", 0) < 0 and item.get("occurrences", 0) >= 2:
+            if tag == "FADED_REAL_BREAKOUT_UP":
+                block = "BLOCK_SELL_AGAINST_REAL_BREAKOUT_UP"
+            elif tag == "FADED_REAL_BREAKOUT_DOWN":
+                block = "BLOCK_BUY_AGAINST_REAL_BREAKOUT_DOWN"
+            elif tag == "BUY_AT_RESISTANCE":
+                block = "BLOCK_BUY_DIRECTLY_AT_RESISTANCE"
+            elif tag == "SELL_AT_SUPPORT":
+                block = "BLOCK_SELL_DIRECTLY_AT_SUPPORT"
+            elif str(tag).startswith("M5_BLOCKED"):
+                block = "RESPECT_M5_PERMISSION_FILTER"
+            else:
+                block = f"REVIEW_{tag}"
+            active_blocks.append(block)
+            recommendations.append({
+                "tag": tag,
+                "occurrences": item.get("occurrences"),
+                "loss_count": item.get("loss_count"),
+                "net_profit": item.get("net_profit"),
+                "recommendation": block,
+            })
+    return {
+        "available": True,
+        "dominant_error_patterns": recommendations[:10],
+        "active_personal_blocks": sorted(set(active_blocks)),
+    }
 
 
 def _summarize(df: pd.DataFrame) -> Dict[str, Any]:
@@ -512,25 +785,7 @@ def _summarize(df: pd.DataFrame) -> Dict[str, Any]:
     gross_loss = abs(_safe_float(df.loc[df["net_profit"] < 0, "net_profit"].sum()))
     pf = None if gross_loss == 0 else gross_profit / gross_loss
 
-    tag_rows: List[Dict[str, Any]] = []
-    for _, row in df.iterrows():
-        for tag in [x for x in str(row.get("error_tags", "")).split(",") if x]:
-            tag_rows.append({"tag": tag, "net_profit": row.get("net_profit", 0.0), "is_loss": row.get("net_profit", 0.0) < 0})
-
-    top_tags: List[Dict[str, Any]] = []
-    if tag_rows:
-        tag_df = pd.DataFrame(tag_rows)
-        for tag, group in tag_df.groupby("tag"):
-            top_tags.append({
-                "tag": tag,
-                "occurrences": int(len(group)),
-                "loss_count": int(group["is_loss"].sum()),
-                "net_profit": round(_safe_float(group["net_profit"].sum()), 2),
-                "avg_profit": round(_safe_float(group["net_profit"].mean()), 2),
-            })
-        top_tags = sorted(top_tags, key=lambda x: (x["net_profit"], -x["occurrences"]))[:20]
-
-    return {
+    summary = {
         "total_trades": total,
         "wins": wins,
         "losses": losses,
@@ -540,8 +795,13 @@ def _summarize(df: pd.DataFrame) -> Dict[str, Any]:
         "gross_profit": round(gross_profit, 2),
         "gross_loss": round(gross_loss, 2),
         "profit_factor": None if pf is None else round(pf, 4),
-        "top_error_tags": top_tags,
+        "top_error_tags": _tag_summary(df, "error_tags"),
+        "top_regime_tags": _tag_summary(df, "regime_tags"),
+        "top_warning_tags": _tag_summary(df, "warning_tags"),
+        "market_regime_summary": _regime_summary(df),
     }
+    summary["personal_trade_intelligence"] = _build_personal_intelligence(summary)
+    return summary
 
 
 def _write(df: pd.DataFrame, summary: Dict[str, Any], cfg: AuditConfig) -> None:
@@ -550,17 +810,23 @@ def _write(df: pd.DataFrame, summary: Dict[str, Any], cfg: AuditConfig) -> None:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     csv_path = out_dir / f"personal_trade_audit_{stamp}.csv"
     json_path = out_dir / f"personal_trade_audit_summary_{stamp}.json"
+    intelligence_path = out_dir / f"personal_trade_intelligence_{stamp}.json"
     latest_csv = out_dir / "personal_trade_audit_latest.csv"
     latest_json = out_dir / "personal_trade_audit_summary_latest.json"
+    latest_intelligence = out_dir / "personal_trade_intelligence_latest.json"
 
     df.to_csv(csv_path, index=False, encoding="utf-8")
     df.to_csv(latest_csv, index=False, encoding="utf-8")
     json_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     latest_json.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    intelligence = summary.get("personal_trade_intelligence", {"available": False})
+    intelligence_path.write_text(json.dumps(intelligence, ensure_ascii=False, indent=2), encoding="utf-8")
+    latest_intelligence.write_text(json.dumps(intelligence, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(f"[OK] Trades auditados: {len(df)}")
     print(f"[OK] CSV: {csv_path}")
     print(f"[OK] Summary: {json_path}")
+    print(f"[OK] Intelligence: {intelligence_path}")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
