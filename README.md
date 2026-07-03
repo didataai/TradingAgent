@@ -1,257 +1,68 @@
 # TradingAgent
 
 > **FINALIDADE**  
-> Documentar de forma completa a arquitetura, configuração, execução, pesquisa quantitativa, Market Intelligence, Market Chronos, Breakout Quality, integração com LLM, auditoria, segurança, limitações e roadmap do TradingAgent.
->
-> **ENTRADAS**  
-> Configuração em `tradingagent.json`, candles do MetaTrader 5, prompts Markdown, arquivos Parquet e artefatos JSON/CSV produzidos pelos pipelines.
->
-> **PROCESSAMENTO PRINCIPAL**  
-> MT5 → engenharia de features → contexto multi-timeframe → payload factual → Market Chronos → Breakout Quality → Market Intelligence → prompt final → LLM → validação → persistência e auditoria.
->
-> **SAÍDAS**  
-> Parquets, consolidados, contexto, payload factual, estado Chronos, inteligência Chronos, score de qualidade de rompimento, input exato da LLM, resposta bruta, resultado estruturado, logs, manifestos e relatórios estatísticos.
+> Plataforma de pesquisa quantitativa, análise multi-timeframe, geração de payload factual para LLM e auditoria pessoal de execução no MetaTrader 5.
 >
 > **ESTADO DO PROJETO**  
-> Pesquisa e apoio à decisão. Não executa ordens automaticamente e não deve ser tratado como garantia de resultado.
+> Apoio à decisão e pesquisa. O projeto não executa ordens automaticamente, não promete resultado e não deve ser tratado como recomendação financeira.
+>
+> **PRINCÍPIO CENTRAL**  
+> Python coleta, calcula e organiza fatos; os módulos quantitativos produzem contexto, restrições e guards; a LLM interpreta apenas o que está no payload; toda decisão deve permanecer auditável.
 
 ---
 
 ## 1. Visão geral
 
-O **TradingAgent** é uma plataforma quantitativa e orientada a agentes para análise de mercado, inicialmente focada em:
+O **TradingAgent** foi criado para estudar e apoiar operações em mercados como `GOLD`, `EURUSD`, `GBPUSD`, `Brent` e `UsaInd`, usando dados do MetaTrader 5, engenharia de features, contexto multi-timeframe, Market Intelligence, Market Chronos, Breakout Quality e auditoria pessoal de execução.
 
-- intraday e scalping;
-- swing trade;
-- múltiplos ativos;
-- múltiplos timeframes;
-- integração com MetaTrader 5;
-- engenharia de features técnicas e estruturais;
-- inteligência histórica baseada em dados;
-- classificação de contexto de mercado;
-- avaliação da qualidade de rompimentos;
-- execução local com Ollama;
-- execução via API externa;
-- auditoria completa do que foi enviado e recebido da LLM.
-
-Princípio central:
+O projeto possui dois grandes fluxos:
 
 ```text
-Python coleta, calcula, classifica e organiza fatos
-→ componentes quantitativos geram contexto e restrições
-→ o prompt define como a LLM deve interpretar os dados
-→ a LLM produz BUY, SELL ou WAIT
-→ toda decisão permanece auditável
+1. Fluxo de mercado
+   MT5 → dados → features → contexto → payload → Chronos → Intelligence → LLM/Web
+
+2. Fluxo de auditoria pessoal
+   histórico real MT5 → reconstrução de trades → contexto da entrada → MFE/MAE → Risk Guard diário → JSON para análise Web
 ```
 
-O projeto separa três camadas:
+A ideia é separar claramente:
 
 ```text
-1. Dados e features
-2. Inteligência quantitativa e guards
-3. Interpretação final pela LLM
+Fatos de mercado
+Inteligência quantitativa
+Regras pessoais
+Interpretação final
+Execução real
+Auditoria pós-trade
 ```
 
-A LLM não deve inventar dados, probabilidades, backtests, notícias, DXY, sentimento ou estatísticas que não estejam presentes no payload.
+A LLM não deve inventar dados, probabilidades, notícias, backtests, DXY, sentimento ou estatísticas que não estejam presentes no payload.
 
 ---
 
-## 2. Estado atual validado
+## 2. Arquitetura do fluxo de mercado
 
-O fluxo intraday atual está funcional de ponta a ponta:
+Fluxo intraday principal:
 
 ```text
 MetaTrader 5
 → Base_Dados.py
 → Parquets por timeframe
-→ consolidado intraday
-→ timeframe_context.py
-→ prompt_payload.py
-→ market_chronos_runtime.py
-→ chronos_payload_bridge.py
+→ data/consolidated/<SYMBOL>_intraday.parquet
+→ context/timeframe_context.py
+→ data/context/<SYMBOL>_intraday_context.json
+→ context/prompt_payload.py
+→ data/payload/<SYMBOL>_intraday_payload.json
+→ tools/market_chronos_runtime.py
+→ data/context/<SYMBOL>_chronos_state.json
+→ data/context/<SYMBOL>_chronos_intelligence.json
+→ tools/chronos_payload_bridge.py
 → market_intelligence.py enrich
-→ web_input_agent.py ou intraday_agent.py
-→ LLM
-→ resultado estruturado
-→ persistência e auditoria
+→ agent/web_input_agent.py ou agent/intraday_agent.py
+→ LLM/Web
 ```
 
-Componentes atualmente disponíveis:
-
-- coleta MT5 de M1, M5, M15, H1, H4, D1, W1 e MN1;
-- aproximadamente 212 colunas por timeframe;
-- consolidação em Parquet com compressão Zstandard;
-- contexto multi-timeframe;
-- payload factual schema `2.1`;
-- fluxo intraday e swing independentes;
-- Market Intelligence;
-- Market Chronos Runtime;
-- Market Laws Registry;
-- Chronos Payload Bridge;
-- Breakout Quality Score de `-5` a `+5`;
-- faixas operacionais `LOW`, `VALID`, `PREMIUM` e `UNAVAILABLE`;
-- proteção contra dados desatualizados;
-- validação estatística por score, lado, horizonte e bloco temporal;
-- integração do score ao payload da LLM;
-- prompt com regras explícitas para Breakout Quality;
-- execução local ou via input Web;
-- auditoria do prompt final;
-- auditoria da resposta bruta;
-- locks, timeouts, manifestos e logs.
-
----
-
-## 3. Princípios de arquitetura
-
-### 3.1 Separação entre fatos, inteligência e decisão
-
-O payload factual contém dados observáveis e derivados:
-
-- OHLC;
-- volume;
-- indicadores;
-- eventos;
-- níveis;
-- estrutura;
-- volatilidade;
-- padrões candidatos;
-- estado de barra;
-- regiões e referências.
-
-A camada quantitativa adiciona:
-
-- guards;
-- bloqueios;
-- contexto histórico;
-- qualidade de rompimento;
-- freshness;
-- leis correspondentes;
-- classificação operacional.
-
-A LLM recebe esses blocos como restrições e contexto, mas continua responsável pela redação e decisão final dentro das regras do prompt.
-
-### 3.2 Intraday e swing independentes
-
-Intraday:
-
-```text
-H4, H1, M15, M5, M1
-```
-
-Prioridade:
-
-```text
-H1 = viés tático
-M15 = setup
-M5 = gatilho
-H4 = regime superior
-M1 = refinamento de timing
-```
-
-Swing:
-
-```text
-H4, D1, W1, MN1
-```
-
-O swing não deve contaminar automaticamente o intraday. Quando usado, entra apenas como contexto superior explicitamente identificado.
-
-### 3.3 Barra live versus barra fechada
-
-Estados relevantes:
-
-- `LIVE`: barra em formação;
-- `CLOSED`: barra encerrada;
-- `STALE_LAST_BAR`: última barra não atualizada recentemente;
-- `is_live_bar=true`: valores ainda podem mudar.
-
-A barra live serve para:
-
-- timing;
-- ritmo;
-- volume pace;
-- projeção de volume;
-- posição dentro do range;
-- antecipação controlada.
-
-A barra fechada tem maior peso para confirmação.
-
-### 3.4 Candidatos algorítmicos são hipóteses
-
-Exemplos:
-
-```text
-BULL_FLAG
-BEAR_FLAG
-DOUBLE_TOP
-DOUBLE_BOTTOM
-ASCENDING_TRIANGLE
-DESCENDING_TRIANGLE
-SYMMETRICAL_TRIANGLE
-ASCENDING_CHANNEL
-DESCENDING_CHANNEL
-```
-
-Regras:
-
-```text
-algorithmic_score != probabilidade
-candidate != confirmação
-candidate != recomendação
-```
-
-A LLM deve cruzar o candidato com:
-
-- estrutura;
-- candles recentes;
-- volume;
-- volatilidade;
-- pivôs;
-- rompimento;
-- aceitação;
-- fechamento;
-- invalidação;
-- alinhamento multi-timeframe.
-
-### 3.5 Freshness é obrigatório
-
-O Chronos calcula a idade do último candle utilizado.
-
-Exemplo:
-
-```json
-{
-  "status": "FRESH",
-  "age_minutes": 4.2,
-  "max_age_minutes": 30
-}
-```
-
-Quando o estado estiver desatualizado:
-
-```json
-{
-  "available": false,
-  "chronos_action": "UNAVAILABLE_STALE",
-  "operational_band": "UNAVAILABLE",
-  "reason": "STALE_DATA"
-}
-```
-
-O score observado pode ser mantido apenas para diagnóstico:
-
-```json
-{
-  "observed_score": 1,
-  "observed_band": "LOW"
-}
-```
-
-Esses campos não podem confirmar, bloquear ou inverter uma ação.
-
----
-
-## 4. Estrutura do projeto
+Componentes principais:
 
 ```text
 TradingAgent/
@@ -285,53 +96,78 @@ TradingAgent/
 │   ├── chronos_payload_bridge.py
 │   ├── market_context_hierarchical_miner.py
 │   ├── chronos_breakout_quality_score.py
-│   └── outros utilitários quantitativos
+│   ├── personal_trade_auditor.py
+│   ├── personal_trade_execution_audit.py
+│   ├── personal_risk_guard_builder.py
+│   └── mt5_history_diagnostic.py
 │
 └── data/
-    ├── <SYMBOL>_M1.parquet
-    ├── <SYMBOL>_M5.parquet
-    ├── <SYMBOL>_M15.parquet
-    ├── <SYMBOL>_H1.parquet
-    ├── <SYMBOL>_H4.parquet
-    ├── <SYMBOL>_D1.parquet
-    ├── <SYMBOL>_W1.parquet
-    ├── <SYMBOL>_MN1.parquet
     ├── consolidated/
     ├── context/
     ├── payload/
     ├── intelligence/
     ├── market_chronos/
-    ├── agent_results/
-    ├── agent_runs/
-    ├── pipeline_results/
-    ├── pipeline_runs/
     ├── debug_llm/
-    ├── state/
-    ├── locks/
+    ├── personal_trade_auditor/
     ├── logs/
+    ├── locks/
     └── manifests/
 ```
 
 ---
 
-## 5. Responsabilidade dos componentes
+## 3. Timeframes e hierarquia operacional
 
-### 5.1 `Base_Dados.py`
+Fluxo intraday:
+
+```text
+H4  = regime superior
+H1  = viés tático
+M15 = setup / estrutura intermediária
+M5  = gatilho macro / permissão operacional
+M1  = refinamento e timing fino
+```
+
+Fluxo swing:
+
+```text
+H4, D1, W1, MN1
+```
+
+Regra importante:
+
+```text
+Swing pode entrar como contexto superior,
+mas não deve contaminar automaticamente o intraday.
+```
+
+No operacional pessoal do Diego, a leitura ficou:
+
+```text
+M1 = gatilho fino de entrada
+M5 = trava obrigatória
+S/R = região de decisão
+Horário + volume = leitura de rompimento real/falso
+```
+
+---
+
+## 4. `Base_Dados.py`
 
 Responsável por:
 
-- carregar a configuração;
-- conectar ao MT5;
+- conectar ao MetaTrader 5;
+- carregar configuração;
 - coletar candles;
 - normalizar timestamps;
 - detectar timezone do broker;
 - marcar barra live;
-- calcular indicadores;
-- calcular estrutura causal;
-- calcular volume e ritmo;
+- calcular indicadores técnicos;
+- calcular features estruturais;
+- calcular volume relativo;
 - detectar eventos;
 - gerar Parquets individuais;
-- gerar consolidado;
+- gerar consolidado intraday;
 - gerar manifestos.
 
 Timeframes suportados:
@@ -368,15 +204,23 @@ Principais grupos de features:
 - FVG;
 - Order Blocks candidatos;
 - Fibonacci;
-- sessões e kill zones;
+- sessões;
 - volume relativo;
 - volume pace;
-- volume projetado;
-- compressão e expansão;
 - corpo, pavios e posição do fechamento;
-- geometria de padrões.
+- compressão e expansão.
 
-### 5.2 `context/timeframe_context.py`
+---
+
+## 5. Contexto e payload
+
+### 5.1 Contexto multi-timeframe
+
+Script:
+
+```text
+context/timeframe_context.py
+```
 
 Entrada:
 
@@ -395,19 +239,19 @@ Responsabilidades:
 - resumir cada timeframe;
 - classificar barra atual;
 - organizar indicadores e métricas;
-- organizar níveis;
+- organizar níveis próximos;
 - organizar candles recentes;
 - organizar candidatos de padrões;
 - produzir trace multi-timeframe;
-- manter dados para auditoria.
+- manter dados auditáveis.
 
-### 5.3 `context/prompt_payload.py`
+### 5.2 Payload factual
 
-Entrada:
+Script:
 
-- consolidado intraday;
-- contexto intraday;
-- valores exatos mais recentes.
+```text
+context/prompt_payload.py
+```
 
 Saída:
 
@@ -415,25 +259,13 @@ Saída:
 data/payload/<SYMBOL>_intraday_payload.json
 ```
 
-Schema atual:
-
-```text
-2.1
-```
-
-Tipo:
-
-```text
-FACTUAL_INTRADAY_MARKET_DATA
-```
-
-Conteúdo principal:
+Conteúdo:
 
 - preço atual;
 - estado do mercado;
 - H4, H1, M15, M5 e M1;
 - candle atual e anterior;
-- indicadores;
+- indicadores exatos;
 - métricas derivadas;
 - eventos;
 - padrões;
@@ -445,19 +277,28 @@ Conteúdo principal:
 - semântica dos campos;
 - limitações.
 
-### 5.4 `tools/market_chronos_runtime.py`
+---
 
-Responsável por:
+## 6. Market Chronos
 
-- ler dados live ou base de laboratório;
-- fundir timeframes por `merge_asof`;
-- reconstruir features do Chronos;
-- extrair o estado mais recente;
-- avaliar freshness;
-- aplicar Market Laws Registry;
-- produzir estado e inteligência Chronos.
+O **Market Chronos** representa a camada de memória/contexto histórico do mercado.
 
-Saídas padrão:
+Objetivos:
+
+- detectar estados recorrentes;
+- identificar tentativas em níveis;
+- acompanhar falhas e memória recente;
+- reconhecer regimes de sequência;
+- aplicar leis de mercado validadas;
+- produzir apoio, neutralidade ou bloqueio.
+
+Script principal:
+
+```text
+tools/market_chronos_runtime.py
+```
+
+Saídas:
 
 ```text
 data/context/<SYMBOL>_chronos_state.json
@@ -470,149 +311,9 @@ Campos importantes:
 - `supporting_side`;
 - `blocked_actions`;
 - `matched_laws`;
-- `matched_count`;
 - `confidence`;
-- `current_segments`;
-- `freshness`.
-
-### 5.5 `tools/chronos_payload_bridge.py`
-
-Responsável por:
-
-- ler o payload intraday;
-- ler a inteligência Chronos;
-- localizar automaticamente o estado Chronos;
-- calcular Breakout Quality no runtime;
-- compactar a inteligência;
-- anexar tudo ao payload final;
-- invalidar operacionalmente o score quando o dado estiver stale.
-
-Bloco gerado:
-
-```json
-{
-  "chronos_intelligence": {
-    "available": true,
-    "freshness": {"status": "FRESH"},
-    "chronos_action": "NO_MATCH",
-    "breakout_quality_score": 4,
-    "operational_band": "PREMIUM",
-    "score_displacement": 1,
-    "score_participation": 1,
-    "score_momentum": 1,
-    "score_location": 1,
-    "score_trend": 0
-  }
-}
-```
-
-### 5.6 `market_intelligence.py`
-
-Responsável por enriquecer o payload com inteligência histórica e decisão formal multi-timeframe.
-
-Uso no pipeline:
-
-```text
-market_intelligence.py enrich
-```
-
-Entradas:
-
-```text
-data/intelligence/<SYMBOL>.json
-data/payload/<SYMBOL>_intraday_payload.json
-```
-
-Saída:
-
-```text
-data/payload/<SYMBOL>_intraday_payload.json
-```
-
-O guard formal da Historical Intelligence permanece a restrição principal da ação imediata.
-
-### 5.7 `agent/web_input_agent.py`
-
-Responsável por:
-
-- ler o prompt oficial;
-- ler o payload enriquecido;
-- montar o input completo;
-- salvar o input exato para uso via Web;
-- não chamar a LLM automaticamente.
-
-Saída:
-
-```text
-data/debug_llm/<SYMBOL>_<ANALYST>_latest_input.txt
-```
-
-### 5.8 `agent/intraday_agent.py`
-
-Responsável por:
-
-- selecionar perfil e analista;
-- montar prompt final;
-- chamar provedor configurado;
-- salvar resposta bruta;
-- extrair JSON;
-- validar schema;
-- aplicar fallback seguro;
-- persistir resultado e histórico.
-
-### 5.9 `pipeline/intraday_pipeline_web.py`
-
-Pipeline principal do fluxo via Web.
-
-Etapas:
-
-```text
-base_dados
-→ timeframe_context
-→ prompt_payload
-→ chronos_runtime
-→ chronos_payload_bridge
-→ market_intelligence_enrich
-→ web_input_agent
-```
-
-Também controla:
-
-- lock;
-- timeout por etapa;
-- logs;
-- falha por símbolo;
-- resultado consolidado;
-- execução opcional sem Chronos;
-- execução opcional sem Market Intelligence.
-
----
-
-## 6. Market Chronos
-
-O **Market Chronos** representa a camada de memória e contexto histórico do mercado.
-
-Objetivos:
-
-- detectar estados recorrentes;
-- identificar tentativas em níveis;
-- acompanhar falhas e memória recente;
-- reconhecer regimes de sequência;
-- aplicar leis de mercado validadas;
-- produzir apoio, neutralidade ou bloqueio.
-
-Exemplos de estado:
-
-- energia;
-- alinhamento multi-timeframe;
-- viés HTF;
-- proximidade de nível;
-- direção do rompimento;
-- quantidade de tentativas;
-- falhas recentes;
-- tempo desde sweep;
-- tempo desde falso rompimento;
-- regime de sequência.
+- `freshness`;
+- `current_segments`.
 
 O Chronos pode:
 
@@ -636,85 +337,33 @@ transformar ausência de lei em sinal contrário
 
 ## 7. Breakout Quality Score
 
-### 7.1 Objetivo
+Script:
 
+```text
+tools/chronos_breakout_quality_score.py
+```
+
+Objetivo:
+
+```text
 Classificar a qualidade contextual de um rompimento antes de tratá-lo como oportunidade operacional.
+```
 
-A hipótese central é:
-
-> O edge não está apenas no desenho do rompimento, mas na combinação de deslocamento, participação, momentum, localização e tendência.
-
-### 7.2 Escala
+Escala:
 
 ```text
 -5 a +5
 ```
 
-Cada família contribui com:
+Famílias avaliadas:
 
-```text
--1 = conflitante
- 0 = neutra ou inconclusiva
-+1 = alinhada
-```
+- displacement;
+- participation;
+- momentum;
+- location;
+- trend.
 
-### 7.3 Famílias
-
-#### Displacement
-
-Mede a força física do candle:
-
-- `body_atr`;
-- `range_atr`.
-
-#### Participation
-
-Mede participação relativa:
-
-- `vol_ratio`;
-- `vol_spike_1p5`;
-- bucket de volume.
-
-#### Momentum
-
-Mede continuidade e estrutura direcional:
-
-- RSI contextual;
-- direção;
-- BOS/CHOCH;
-- evento de rompimento.
-
-#### Location
-
-Mede a posição do preço:
-
-- distância da EMA20;
-- distância dos extremos Donchian;
-- alinhamento de localização;
-- viés HTF.
-
-#### Trend
-
-Mede alinhamento tendencial:
-
-- inclinação EMA20;
-- inclinação EMA50;
-- viés MTF;
-- alinhamento MTF.
-
-### 7.4 Magnitude simétrica
-
-Magnitude é simétrica para rompimentos UP e DOWN:
-
-```text
-body_atr alto favorece força
-range_atr alto favorece força
-vol_ratio alto favorece participação
-```
-
-A direção é tratada apenas nas famílias contextuais.
-
-### 7.5 Faixas operacionais
+Faixas operacionais:
 
 ```text
 LOW     = score <= 1
@@ -744,45 +393,6 @@ UNAVAILABLE
 → ignorar operacionalmente
 ```
 
-### 7.6 Exemplo de payload
-
-```json
-{
-  "breakout_quality": {
-    "available": true,
-    "applicable": true,
-    "side": "DOWN",
-    "breakout_quality_score": 4,
-    "score_max": 5,
-    "operational_band": "PREMIUM",
-    "known_families": 5,
-    "families": {
-      "displacement": {"score": 1, "status": "ALIGNED"},
-      "participation": {"score": 1, "status": "ALIGNED"},
-      "momentum": {"score": 1, "status": "ALIGNED"},
-      "location": {"score": 1, "status": "ALIGNED"},
-      "trend": {"score": 0, "status": "NEUTRAL"}
-    }
-  }
-}
-```
-
----
-
-## 8. Pesquisa e validação do Breakout Quality
-
-Script canônico:
-
-```text
-tools/chronos_breakout_quality_score.py
-```
-
-Versão atual:
-
-```text
-2.1-operational-bands
-```
-
 Execução:
 
 ```powershell
@@ -796,68 +406,48 @@ Saída:
 data/market_chronos/GOLD/breakout_quality_score/
 ```
 
-Arquivos:
+---
+
+## 8. Market Intelligence
+
+Script:
 
 ```text
-breakout_quality_events.parquet
-breakout_quality_summary.csv
-breakout_quality_blocks.csv
-breakout_quality_stability.csv
-breakout_operational_summary.csv
-breakout_operational_stability.csv
-metadata.json
+market_intelligence.py
 ```
 
-Métricas calculadas:
+Responsável por enriquecer o payload com inteligência histórica e decisão formal multi-timeframe.
 
-- quantidade de eventos;
-- success rate;
-- retorno médio em ATR;
-- retorno mediano em ATR;
-- MFE médio;
-- MAE médio;
-- ganho médio;
-- perda média;
-- payoff ratio;
-- profit factor;
-- estabilidade em cinco blocos cronológicos.
-
-Resultado observado no GOLD, M5 PREMIUM:
+Uso no pipeline:
 
 ```text
-aproximadamente 71% de sucesso
-aproximadamente 0,64 a 0,71 ATR de retorno médio
-profit factor aproximado de 2,55 a 2,65
-5 de 5 blocos temporais positivos
+market_intelligence.py enrich
 ```
 
-Esses números representam pesquisa histórica e não garantem desempenho futuro.
+Entradas:
 
-Interpretação prática:
+```text
+data/intelligence/<SYMBOL>.json
+data/payload/<SYMBOL>_intraday_payload.json
+```
 
-- 71% de sucesso: aproximadamente 71 eventos favoráveis em 100 conforme a definição usada;
-- 0,64 a 0,71 ATR: movimento médio proporcional à volatilidade;
-- PF 2,55 a 2,65: cerca de 2,55 a 2,65 unidades de ganho bruto por unidade de perda bruta;
-- 5/5 blocos positivos: resultado distribuído no tempo, não concentrado em um único período.
+Saída:
 
-Antes de qualquer execução automática ainda são necessários:
+```text
+data/payload/<SYMBOL>_intraday_payload.json
+```
 
-- custos;
-- spread;
-- slippage;
-- regras reais de entrada e saída;
-- stop e take profit;
-- drawdown;
-- sequência de perdas;
-- holdout estrito;
-- teste fora da amostra;
-- conta demo.
+Regra:
+
+```text
+O guard formal da Historical Intelligence permanece a restrição principal da ação imediata.
+```
 
 ---
 
 ## 9. Hierarquia decisória da LLM
 
-A ordem correta é:
+Ordem correta:
 
 ```text
 1. Historical Intelligence formal guard
@@ -867,54 +457,24 @@ A ordem correta é:
 5. Breakout Quality
 6. Confirmação H1/M15/M5
 7. Entrada, stop, alvo e invalidação
+8. Personal Risk Guard, quando existir
 ```
 
 Regras principais:
 
 - `WAIT` do guard principal permanece `WAIT`;
-- `PREMIUM` não libera uma ação bloqueada;
+- `PREMIUM` não libera ação bloqueada;
 - `LOW` não cria sinal oposto;
 - `UNAVAILABLE` é ignorado operacionalmente;
 - divergência entre lado do score e ação permitida reduz confiança;
+- Personal Risk Guard deve bloquear operações que violam regras pessoais;
 - na dúvida, escolher `WAIT`.
 
 ---
 
-## 10. Prompt oficial
+## 10. Execução do fluxo de mercado
 
-Arquivo:
-
-```text
-prompts/promptIntraday.md
-```
-
-O prompt atual:
-
-- define as cinco seções de saída;
-- prioriza H1, M15 e M5;
-- usa H4 como regime;
-- usa M1 como timing;
-- contém regras da Historical Intelligence;
-- contém regras do Market Chronos;
-- contém regras do Breakout Quality;
-- trata `LOW`, `VALID`, `PREMIUM` e `UNAVAILABLE`;
-- impede exposição da fórmula proprietária;
-- impede probabilidades inventadas;
-- usa `WAIT` como fallback seguro.
-
-Saída esperada:
-
-1. Pontos-chave;
-2. Pontos de atenção;
-3. Resumo por timeframe;
-4. Ação Imediata;
-5. Ação Mais Recomendada Agora.
-
----
-
-## 11. Execução
-
-### 11.1 Pipeline Web completo
+### 10.1 Pipeline Web completo
 
 ```powershell
 python pipeline/intraday_pipeline_web.py `
@@ -923,7 +483,7 @@ python pipeline/intraday_pipeline_web.py `
   --analyst analyst_1
 ```
 
-### 11.2 Pipeline padrão com chamada de LLM
+### 10.2 Pipeline com chamada de LLM
 
 ```powershell
 python pipeline/intraday_pipeline.py `
@@ -932,7 +492,7 @@ python pipeline/intraday_pipeline.py `
   --analyst analyst_1
 ```
 
-### 11.3 Apenas coleta intraday
+### 10.3 Apenas coleta intraday
 
 ```powershell
 python Base_Dados.py `
@@ -940,21 +500,21 @@ python Base_Dados.py `
   --symbol GOLD
 ```
 
-### 11.4 Apenas contexto
+### 10.4 Apenas contexto
 
 ```powershell
 python context/timeframe_context.py `
   --symbol GOLD
 ```
 
-### 11.5 Apenas payload
+### 10.5 Apenas payload
 
 ```powershell
 python context/prompt_payload.py `
   --symbol GOLD
 ```
 
-### 11.6 Apenas Chronos Runtime
+### 10.6 Apenas Chronos Runtime
 
 ```powershell
 python tools/market_chronos_runtime.py `
@@ -967,7 +527,7 @@ python tools/market_chronos_runtime.py `
   --event-timezone UTC
 ```
 
-### 11.7 Apenas bridge
+### 10.7 Apenas bridge
 
 ```powershell
 python tools/chronos_payload_bridge.py `
@@ -976,7 +536,7 @@ python tools/chronos_payload_bridge.py `
   --output data/payload/GOLD_intraday_payload.json
 ```
 
-### 11.8 Gerar input Web
+### 10.8 Gerar input Web
 
 ```powershell
 python agent/web_input_agent.py `
@@ -984,504 +544,683 @@ python agent/web_input_agent.py `
   --analyst analyst_1
 ```
 
----
-
-## 12. Fluxo completo de arquivos
+Saída:
 
 ```text
-MT5
-  ↓
-data/GOLD_M1.parquet
-data/GOLD_M5.parquet
-data/GOLD_M15.parquet
-data/GOLD_H1.parquet
-data/GOLD_H4.parquet
-  ↓
-data/consolidated/GOLD_intraday.parquet
-  ↓
-data/context/GOLD_intraday_context.json
-  ↓
-data/payload/GOLD_intraday_payload.json
-  ↓
-data/context/GOLD_chronos_state.json
-data/context/GOLD_chronos_intelligence.json
-  ↓
-chronos_payload_bridge.py
-  ↓
-market_intelligence.py enrich
-  ↓
-data/payload/GOLD_intraday_payload.json
-  ↓
-prompts/promptIntraday.md + MARKET_DATA
-  ↓
 data/debug_llm/GOLD_analyst_1_latest_input.txt
-  ↓
-LLM ou análise via Web
 ```
 
 ---
 
-## 13. Tamanho atual do input da LLM
+# 11. Personal Trade Auditor diário
 
-Medição observada no fluxo completo:
+Esta é a camada de auditoria pessoal do Diego. Ela cruza trades reais do MetaTrader 5 com o contexto intraday do TradingAgent e gera um **Risk Guard pessoal** para melhorar execução e evitar erros repetidos.
 
-```text
-aproximadamente 119.000 caracteres
-aproximadamente 3.500 valores finais
-aproximadamente 29.000 a 33.000 tokens
-```
-
-Principais responsáveis pelo volume:
+O fluxo possui três scripts:
 
 ```text
-timeframes completos
-historical_intelligence
-candles recentes
-níveis e geometria
-indicadores e métricas derivadas
+1. tools/personal_trade_auditor.py
+2. tools/personal_trade_execution_audit.py
+3. tools/personal_risk_guard_builder.py
 ```
 
-O Breakout Quality representa uma parcela pequena do payload.
-
-A compactação não é obrigatória no fluxo Web atual, mas poderá ser implementada futuramente para:
-
-- reduzir custo de API;
-- reduzir latência;
-- executar vários símbolos;
-- suportar modelos com contexto menor.
-
----
-
-## 14. Configuração
-
-Arquivo:
+A lógica final é:
 
 ```text
-tradingagent.json
-```
-
-Principais seções:
-
-- `project`;
-- `mt5`;
-- `data`;
-- `universe`;
-- `features`;
-- `labels`;
-- `pipeline_modes`;
-- `llm`;
-- `agent`;
-- `memory`;
-- `observability`;
-- `pipeline_intraday`.
-
-Universo padrão:
-
-```text
-GOLD
-EURUSD
-GBPUSD
-Brent
-UsaInd
-```
-
-Modos de dados:
-
-### `full_rebuild`
-
-```text
-M1, M5, M15, H1, H4, D1, W1, MN1
-labels habilitados
-```
-
-### `intraday_refresh`
-
-```text
-M1, M5, M15, H1, H4
-sem labels futuros
-```
-
-### `daily_refresh`
-
-```text
-H4, D1, W1, MN1
-```
-
-### `contexts_only`
-
-Recria contextos sem nova coleta MT5.
-
----
-
-## 15. Volume e volatilidade
-
-O volume disponível é:
-
-```text
-MT5_TICK_VOLUME
-```
-
-Ele permite inferir:
-
-- participação relativa;
-- aumento ou redução de atividade;
-- confirmação aproximada;
-- exaustão;
-- ritmo da barra;
-- distorção em fechamento;
-- expansão e compressão.
-
-Ele não representa:
-
-- delta real;
-- footprint;
-- agressão bid/ask de bolsa;
-- livro de ofertas completo;
-- fluxo institucional confirmado.
-
-Campos principais:
-
-```text
-tick_volume
-volume_ratio
-volume_pace_ratio
-projected_final_volume
-projected_volume_ratio_20
-expected_volume_at_elapsed
-Volume_Spike
-vol_spike_1p5
-vol_spike_2p0
-```
-
-A interpretação deve cruzar volume com:
-
-- direção;
-- corpo;
-- pavios;
-- posição de fechamento;
-- estrutura;
-- rompimento;
-- sequência de candles;
-- horário e sessão.
-
----
-
-## 16. Auditoria e observabilidade
-
-Arquivos `latest`:
-
-```text
-data/debug_llm/<SYMBOL>_<ANALYST>_latest_input.txt
-data/debug_llm/<SYMBOL>_<ANALYST>_latest_raw_response.txt
-```
-
-Eles permitem auditar:
-
-- prompt exato;
-- payload exato;
-- regras aplicadas;
-- resposta bruta;
-- divergência entre ação e justificativa.
-
-Outros artefatos:
-
-```text
-data/pipeline_results/
-data/pipeline_runs/
-data/agent_results/
-data/agent_runs/
-data/logs/
-data/manifests/
-data/state/
-```
-
-O pipeline registra:
-
-- `run_id`;
-- duração;
-- return code;
-- sucesso/falha;
-- timeout;
-- símbolo;
-- etapa;
-- caminho de saída.
-
----
-
-## 17. Validação e inspeção
-
-### Validar configuração JSON
-
-```powershell
-python -c "import json; json.load(open('tradingagent.json', encoding='utf-8')); print('JSON OK')"
-```
-
-### Abrir input da LLM
-
-```powershell
-notepad .\data\debug_llm\GOLD_analyst_1_latest_input.txt
-```
-
-### Inspecionar Breakout Quality
-
-```powershell
-$payload = Get-Content `
-  .\data\payload\GOLD_intraday_payload.json `
-  -Raw | ConvertFrom-Json
-
-$payload.chronos_intelligence.breakout_quality |
-  ConvertTo-Json -Depth 10
-```
-
-### Resumo compacto
-
-```powershell
-$q = $payload.chronos_intelligence.breakout_quality
-
-[PSCustomObject]@{
-  Available      = $q.available
-  Side           = $q.side
-  Score          = "$($q.breakout_quality_score)/$($q.score_max)"
-  Classification = $q.operational_band
-  Displacement   = $q.families.displacement.status
-  Participation  = $q.families.participation.status
-  Momentum       = $q.families.momentum.status
-  Location       = $q.families.location.status
-  Trend          = $q.families.trend.status
-} | Format-List
-```
-
-### Resumo operacional histórico
-
-```powershell
-Import-Csv `
-  .\data\market_chronos\GOLD\breakout_quality_score\breakout_operational_summary.csv |
-  Format-Table -AutoSize
-```
-
-### Estabilidade
-
-```powershell
-Import-Csv `
-  .\data\market_chronos\GOLD\breakout_quality_score\breakout_operational_stability.csv |
-  Format-Table -AutoSize
+histórico real MT5
+→ reconstrução de trades
+→ contexto H1/M15/M5/M1 na entrada
+→ tags operacionais
+→ MFE/MAE
+→ summary diário
+→ web_decision_payload.json
+→ análise via ChatGPT/Web
 ```
 
 ---
 
-## 18. Segurança
+## 11.1 Regras pessoais do Diego
 
-Nunca versionar:
+### M1 = gatilho de entrada
 
-- senha do MT5;
-- conta real;
-- token;
-- chave de API;
-- credencial de broker;
-- payload operacional real;
-- input real da LLM;
-- resposta bruta;
-- Parquets;
-- logs;
-- estado operacional.
-
-Use:
+Compra:
 
 ```text
-.env
-variáveis de ambiente
-tradingagent.local.json
-.gitignore
+candle M1 anterior fechou verde
+candle anterior não é longo
+entrada no rompimento da máxima do candle M1 anterior
 ```
 
-Configuração recomendada:
+Venda:
+
+```text
+candle M1 anterior fechou vermelho
+candle anterior não é longo
+entrada no rompimento da mínima do candle M1 anterior
+```
+
+### M5 = trava obrigatória
+
+Venda permitida:
+
+```text
+preço atual dentro do corpo do candle M5 anterior
+ou rompendo a mínima do candle M5 anterior
+```
+
+Venda bloqueada:
+
+```text
+preço/M5 atual acima da máxima do candle M5 anterior
+```
+
+Compra permitida:
+
+```text
+preço atual dentro do corpo do candle M5 anterior
+ou rompendo a máxima do candle M5 anterior
+```
+
+Compra bloqueada:
+
+```text
+preço/M5 atual abaixo da mínima do candle M5 anterior
+```
+
+Regra final:
+
+```text
+Se M5 bloqueia, não opera.
+```
+
+### Região de decisão
+
+```text
+Comprar suporte
+Vender resistência
+Evitar comprar resistência
+Evitar vender suporte
+```
+
+Quando houver rompimento com volume e janela forte:
+
+```text
+não fazer fade automático
+esperar confirmação, aceitação ou pullback
+```
+
+Janelas observadas:
+
+```text
+09:00–10:00     possível rompimento/continuidade
+12:30–13:30     possível rompimento/volume
+```
+
+---
+
+## 11.2 Auditor principal: `personal_trade_auditor.py`
+
+Objetivo:
+
+```text
+Buscar trades reais no MT5, reconstruir operações e marcar contexto da entrada.
+```
+
+Comando base:
+
+```powershell
+python .\tools\personal_trade_auditor.py `
+  --symbol GOLD `
+  --mt5-symbol XAUUSD `
+  --data-symbol GOLD `
+  --from-date 2026-07-01 `
+  --to-date 2026-07-01 `
+  --mt5-config .\config\personal_mt5.local.json
+```
+
+Parâmetros:
+
+- `--symbol`: alias lógico do relatório, exemplo `GOLD`;
+- `--mt5-symbol`: nome do ativo no broker, exemplo `XAUUSD`;
+- `--data-symbol`: nome da base local, exemplo `GOLD`;
+- `--from-date`: data inicial;
+- `--to-date`: data final;
+- `--mt5-config`: arquivo local de configuração MT5;
+- `--no-symbol-filter`: não filtra por símbolo MT5;
+- `--zone-window-bars`: janela para suporte/resistência local;
+- `--zone-tolerance-atr`: tolerância ATR para zona.
+
+Arquivo de configuração local:
+
+```text
+config/personal_mt5.local.json
+```
+
+Esse arquivo deve ficar fora do Git e não deve ser versionado.
+
+Exemplo de formato:
 
 ```json
 {
   "mt5": {
-    "account_env": "MT5_ACCOUNT",
+    "path": "C:/CAMINHO/PARA/terminal64.exe",
+    "account": 123456,
     "password_env": "MT5_PASSWORD",
-    "server_env": "MT5_SERVER"
+    "server": "BROKER-SERVER",
+    "symbol": "XAUUSD"
+  },
+  "data": {
+    "symbol": "GOLD"
   }
 }
 ```
 
-Atenção: qualquer credencial já exposta no histórico do Git deve ser considerada comprometida e deve ser rotacionada.
+Recomendação:
 
-`.gitignore` recomendado:
+```powershell
+$env:MT5_PASSWORD="sua_senha"
+```
 
-```gitignore
-.venv/
-__pycache__/
-*.pyc
+Nunca commitar senha, login real, servidor real ou arquivo local de credenciais.
+
+### Tags geradas pelo auditor
+
+Exemplos:
+
+```text
+COUNTER_H1
+COUNTER_M15
+M5_BLOCKED_SELL_ABOVE_PREV_HIGH
+M5_BLOCKED_BUY_BELOW_PREV_LOW
+SELL_NEAR_CANDLE_LOW
+BUY_NEAR_CANDLE_HIGH
+TIME_BREAKOUT_WINDOW_09_10
+TIME_BREAKOUT_WINDOW_1230_1330
+FALSE_BREAKOUT_UP_CONTEXT
+FALSE_BREAKOUT_DOWN_CONTEXT
+REAL_BREAKOUT_UP_CONTEXT
+REAL_BREAKOUT_DOWN_CONTEXT
+BUY_AT_SUPPORT
+SELL_AT_RESISTANCE
+BUY_AT_RESISTANCE
+SELL_AT_SUPPORT
+```
+
+Interpretação importante:
+
+```text
+FALSE_BREAKOUT_CONTEXT sozinho não é erro.
+Erro ocorre quando o falso rompimento é operado cedo demais,
+com M5 bloqueado, candle esticado, stop curto ou execução ruim.
+```
+
+---
+
+## 11.3 Execution Audit: `personal_trade_execution_audit.py`
+
+Objetivo:
+
+```text
+Calcular MFE/MAE e separar leitura ruim de stop/saída/execução ruim.
+```
+
+Comando:
+
+```powershell
+python .\tools\personal_trade_execution_audit.py `
+  --symbol GOLD `
+  --data-symbol GOLD
+```
+
+Métricas:
+
+```text
+MFE = máximo que o trade andou a favor
+MAE = máximo que o trade andou contra
+post_exit_MFE = quanto andou a favor depois que saiu
+```
+
+Regras:
+
+```text
+MFE nunca deve ser negativo
+MAE nunca deve ser negativo
+post_exit_MFE nunca deve ser negativo
+```
+
+Tags principais:
+
+```text
+TRADE_LOSS
+TRADE_WIN
+M5_HARD_BLOCK_VIOLATED
+ENTRY_AFTER_EXTENSION
+LOSS_BUT_HAD_GOOD_MFE
+MOVE_CAME_AFTER_EXIT
+GOOD_IDEA_BAD_STOP_OR_EXIT
+EXIT_TOO_EARLY_LOW_MFE_CAPTURE
+EXECUTION_ACCEPTABLE
+```
+
+Leitura prática:
+
+```text
+M5_HARD_BLOCK_VIOLATED
+→ operação violou trava obrigatória
+
+ENTRY_AFTER_EXTENSION
+→ entrada depois do movimento já esticado
+
+LOSS_BUT_HAD_GOOD_MFE
+→ deu loss, mas houve movimento a favor
+
+MOVE_CAME_AFTER_EXIT
+→ movimento veio depois da saída
+
+GOOD_IDEA_BAD_STOP_OR_EXIT
+→ ideia pode ter sido boa, mas stop/saída prejudicou
+
+EXIT_TOO_EARLY_LOW_MFE_CAPTURE
+→ trade vencedor, mas capturou pouco do movimento disponível
+```
+
+---
+
+## 11.4 Builder diário: `personal_risk_guard_builder.py`
+
+Objetivo:
+
+```text
+Consolidar auditoria + execution quality + regras pessoais em dois arquivos por dia.
+```
+
+Comando:
+
+```powershell
+python .\tools\personal_risk_guard_builder.py `
+  --symbol GOLD `
+  --data-symbol GOLD
+```
+
+Saída oficial por dia:
+
+```text
+data/personal_trade_auditor/GOLD/daily/YYYY-MM-DD/summary.json
+data/personal_trade_auditor/GOLD/daily/YYYY-MM-DD/web_decision_payload.json
+```
+
+Atalho latest:
+
+```text
+data/personal_trade_auditor/GOLD/latest/summary.json
+data/personal_trade_auditor/GOLD/latest/web_decision_payload.json
+```
+
+O arquivo para colar no ChatGPT/Web é:
+
+```text
+data/personal_trade_auditor/GOLD/latest/web_decision_payload.json
+```
+
+Forçar data do relatório:
+
+```powershell
+python .\tools\personal_risk_guard_builder.py `
+  --symbol GOLD `
+  --data-symbol GOLD `
+  --report-date 2026-07-01
+```
+
+Manter nomes antigos na raiz, caso necessário:
+
+```powershell
+python .\tools\personal_risk_guard_builder.py `
+  --symbol GOLD `
+  --data-symbol GOLD `
+  --keep-legacy-latest
+```
+
+---
+
+## 11.5 Estrutura final desejada
+
+Após o fluxo diário e limpeza, a pasta deve ficar assim:
+
+```text
+data/personal_trade_auditor/GOLD/
+├── daily/
+│   └── 2026-07-01/
+│       ├── summary.json
+│       └── web_decision_payload.json
+└── latest/
+    ├── summary.json
+    └── web_decision_payload.json
+```
+
+A pasta `daily` guarda evolução histórica.
+
+A pasta `latest` é usada para o fluxo rápido de análise com ChatGPT/Web.
+
+---
+
+## 11.6 Fluxo diário recomendado
+
+### Passo 1 — Rodar auditor principal
+
+```powershell
+python .\tools\personal_trade_auditor.py `
+  --symbol GOLD `
+  --mt5-symbol XAUUSD `
+  --data-symbol GOLD `
+  --from-date 2026-07-01 `
+  --to-date 2026-07-01 `
+  --mt5-config .\config\personal_mt5.local.json
+```
+
+### Passo 2 — Rodar execution audit
+
+```powershell
+python .\tools\personal_trade_execution_audit.py `
+  --symbol GOLD `
+  --data-symbol GOLD
+```
+
+### Passo 3 — Rodar builder diário
+
+```powershell
+python .\tools\personal_risk_guard_builder.py `
+  --symbol GOLD `
+  --data-symbol GOLD
+```
+
+### Passo 4 — Limpar arquivos temporários da raiz
+
+Em alguns PowerShell, `Remove-Item -File` pode não existir. Use o comando compatível:
+
+```powershell
+Get-ChildItem .\data\personal_trade_auditor\GOLD\personal_trade_* | Remove-Item -Force
+```
+
+Conferir resultado:
+
+```powershell
+Get-ChildItem .\data\personal_trade_auditor\GOLD
+```
+
+Ou:
+
+```powershell
+tree .\data\personal_trade_auditor\GOLD /F
+```
+
+O esperado é sobrar somente:
+
+```text
+daily
+latest
+```
+
+---
+
+## 11.7 Como usar o JSON no ChatGPT/Web
+
+Arquivo para colar:
+
+```text
+data/personal_trade_auditor/GOLD/latest/web_decision_payload.json
+```
+
+Pedido sugerido:
+
+```text
+Mestre, analisa esse JSON e responda:
+- Pontos-chave
+- Suporte e resistência
+- Rompimento ou consolidação
+- Compra liberada ou blocked
+- Venda liberada ou blocked
+- Cenários de compra
+- Cenários de venda
+- Invalidação
+- Alertas pessoais
+```
+
+O JSON inclui:
+
+- contexto de mercado;
+- payload intraday, se existir;
+- contexto Chronos, se existir;
+- regras pessoais;
+- Personal Risk Guard;
+- auditoria do dia;
+- MFE/MAE;
+- exemplos recentes de trades;
+- restrições para a resposta.
+
+Regra de resposta esperada:
+
+```text
+Se M5 bloquear, responder Trade Blocked.
+Não perseguir rompimento sem confirmação.
+Não tratar falso rompimento como erro sozinho.
+Separar entrada a mercado de pullback/confirmação.
+Não dar garantia de lucro.
+```
+
+---
+
+## 11.8 Comparação dia a dia
+
+Cada dia fica em:
+
+```text
+data/personal_trade_auditor/GOLD/daily/YYYY-MM-DD/summary.json
+```
+
+Exemplo:
+
+```text
+data/personal_trade_auditor/GOLD/daily/2026-07-01/summary.json
+data/personal_trade_auditor/GOLD/daily/2026-07-02/summary.json
+data/personal_trade_auditor/GOLD/daily/2026-07-03/summary.json
+```
+
+Esses arquivos permitem acompanhar:
+
+- total de trades;
+- wins;
+- losses;
+- win rate;
+- net profit;
+- profit factor;
+- erros dominantes;
+- hard blocks violados;
+- MFE médio;
+- MAE médio;
+- saída cedo;
+- stop/saída ruim;
+- evolução do Personal Risk Guard.
+
+Objetivo:
+
+```text
+Não apenas saber se ganhou ou perdeu,
+mas entender se a execução está ficando mais disciplinada.
+```
+
+---
+
+## 12. Diagnóstico MT5
+
+Script:
+
+```text
+tools/mt5_history_diagnostic.py
+```
+
+Uso quando o auditor não encontra trades, ou quando é necessário verificar datas, símbolos e deals.
+
+Exemplo:
+
+```powershell
+python .\tools\mt5_history_diagnostic.py `
+  --from-date 2026-07-01 `
+  --to-date 2026-07-01 `
+  --mt5-config .\config\personal_mt5.local.json
+```
+
+Cuidados:
+
+- nunca publicar login real;
+- nunca publicar senha;
+- nunca versionar configuração local;
+- revisar nomes reais de servidor antes de compartilhar logs.
+
+---
+
+## 13. Segurança e privacidade
+
+Arquivos que não devem ser versionados:
+
+```text
+config/personal_mt5.local.json
+*.local.json
 .env
-tradingagent.local.json
-
-data/*.parquet
-data/consolidated/
-data/context/
-data/payload/
-data/intelligence/
-data/market_chronos/
-data/agent_results/
-data/agent_runs/
-data/pipeline_results/
-data/pipeline_runs/
-data/state/
-data/debug_llm/
-data/locks/
-data/logs/
-data/manifests/
 ```
 
----
+Não compartilhar:
 
-## 19. Troubleshooting
+- login MT5;
+- senha;
+- servidor real;
+- token de API;
+- path local com informações sensíveis;
+- prints com dados de conta.
 
-### `STALE_DATA`
-
-Sintomas:
+Preferir:
 
 ```text
-available=false
-chronos_action=UNAVAILABLE_STALE
-operational_band=UNAVAILABLE
+password_env
+variáveis de ambiente
+arquivos .local.json ignorados pelo Git
 ```
 
-Verifique:
-
-- se o mercado está aberto;
-- se o MT5 está conectado;
-- se o símbolo está atualizando;
-- se o timezone está correto;
-- se o último candle M5 é recente;
-- se `max_age_minutes` é adequado.
-
-Não aumente o limite apenas para esconder um feed parado.
-
-### `Unexpected UTF-8 BOM`
+Exemplo:
 
 ```powershell
-$content = Get-Content .\tradingagent.json -Raw -Encoding UTF8
-
-[System.IO.File]::WriteAllText(
-  (Resolve-Path .\tradingagent.json),
-  $content,
-  (New-Object System.Text.UTF8Encoding($false))
-)
+$env:MT5_PASSWORD="sua_senha"
 ```
 
-### Prompt não encontrado
+---
+
+## 14. Prompt oficial
+
+Arquivo:
+
+```text
+prompts/promptIntraday.md
+```
+
+O prompt deve:
+
+- priorizar H1, M15 e M5;
+- usar H4 como regime;
+- usar M1 como timing;
+- respeitar Historical Intelligence;
+- respeitar Market Chronos;
+- respeitar Breakout Quality;
+- respeitar Personal Risk Guard;
+- não expor fórmula proprietária em excesso;
+- não inventar probabilidades;
+- usar `WAIT` como fallback seguro.
+
+Formato preferido de resposta:
+
+```text
+1. Pontos-chave
+2. Pontos de atenção
+3. Resumo por timeframe
+4. Ação Imediata
+5. Ação Mais Recomendada Agora
+```
+
+Para análise operacional via JSON Web:
+
+```text
+Pontos-chave
+Suporte/Resistência
+Rompimento ou Consolidação
+Trade Liberado/Blocked
+Cenários de Compra
+Cenários de Venda
+Invalidation
+Alertas Pessoais
+```
+
+---
+
+## 15. Limitações
+
+O TradingAgent:
+
+- não garante resultado;
+- não executa ordens automaticamente;
+- não substitui gerenciamento de risco;
+- não elimina slippage, spread ou erro humano;
+- não transforma backtest em garantia futura;
+- não deve liberar trades que violem hard blocks;
+- depende da qualidade dos dados do MT5;
+- depende da atualização correta dos Parquets e payloads;
+- depende da interpretação correta de barra live versus barra fechada.
+
+Pontos críticos:
+
+```text
+barra live pode mudar
+rompimento pode falhar
+falso rompimento pode exigir stop mais amplo
+M5 pode liberar, mas não é gatilho automático
+M1 pode dar gatilho, mas sem região não há edge claro
+```
+
+---
+
+## 16. Roadmap prático
+
+Prioridades próximas:
+
+```text
+1. Fundir MFE/MAE no personal_trade_auditor.py
+2. Criar modo único de auditoria diária
+3. Adicionar limpeza automática dos temporários
+4. Criar comparador de evolução diária
+5. Gerar dashboard simples de disciplina
+6. Criar bloco de Personal Risk Guard dentro do payload intraday
+7. Criar alerta visual de Trade Liberado/Blocked
+```
+
+Ideia futura de comando único:
 
 ```powershell
-Test-Path .\prompts\promptIntraday.md
+python .\tools\personal_trade_auditor.py `
+  --symbol GOLD `
+  --mt5-symbol XAUUSD `
+  --data-symbol GOLD `
+  --from-date 2026-07-01 `
+  --to-date 2026-07-01 `
+  --mt5-config .\config\personal_mt5.local.json `
+  --daily-report `
+  --cleanup-root
 ```
 
-### Lock preso
-
-Verifique:
+Objetivo final:
 
 ```text
-data/locks/intraday_pipeline.lock
+um auditor forte
+poucos arquivos
+comparação dia a dia
+JSON pronto para análise Web
+bloqueios pessoais claros
+menos repetição de erro
+mais disciplina operacional
 ```
-
-Só remova manualmente após confirmar que não existe execução ativa.
-
-### Resposta contraditória
-
-Compare:
-
-```text
-data/debug_llm/<SYMBOL>_<ANALYST>_latest_input.txt
-data/debug_llm/<SYMBOL>_<ANALYST>_latest_raw_response.txt
-```
-
-E revise:
-
-- guard formal;
-- freshness;
-- blocked reasons;
-- blocked actions;
-- Chronos;
-- Breakout Quality;
-- M15 e M5;
-- níveis e invalidação.
-
----
-
-## 20. Roadmap
-
-Próximos passos recomendados:
-
-1. validar Breakout Quality em holdout estrito 60/20/20;
-2. congelar thresholds aprendidos apenas no treino;
-3. adicionar spread, slippage e custo;
-4. testar regras reais de stop e take profit;
-5. medir drawdown e sequência de perdas;
-6. validar por sessão e horário;
-7. comparar GOLD, EURUSD, GBPUSD, Brent e UsaInd;
-8. adicionar alertas para entrada em região preferencial;
-9. criar observabilidade em Grafana/Elasticsearch;
-10. comparar modelos locais e APIs;
-11. criar modo compacto de payload;
-12. criar dataset versionado de input, resposta e resultado futuro;
-13. implementar agente crítico;
-14. implementar agente de risco;
-15. integrar calendário econômico e contexto macro;
-16. manter execução automática desabilitada até validação robusta.
-
----
-
-## 21. Limitações
-
-O projeto ainda não garante:
-
-- execução perfeita;
-- ausência de slippage;
-- robustez em todos os regimes;
-- generalização para todos os ativos;
-- qualidade idêntica entre modelos;
-- interpretação perfeita de payload extenso;
-- retorno futuro semelhante ao histórico.
-
-A pesquisa atual mede comportamento histórico e qualidade contextual. Ela não substitui:
-
-- gerenciamento de risco;
-- supervisão humana;
-- conta demo;
-- validação fora da amostra;
-- controle de exposição;
-- kill switch;
-- observabilidade;
-- governança.
-
----
-
-## 22. Aviso
-
-Este projeto é destinado a pesquisa, automação e apoio à análise de mercado.
-
-Não habilitar execução automática antes de:
-
-- validação histórica;
-- holdout;
-- teste fora da amostra;
-- custos e slippage;
-- teste em conta demo;
-- limites de risco;
-- tratamento de falhas;
-- kill switch;
-- observabilidade;
-- supervisão humana.
-
----
-
-## 23. Licença
-
-Definir antes de distribuição pública.
-
-Possibilidades:
-
-- MIT;
-- Apache-2.0;
-- licença privada durante o desenvolvimento.
