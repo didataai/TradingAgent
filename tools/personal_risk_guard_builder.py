@@ -7,6 +7,16 @@ Personal Risk Guard Builder
 Le o CSV mais recente do Personal Trade Auditor e gera uma inteligencia pessoal
 mais operacional, sem tratar falso rompimento como erro automaticamente.
 
+Tambem gera um JSON unico para colar no ChatGPT/Web:
+    data/personal_trade_auditor/<SYMBOL>/web_decision_payload_latest.json
+
+Esse JSON junta:
+- resumo da auditoria pessoal;
+- Personal Risk Guard;
+- execution quality summary, se existir;
+- arquivos de contexto de mercado disponiveis no TradingAgent;
+- instrucoes operacionais do Diego.
+
 Regras Diego V1:
 - M5 bloqueado e trava dura:
   * SELL bloqueado se M5 atual rompeu maxima do candle anterior.
@@ -18,13 +28,11 @@ Regras Diego V1:
   * venda perto da minima / compra perto da maxima;
   * loss rapido por stop, sugerindo stop curto ou entrada cedo.
 
-Uso:
-    python tools/personal_risk_guard_builder.py --symbol GOLD
+Uso principal:
+    python tools/personal_risk_guard_builder.py --symbol GOLD --data-symbol GOLD
 
-Ou apontando um CSV especifico:
-    python tools/personal_risk_guard_builder.py ^
-      --symbol GOLD ^
-      --audit-csv data/personal_trade_auditor/GOLD/personal_trade_audit_latest.csv
+Depois cole no ChatGPT o arquivo:
+    data/personal_trade_auditor/GOLD/web_decision_payload_latest.json
 """
 
 from __future__ import annotations
@@ -33,19 +41,24 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
 DEFAULT_BASE_DIR = Path("data/personal_trade_auditor")
+DEFAULT_DATA_DIR = Path("data")
 
 
 def _args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Gera Personal Risk Guard a partir do CSV auditado.")
+    p = argparse.ArgumentParser(description="Gera Personal Risk Guard e payload web para decisao operacional.")
     p.add_argument("--symbol", required=True, help="Ex.: GOLD")
+    p.add_argument("--data-symbol", default=None, help="Simbolo da base local, ex.: GOLD")
     p.add_argument("--audit-csv", default=None, help="CSV do auditor. Default: latest do simbolo.")
     p.add_argument("--base-dir", default=str(DEFAULT_BASE_DIR))
+    p.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     p.add_argument("--min-occurrences", type=int, default=2)
+    p.add_argument("--keep-history", action="store_true", help="Tambem grava arquivos com timestamp. Default: apenas latest.")
+    p.add_argument("--max-json-chars", type=int, default=12000, help="Limite aproximado por arquivo de contexto bruto.")
     return p.parse_args()
 
 
@@ -73,6 +86,58 @@ def _load_csv(args: argparse.Namespace) -> pd.DataFrame:
         raise FileNotFoundError(f"CSV nao encontrado: {path}")
     print(f"[INFO] Lendo auditoria: {path}")
     return pd.read_csv(path)
+
+
+def _load_json_if_exists(path: Path) -> Optional[Dict[str, Any]]:
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    except Exception as exc:
+        return {"_load_error": str(exc), "_path": str(path)}
+
+
+def _compact_json(obj: Any, max_chars: int) -> Any:
+    """Compacta objetos grandes para caber bem em prompt web."""
+    try:
+        raw = json.dumps(obj, ensure_ascii=False)
+    except Exception:
+        return str(obj)[:max_chars]
+    if len(raw) <= max_chars:
+        return obj
+
+    if isinstance(obj, dict):
+        preferred_keys = [
+            "symbol", "current_price", "market_status", "timestamp", "generated_at", "as_of",
+            "final_action", "action", "preferred_action_now", "blocked_actions", "blocked_reasons",
+            "chronos_action", "available", "freshness", "supporting_side", "breakout_quality",
+            "historical_intelligence", "formal_mtf_decision", "mtf_alignment",
+            "timeframes", "H1", "M15", "M5", "M1", "levels", "support", "resistance",
+            "summary", "operational_summary", "signals", "warnings", "context",
+        ]
+        out: Dict[str, Any] = {}
+        for key in preferred_keys:
+            if key in obj:
+                out[key] = _compact_json(obj[key], max_chars=max(800, max_chars // 4))
+        if out:
+            out["_compact_note"] = f"Objeto original era grande ({len(raw)} chars); mantidas chaves operacionais."
+            return out
+        out = {}
+        for i, (key, value) in enumerate(obj.items()):
+            if i >= 30:
+                break
+            out[str(key)] = _compact_json(value, max_chars=800)
+        out["_compact_note"] = f"Objeto original era grande ({len(raw)} chars); truncado para primeiras chaves."
+        return out
+
+    if isinstance(obj, list):
+        return {
+            "_compact_note": f"Lista original tinha {len(obj)} itens e {len(raw)} chars; mantidos primeiros 20.",
+            "items": [_compact_json(x, max_chars=800) for x in obj[:20]],
+        }
+
+    return raw[:max_chars]
 
 
 def _tag_rows(df: pd.DataFrame, column: str) -> pd.DataFrame:
@@ -188,7 +253,6 @@ def _build_guard(df: pd.DataFrame, findings: pd.DataFrame, min_occurrences: int)
                 "recommendation": item["tag"],
             })
 
-    # Regra fixa do Diego: M5 bloqueado e trava operacional dura.
     active_blocks.extend([
         "BLOCK_SELL_WHEN_M5_BREAKS_PREVIOUS_HIGH",
         "BLOCK_BUY_WHEN_M5_BREAKS_PREVIOUS_LOW",
@@ -200,7 +264,7 @@ def _build_guard(df: pd.DataFrame, findings: pd.DataFrame, min_occurrences: int)
 
     return {
         "available": True,
-        "version": "personal-risk-guard-v1-m5-hard-block",
+        "version": "personal-risk-guard-v2-web-payload",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "source": "personal_trade_auditor_latest_csv",
         "summary": {
@@ -233,28 +297,133 @@ def _build_guard(df: pd.DataFrame, findings: pd.DataFrame, min_occurrences: int)
     }
 
 
+def _latest_trade_examples(df: pd.DataFrame, max_rows: int = 8) -> List[Dict[str, Any]]:
+    keep = [
+        "trade_id", "position_id", "entry_time_brt", "side", "entry_price", "exit_price",
+        "net_profit", "duration_minutes", "market_regime_at_entry", "time_window_tag",
+        "m5_permission_tag", "error_tags", "warning_tags", "regime_tags",
+    ]
+    cols = [c for c in keep if c in df.columns]
+    if not cols:
+        return []
+    sample = df.sort_values("entry_time_brt" if "entry_time_brt" in df.columns else cols[0]).tail(max_rows)
+    return sample[cols].to_dict(orient="records")
+
+
+def _build_market_context(args: argparse.Namespace) -> Dict[str, Any]:
+    symbol = args.data_symbol or args.symbol
+    data_dir = Path(args.data_dir)
+    candidates = {
+        "intraday_context": data_dir / "context" / f"{symbol}_intraday_context.json",
+        "prompt_payload": data_dir / "payload" / f"{symbol}_intraday_payload.json",
+        "chronos_intelligence": data_dir / "context" / f"{symbol}_chronos_intelligence.json",
+        "chronos_state": data_dir / "context" / f"{symbol}_chronos_state.json",
+        "swing_context": data_dir / "context" / f"{symbol}_swing_context.json",
+        "swing_payload": data_dir / "payload" / f"{symbol}_swing_payload.json",
+    }
+    out: Dict[str, Any] = {"symbol": symbol, "files": {}}
+    for name, path in candidates.items():
+        obj = _load_json_if_exists(path)
+        out["files"][name] = {
+            "path": str(path),
+            "exists": obj is not None,
+            "content": None if obj is None else _compact_json(obj, args.max_json_chars),
+        }
+    return out
+
+
+def _build_web_payload(
+    args: argparse.Namespace,
+    df: pd.DataFrame,
+    findings: pd.DataFrame,
+    guard: Dict[str, Any],
+) -> Dict[str, Any]:
+    symbol = args.symbol.upper()
+    out_dir = Path(args.base_dir) / symbol
+    execution_summary = _load_json_if_exists(out_dir / "personal_trade_execution_summary_latest.json")
+    audit_summary = _load_json_if_exists(out_dir / "personal_trade_audit_summary_latest.json")
+    intelligence = _load_json_if_exists(out_dir / "personal_trade_intelligence_latest.json")
+
+    return {
+        "schema_version": "trading-web-decision-payload-v1",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "symbol": symbol,
+        "data_symbol": args.data_symbol or args.symbol,
+        "intended_use": "Cole este JSON no ChatGPT/Web para pedir analise educacional de setup, entradas possiveis, bloqueios e pontos de atencao. Nao e ordem automatica.",
+        "decision_request_template": {
+            "ask": "Analise o mercado com base neste JSON e responda em: Pontos-chave, Suporte/Resistencia, Rompimento ou Consolidacao, Trade Liberado/Blocked, Cenarios de Compra, Cenarios de Venda, Invalidation e Alertas Pessoais.",
+            "style": "simples, direto, sem expor logica proprietaria em excesso",
+        },
+        "diego_operational_rules": {
+            "entry_trigger": "Entrada pelo M1 no rompimento da maxima/minima do candle anterior, desde que candle anterior tenha fechado na cor da direcao e nao seja longo.",
+            "m5_hard_filter": {
+                "sell_allowed": "preco atual dentro do corpo do candle M5 anterior ou rompendo minima anterior",
+                "sell_blocked": "preco/M5 atual acima da maxima do candle M5 anterior",
+                "buy_allowed": "preco atual dentro do corpo do candle M5 anterior ou rompendo maxima anterior",
+                "buy_blocked": "preco/M5 atual abaixo da minima do candle M5 anterior",
+            },
+            "region_logic": "Vender resistencia e comprar suporte; se romper com volume/horario forte, evitar fade automatico e preferir pullback/confirmacao.",
+            "time_filters": ["09:00-10:00 possivel janela de rompimento/continuidade", "12:30-13:30 possivel janela de rompimento/volume"],
+        },
+        "personal_risk_guard": guard,
+        "personal_trade_audit_summary": audit_summary,
+        "personal_trade_intelligence": intelligence,
+        "execution_quality_summary": execution_summary,
+        "recent_trade_examples": _latest_trade_examples(df),
+        "trade_level_findings_sample": findings.tail(10).to_dict(orient="records") if not findings.empty else [],
+        "market_context": _build_market_context(args),
+        "response_constraints_for_assistant": [
+            "Nao dar garantia de lucro.",
+            "Sempre respeitar active_personal_blocks.",
+            "Se M5 bloquear, responder Trade Blocked.",
+            "Diferenciar falso rompimento suspeito de falso rompimento confirmado.",
+            "Separar trade a mercado de pullback/confirmacao.",
+        ],
+    }
+
+
+def _write_json(path: Path, payload: Dict[str, Any]) -> None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def main() -> int:
     args = _args()
     df = _load_csv(args)
     findings = _build_trade_level_findings(df)
     guard = _build_guard(df, findings, args.min_occurrences)
+    web_payload = _build_web_payload(args, df, findings, guard)
 
     out_dir = Path(args.base_dir) / args.symbol.upper()
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    findings_path = out_dir / f"personal_risk_guard_findings_{stamp}.csv"
+
     latest_findings = out_dir / "personal_risk_guard_findings_latest.csv"
-    guard_path = out_dir / f"personal_risk_guard_{stamp}.json"
     latest_guard = out_dir / "personal_risk_guard_latest.json"
+    latest_web = out_dir / "web_decision_payload_latest.json"
 
-    findings.to_csv(findings_path, index=False, encoding="utf-8")
     findings.to_csv(latest_findings, index=False, encoding="utf-8")
-    guard_path.write_text(json.dumps(guard, ensure_ascii=False, indent=2), encoding="utf-8")
-    latest_guard.write_text(json.dumps(guard, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write_json(latest_guard, guard)
+    _write_json(latest_web, web_payload)
 
-    print(f"[OK] Findings: {findings_path}")
-    print(f"[OK] Guard: {guard_path}")
-    print(json.dumps(guard, ensure_ascii=False, indent=2))
+    if args.keep_history:
+        findings_path = out_dir / f"personal_risk_guard_findings_{stamp}.csv"
+        guard_path = out_dir / f"personal_risk_guard_{stamp}.json"
+        web_path = out_dir / f"web_decision_payload_{stamp}.json"
+        findings.to_csv(findings_path, index=False, encoding="utf-8")
+        _write_json(guard_path, guard)
+        _write_json(web_path, web_payload)
+        print(f"[OK] Findings histórico: {findings_path}")
+        print(f"[OK] Guard histórico: {guard_path}")
+        print(f"[OK] Web payload histórico: {web_path}")
+
+    print(f"[OK] Findings latest: {latest_findings}")
+    print(f"[OK] Guard latest: {latest_guard}")
+    print(f"[OK] Web payload latest: {latest_web}")
+    print(json.dumps({
+        "guard": guard,
+        "web_decision_payload_latest": str(latest_web),
+        "note": "Cole o conteudo do web_decision_payload_latest.json no ChatGPT/Web para analise operacional.",
+    }, ensure_ascii=False, indent=2))
     return 0
 
 
