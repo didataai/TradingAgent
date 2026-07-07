@@ -7,44 +7,33 @@ FINALIDADE
     usando o mesmo prompt e o mesmo MARKET_DATA que seriam enviados à LLM local,
     sem chamar Ollama, API externa, crítico ou árbitro.
 
+    Antes de montar o input Web, este agente tenta enriquecer automaticamente
+    o payload com a camada EMA Exhaustion / Execution Quality, quando o script
+    tools/ema_exhaustion_payload_enricher.py estiver disponível.
+
 ENTRADAS
     - tradingagent.json na raiz do projeto.
     - data/payload/{symbol}_intraday_payload.json.
+    - data/consolidated/{symbol}_intraday.parquet.
     - prompt configurado para o perfil quick/detailed.
     - analista configurado em llm.roles.analysts.
 
 PROCESSAMENTO / ETAPAS
     1. Carrega a configuração e seleciona o analista.
     2. Resolve o perfil de análise efetivo.
-    3. Carrega o payload factual atualizado.
-    4. Monta exatamente o texto do prompt com MARKET_DATA e schema de saída.
-    5. Salva somente o arquivo latest, sobrescrevendo a rodada anterior.
+    3. Enriquece o payload com execution_quality, salvo se --skip-ema-enrichment.
+    4. Carrega o payload factual atualizado.
+    5. Monta exatamente o texto do prompt com MARKET_DATA e schema de saída.
+    6. Salva somente o arquivo latest, sobrescrevendo a rodada anterior.
 
 SAÍDAS
     - data/debug_llm/{SYMBOL}_{ANALYST}_latest_input.txt
-
-DEPENDÊNCIAS
-    - Python 3.10+.
-    - tradingagent.json válido.
-    - payload factual já gerado pelo pipeline.
-    - prompt configurado existente.
 
 EXEMPLOS
     python agent/web_input_agent.py --symbol GOLD
     python agent/web_input_agent.py --symbol GOLD --analyst analyst_1
     python agent/web_input_agent.py --symbol GOLD --profile quick
-
-TRATAMENTO DE ERROS
-    - Falha com mensagem objetiva quando configuração, payload ou prompt não existem.
-    - Valida o analista e o perfil antes de gerar os arquivos.
-    - Usa gravação atômica para o arquivo latest e para os metadados.
-
-LIMITAÇÕES / OBSERVAÇÕES
-    - Não executa análise e não retorna BUY/SELL/WAIT.
-    - Não chama LLM local nem API.
-    - O arquivo latest é sobrescrito a cada rodada.
-    - Não cria histórico nem arquivo adicional de metadados.
-    - O conteúdo gerado pode ser enviado manualmente ao ChatGPT Web.
+    python agent/web_input_agent.py --symbol GOLD --skip-ema-enrichment
 """
 
 from __future__ import annotations
@@ -52,6 +41,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -140,8 +131,6 @@ Regras de preenchimento:
 '''
 
 
-
-
 def read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Arquivo não encontrado: {path}")
@@ -156,8 +145,6 @@ def write_text_atomic(path: Path, content: str) -> None:
     temp = path.with_suffix(path.suffix + ".tmp")
     temp.write_text(content, encoding="utf-8")
     os.replace(temp, path)
-
-
 
 
 def effective_profile(config: dict[str, Any], cli_profile: str | None) -> str:
@@ -221,6 +208,49 @@ def payload_path(config: dict[str, Any], symbol: str) -> Path:
     return ROOT / str(template).format(symbol=symbol)
 
 
+def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bool) -> None:
+    enricher = ROOT / "tools" / "ema_exhaustion_payload_enricher.py"
+    if not enricher.exists():
+        print(
+            "[WARN] EMA enrichment ignorado: script não encontrado | "
+            f"path={enricher}"
+        )
+        return
+
+    command = [
+        sys.executable,
+        str(enricher),
+        "--symbol",
+        symbol,
+        "--payload",
+        str(payload),
+    ]
+    if update_timeframe_parquets:
+        command.append("--write-timeframe-parquets")
+
+    print(
+        "[INFO] Executando EMA/Execution Quality enrichment antes do Web input | "
+        f"symbol={symbol}"
+    )
+    completed = subprocess.run(
+        command,
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if completed.stdout:
+        for line in completed.stdout.splitlines():
+            print(f"    {line}")
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "EMA enrichment falhou antes do Web input. "
+            f"return_code={completed.returncode}"
+        )
+
+
 def build_prompt(
     *,
     config: dict[str, Any],
@@ -270,6 +300,16 @@ def parse_args() -> argparse.Namespace:
         choices=["quick", "detailed"],
         help="Sobrescreve temporariamente o perfil configurado.",
     )
+    parser.add_argument(
+        "--skip-ema-enrichment",
+        action="store_true",
+        help="Não enriquece o payload com execution_quality antes do input Web.",
+    )
+    parser.add_argument(
+        "--write-timeframe-parquets",
+        action="store_true",
+        help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.",
+    )
     return parser.parse_args()
 
 
@@ -283,6 +323,14 @@ def main() -> int:
         profile = effective_profile(config, args.profile)
         role = analyst_role(config, analyst_id)
         current_payload_path = payload_path(config, symbol)
+
+        if not args.skip_ema_enrichment:
+            run_ema_enrichment(
+                symbol=symbol,
+                payload=current_payload_path,
+                update_timeframe_parquets=args.write_timeframe_parquets,
+            )
+
         payload = read_json(current_payload_path)
 
         prompt, _source_prompt_path = build_prompt(
