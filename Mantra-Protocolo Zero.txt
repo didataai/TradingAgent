@@ -2,31 +2,53 @@
 ## Protocolo Zero
 
 # Ter um VIES - nao ficar sambando em padroes. 
-# Sempre querer vender resistencia e comparar suporte - principalmente se for para o lado do vies. ()
+# Sempre querer vender resistencia e comprar suporte - principalmente se for para o lado do vies. ()
 # Esperar o trade mais certo.
 # Paciencia e Diciplina SEMPRE! esse e o diferencial para o lucro - Leve a serio! 
 # Se o vies e comprador, - esperar o grafico sinal, alinhar para isso - 
 # nao ficar entrando contra - principalmente horarios que possam ter rompimentos. 
 # Entrar em trades suporte ou resistencia - meio do caminho..- comprar em suporte, vender em resistencias.
 # Basicamente vender longe do suporte - comprar longe da resistencia. 
-# Seg consolidacao - Terca mais rompimentos - Quarta conso - 
+# Seg consolidacao - Terca mais rompimentos - Quarta conso romp tend - quinta cons romp tend,  
 # Quarta, , muitos stops, devido a rompimentos falsos - ele chega a fechar fora da figura, porem volta.. e sequencia de candle nao respeotada tb .
 # usar stop 300 pts ou mais, 
 # Esperar m5 , m1 alinhamento de candle - prestar atenção para entrada no trade
 # Esperar consolidacao candles .# Nao entrar em candle esticado 
 # Alinhamento de candle nao precisa estar fechado - e sim - no range de venda ou comprra- sem min ou max. 5m
+# Ter ideia noção do preco, movimento sempre - Prestar atenção aos detalhes
+# Menos trades mais eficiencia 
+# Observar a briga do mercado - So entrar depois de decisões..Regioes de suportes e resistencias.
+# Candle "longo" n entrar em rompimento.
+
+
+#--------------------------------------------------------------------
+# Semana 1 
 
 #------------------------------------------
 # Quarta - Preço fazia falso rompimento em suporte e resistencia - sem volume....pela manha...
 # porem teve horarios de rompimento forte..compra....final da tarde apos as 16, teve volume mais direcional tb.candles 
 # negativos em todos os tfs, rompendo fundo,
 #------------------------------------------
+#------------------------------------------
+# Quinta - 
+#  Preço consolidava - menos falso rompimentos...e teve rompimento de compra para tendencia 12:30 ate 13:30 .. 
+# Noite , abertura, continuou o movimento de compra andando bastante - porem, por conta do Diario padrao tb. 
+#------------------------------------------
+# Sexta -
+# Movimento pela manha com mais volume, respeitando um pouco os rompimentos de candles, porem, ainda ficando em romppimentos de resistencia ou suporte
+# Tarde, mercado fechou mais cedo - e ficou muito baixo o vol para trade.
+#------------------------------------------
+
+#--------------------------------------------------------------------
+# Semana 2 
 
 #------------------------------------------
-# Quinta -
-#  Preço 
-
+# Segunda - Preço fazia falso rompimento em suporte e resistencia - sem volume....pela manha...
+# porem teve horarios de rompimento forte..compra....final da tarde apos as 16, teve volume mais direcional tb.candles 
+# negativos em todos os tfs, rompendo fundo,
 #------------------------------------------
+
+
 
 Hoje é um novo dia.
 

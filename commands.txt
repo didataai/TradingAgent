@@ -101,3 +101,23 @@ python tools/market_chronos_dataset.py --symbol GOLD
 python tools/market_chronos_dataset.py --symbol GOLD --input data/market_chronos/candle_base/consolidated/GOLD_candle_research.parquet
 
 python tools/base_dados_candle.py --symbol GOLD --mode full_rebuild --timeframes M1 M5 M15 H1 H4
+
+
+//
+python .\tools\personal_trade_auditor.py `
+  --symbol GOLD `
+  --mt5-symbol XAUUSD `
+  --data-symbol GOLD `
+  --from-date 2026-07-01 `
+  --to-date 2026-07-01 `
+  --mt5-config .\config\personal_mt5.local.json
+
+python .\tools\personal_trade_execution_audit.py `
+  --symbol GOLD `
+  --data-symbol GOLD
+
+python .\tools\personal_risk_guard_builder.py `
+  --symbol GOLD `
+  --data-symbol GOLD
+
+  Get-ChildItem .\data\personal_trade_auditor\GOLD\personal_trade_* | Remove-Item -Force  
