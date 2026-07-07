@@ -8,6 +8,7 @@ Adiciona uma camada operacional de qualidade de entrada ao payload intraday:
 
 - garante EMA_5 no consolidado/parquets quando estiver ausente;
 - calcula dist_ema5_atr;
+- recalcula OBV como série assinada para evitar overflow uint64;
 - injeta `ema_exhaustion_context` por timeframe no MARKET_DATA;
 - injeta `execution_quality` consolidado no payload.
 
@@ -55,7 +56,7 @@ def _args() -> argparse.Namespace:
     p.add_argument("--market-data", type=Path, default=None, help="Consolidado intraday parquet/csv")
     p.add_argument("--payload", type=Path, default=None, help="Payload intraday JSON")
     p.add_argument("--output", type=Path, default=None, help="Arquivo de saída. Default: sobrescreve payload")
-    p.add_argument("--write-market-data", action="store_true", default=True, help="Atualiza o consolidado com EMA_5/dist_ema5_atr")
+    p.add_argument("--write-market-data", action="store_true", default=True, help="Atualiza o consolidado com EMA_5/dist_ema5_atr/OBV corrigido")
     p.add_argument("--no-write-market-data", dest="write_market_data", action="store_false")
     p.add_argument("--write-timeframe-parquets", action="store_true", help="Também atualiza data/<SYMBOL>_<TF>.parquet se existirem")
     return p.parse_args()
@@ -172,8 +173,25 @@ def _sort_frame(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _signed_obv(close: pd.Series, volume: pd.Series) -> pd.Series:
+    """OBV assinado em float64 para evitar underflow/overflow uint64.
+
+    O bug observado vinha de OBV negativo armazenado como inteiro sem sinal,
+    aparecendo no payload como 1844674407... Recalculamos por timeframe com
+    float64, mantendo compatibilidade com parquet e JSON.
+    """
+    close_num = pd.to_numeric(close, errors="coerce")
+    vol_num = pd.to_numeric(volume, errors="coerce").fillna(0.0).astype("float64")
+    delta = close_num.diff()
+    direction = np.where(delta > 0, 1.0, np.where(delta < 0, -1.0, 0.0))
+    contribution = pd.Series(direction, index=close.index, dtype="float64") * vol_num
+    if len(contribution) > 0:
+        contribution.iloc[0] = vol_num.iloc[0]
+    return contribution.cumsum().astype("float64")
+
+
 def ensure_ema5_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Garante EMA_5 e dist_ema5_atr no dataframe consolidado."""
+    """Garante EMA_5, dist_ema5_atr e OBV assinado no dataframe consolidado."""
     if df.empty:
         return df
     work = df.copy()
@@ -185,16 +203,24 @@ def ensure_ema5_features(df: pd.DataFrame) -> pd.DataFrame:
         work["EMA_5"] = np.nan
     if "dist_ema5_atr" not in work.columns:
         work["dist_ema5_atr"] = np.nan
+    if "OBV" not in work.columns:
+        work["OBV"] = np.nan
 
-    for tf, idx in work.groupby(work["timeframe"].astype(str).str.upper()).groups.items():
+    for _tf, idx in work.groupby(work["timeframe"].astype(str).str.upper()).groups.items():
         group = work.loc[idx].copy()
         close = pd.to_numeric(group["close"], errors="coerce")
+        volume = pd.to_numeric(group.get("tick_volume", 0.0), errors="coerce").fillna(0.0)
+
         ema5 = close.ewm(span=FAST_EMA, adjust=False, min_periods=FAST_EMA).mean()
         work.loc[group.index, "EMA_5"] = ema5
+        work.loc[group.index, "OBV"] = _signed_obv(close, volume)
+
         if "ATR" in group.columns:
             atr = pd.to_numeric(group["ATR"], errors="coerce").replace(0, np.nan)
             work.loc[group.index, "dist_ema5_atr"] = (close - ema5) / atr
 
+    # Garante dtype final estável e assinado.
+    work["OBV"] = pd.to_numeric(work["OBV"], errors="coerce").astype("float64")
     return work
 
 
@@ -299,7 +325,6 @@ def build_ema_exhaustion_context(row: pd.Series, recent: pd.DataFrame, tf: str) 
 
     dist_fast = _safe_div(close - ema5, atr) if all(math.isfinite(x) for x in (close, ema5, atr)) else None
     dist_slow = _safe_div(close - ema20, atr) if all(math.isfinite(x) for x in (close, ema20, atr)) else None
-    abs_dist_slow = abs(dist_slow) if dist_slow is not None else None
 
     ema_side = _ema_relation(row)
     price_pos = _price_position(row)
@@ -324,16 +349,9 @@ def build_ema_exhaustion_context(row: pd.Series, recent: pd.DataFrame, tf: str) 
     trend_up = ema_side == "ABOVE" and slope20 >= 0 and adx_pos >= adx_neg
     trend_down = ema_side == "BELOW" and slope20 <= 0 and adx_neg >= adx_pos
     healthy_adx = adx >= ADX_HEALTHY_MIN
-    strong_adx = adx >= ADX_STRONG_MIN
     extended_above = dist_slow is not None and dist_slow > EXTENDED_ATR_THRESHOLD
     extended_below = dist_slow is not None and dist_slow < -EXTENDED_ATR_THRESHOLD
     extended = bool(extended_above or extended_below or range_atr >= 1.35 or body_atr >= 0.85)
-
-    near_fast_or_slow = False
-    if dist_fast is not None and abs(dist_fast) <= 0.25:
-        near_fast_or_slow = True
-    if dist_slow is not None and abs(dist_slow) <= 0.35:
-        near_fast_or_slow = True
 
     pullback_state = "NONE"
     if trend_up and close < ema5 and close >= ema20 and _small_pullback(recent, row):
@@ -490,9 +508,8 @@ def build_execution_quality(contexts: Dict[str, Dict[str, Any]]) -> Dict[str, An
     m5_quality = str(m5.get("entry_quality", "")).upper()
     m5_pref = str(m5.get("preferred_action", "")).upper()
     m5_price_pos = str(m5.get("price_position", "")).upper()
-    m5_pullback = str(m5.get("pullback_state", "")).upper()
-    m5_exhaustion = str(m5.get("exhaustion_risk", "LOW")).upper()
     m5_diag = m5.get("diagnostics", {}) if isinstance(m5.get("diagnostics"), dict) else {}
+    m5_exhaustion = str(m5.get("exhaustion_risk", "LOW")).upper()
 
     if m5_quality == "LATE_BUY_RISK" or (m5_exhaustion == "HIGH" and m5_diag.get("false_breakout_up")):
         buy_allowed = False
@@ -515,7 +532,6 @@ def build_execution_quality(contexts: Dict[str, Dict[str, Any]]) -> Dict[str, An
         sell_reasons.append("CONSOLIDATION_WAIT_BREAKOUT_OR_REJECTION")
 
     if state == "EXHAUSTION_RISK":
-        # Proteção: exaustão bloqueia perseguição, não libera reversão automática.
         if trigger_side == "BUY" or m5_diag.get("false_breakout_up") or m5_diag.get("sweep_high"):
             buy_allowed = False
             buy_reasons.append("EXHAUSTION_BLOCKS_BUY_CHASE")
@@ -523,8 +539,6 @@ def build_execution_quality(contexts: Dict[str, Dict[str, Any]]) -> Dict[str, An
             sell_allowed = False
             sell_reasons.append("EXHAUSTION_BLOCKS_SELL_CHASE")
 
-    next_buy_trigger = ""
-    next_sell_trigger = ""
     if not buy_allowed:
         next_buy_trigger = "Aguardar reclaim/fechamento acima da EMA5/EMA20 no M5 e gatilho M1 a favor."
     elif m5_pref in {"BUY_CONTINUATION", "WAIT_RECLAIM"}:
@@ -591,10 +605,12 @@ def enrich_payload(symbol: str, market_path: Path, payload_path: Path, output_pa
         recent = _recent_rows_for_tf(market_df, tf, limit=10)
         ctx = build_ema_exhaustion_context(row, recent, tf)
         contexts[tf] = ctx
-        payload.setdefault("timeframes", {}).setdefault(tf, {})["ema_exhaustion_context"] = ctx
-        # EMA_5 também entra nos blocos existentes quando possível.
-        payload["timeframes"][tf].setdefault("indicators_exact", {})["EMA_5"] = _rounded(row.get("EMA_5"))
-        payload["timeframes"][tf].setdefault("derived_metrics_exact", {})["dist_ema5_atr"] = _rounded(row.get("dist_ema5_atr"))
+
+        tf_payload = payload.setdefault("timeframes", {}).setdefault(tf, {})
+        tf_payload["ema_exhaustion_context"] = ctx
+        tf_payload.setdefault("indicators_exact", {})["EMA_5"] = _rounded(row.get("EMA_5"))
+        tf_payload.setdefault("indicators_exact", {})["OBV"] = _rounded(row.get("OBV"), 2)
+        tf_payload.setdefault("derived_metrics_exact", {})["dist_ema5_atr"] = _rounded(row.get("dist_ema5_atr"))
 
     payload["execution_quality"] = build_execution_quality(contexts)
     payload.setdefault("data_semantics", {})["ema_exhaustion_context"] = (
@@ -608,14 +624,18 @@ def enrich_payload(symbol: str, market_path: Path, payload_path: Path, output_pa
     payload.setdefault("data_limitations", {})["ema_exhaustion_decision_rule"] = (
         "Exaustão bloqueia chase, mas não autoriza operar contra sem confirmação independente."
     )
+    payload.setdefault("data_quality_fixes", {})["OBV"] = (
+        "OBV recalculado como float64 assinado no enrichment para evitar overflow uint64 em valores negativos."
+    )
     payload["ema_exhaustion_enriched_at_utc"] = datetime.now(timezone.utc).isoformat()
 
     _write_json(output_path, payload)
     print(f"[OK] Payload enriquecido: {output_path}")
+    print("[OK] OBV recalculado como série assinada no payload/consolidado")
 
     if write_market:
         _save_table(market_df, market_path)
-        print(f"[OK] Market data atualizado com EMA_5/dist_ema5_atr: {market_path}")
+        print(f"[OK] Market data atualizado com EMA_5/dist_ema5_atr/OBV assinado: {market_path}")
     if write_tfs:
         update_timeframe_parquets(root, symbol, market_df)
 
