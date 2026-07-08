@@ -4,28 +4,20 @@
 EMA Exhaustion Payload Enricher
 ===============================
 
-Adiciona uma camada operacional de qualidade de entrada ao payload intraday:
+Adiciona uma camada operacional de qualidade de entrada ao payload intraday.
 
-- garante EMA_5 no consolidado/parquets quando estiver ausente;
-- calcula dist_ema5_atr;
-- recalcula OBV como série assinada para evitar overflow uint64;
-- injeta `ema_exhaustion_context` por timeframe no MARKET_DATA;
-- injeta `execution_quality` consolidado no payload.
+Responsabilidades:
+- garantir EMA_5 no consolidado/parquets quando estiver ausente;
+- calcular dist_ema5_atr;
+- recalcular OBV como série assinada para evitar overflow uint64;
+- injetar `ema_exhaustion_context` por timeframe no MARKET_DATA;
+- injetar `execution_quality` consolidado no payload;
+- injetar `execution_quality_warning` como aviso operacional.
 
-Objetivo conceitual:
-
-Trend forte não significa entrada boa agora.
-Pullback normal não significa reversão.
-Exaustão bloqueia perseguição, mas não libera reversão automática.
-
-Uso:
-    python tools/ema_exhaustion_payload_enricher.py --symbol GOLD
-
-Uso com paths explícitos:
-    python tools/ema_exhaustion_payload_enricher.py ^
-      --symbol GOLD ^
-      --market-data data/consolidated/GOLD_intraday.parquet ^
-      --payload data/payload/GOLD_intraday_payload.json
+Regra decisória importante:
+Historical Intelligence decide a ação final.
+Execution Quality NÃO cancela BUY/SELL/BUY_LIMIT/SELL_LIMIT e NÃO transforma
+ação em WAIT. Execution Quality apenas qualifica a entrada e gera warnings.
 """
 
 from __future__ import annotations
@@ -35,7 +27,7 @@ import json
 import math
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -56,7 +48,7 @@ def _args() -> argparse.Namespace:
     p.add_argument("--market-data", type=Path, default=None, help="Consolidado intraday parquet/csv")
     p.add_argument("--payload", type=Path, default=None, help="Payload intraday JSON")
     p.add_argument("--output", type=Path, default=None, help="Arquivo de saída. Default: sobrescreve payload")
-    p.add_argument("--write-market-data", action="store_true", default=True, help="Atualiza o consolidado com EMA_5/dist_ema5_atr/OBV corrigido")
+    p.add_argument("--write-market-data", action="store_true", default=True, help="Atualiza consolidado com EMA_5/dist_ema5_atr/OBV")
     p.add_argument("--no-write-market-data", dest="write_market_data", action="store_false")
     p.add_argument("--write-timeframe-parquets", action="store_true", help="Também atualiza data/<SYMBOL>_<TF>.parquet se existirem")
     return p.parse_args()
@@ -174,12 +166,6 @@ def _sort_frame(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _signed_obv(close: pd.Series, volume: pd.Series) -> pd.Series:
-    """OBV assinado em float64 para evitar underflow/overflow uint64.
-
-    O bug observado vinha de OBV negativo armazenado como inteiro sem sinal,
-    aparecendo no payload como 1844674407... Recalculamos por timeframe com
-    float64, mantendo compatibilidade com parquet e JSON.
-    """
     close_num = pd.to_numeric(close, errors="coerce")
     vol_num = pd.to_numeric(volume, errors="coerce").fillna(0.0).astype("float64")
     delta = close_num.diff()
@@ -191,7 +177,6 @@ def _signed_obv(close: pd.Series, volume: pd.Series) -> pd.Series:
 
 
 def ensure_ema5_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Garante EMA_5, dist_ema5_atr e OBV assinado no dataframe consolidado."""
     if df.empty:
         return df
     work = df.copy()
@@ -210,16 +195,13 @@ def ensure_ema5_features(df: pd.DataFrame) -> pd.DataFrame:
         group = work.loc[idx].copy()
         close = pd.to_numeric(group["close"], errors="coerce")
         volume = pd.to_numeric(group.get("tick_volume", 0.0), errors="coerce").fillna(0.0)
-
         ema5 = close.ewm(span=FAST_EMA, adjust=False, min_periods=FAST_EMA).mean()
         work.loc[group.index, "EMA_5"] = ema5
         work.loc[group.index, "OBV"] = _signed_obv(close, volume)
-
         if "ATR" in group.columns:
             atr = pd.to_numeric(group["ATR"], errors="coerce").replace(0, np.nan)
             work.loc[group.index, "dist_ema5_atr"] = (close - ema5) / atr
 
-    # Garante dtype final estável e assinado.
     work["OBV"] = pd.to_numeric(work["OBV"], errors="coerce").astype("float64")
     return work
 
@@ -371,30 +353,9 @@ def build_ema_exhaustion_context(row: pd.Series, recent: pd.DataFrame, tf: str) 
     elif exhaustion_event_up or exhaustion_event_down or extended:
         exhaustion_risk = "MEDIUM"
 
-    consolidation = (
-        price_pos == "BETWEEN_FAST_SLOW"
-        and adx < ADX_STRONG_MIN
-        and range_atr <= 0.85
-        and not breakout_up
-        and not breakout_down
-    )
-
-    trend_continuation_buy = (
-        trend_up
-        and close >= ema5
-        and healthy_adx
-        and close_pos >= 0.65
-        and not volume_diverging
-        and not exhaustion_event_up
-    )
-    trend_continuation_sell = (
-        trend_down
-        and close <= ema5
-        and healthy_adx
-        and close_pos <= 0.35
-        and not volume_diverging
-        and not exhaustion_event_down
-    )
+    consolidation = price_pos == "BETWEEN_FAST_SLOW" and adx < ADX_STRONG_MIN and range_atr <= 0.85 and not breakout_up and not breakout_down
+    trend_continuation_buy = trend_up and close >= ema5 and healthy_adx and close_pos >= 0.65 and not volume_diverging and not exhaustion_event_up
+    trend_continuation_sell = trend_down and close <= ema5 and healthy_adx and close_pos <= 0.35 and not volume_diverging and not exhaustion_event_down
 
     if consolidation:
         entry_quality = "CONSOLIDATION"
@@ -454,18 +415,18 @@ def build_ema_exhaustion_context(row: pd.Series, recent: pd.DataFrame, tf: str) 
             "false_breakout_down": false_down,
             "volume_confirming_or_neutral": volume_confirming or not volume_diverging,
         },
-        "semantics": "Entrada boa exige timing e gatilho; exaustão bloqueia perseguição, mas não libera reversão automática.",
+        "semantics": "Qualifica risco da entrada; não decide direção e não cancela ação do Historical.",
     }
 
 
 def _tf_side(context: Optional[Dict[str, Any]]) -> str:
     if not context:
         return "NEUTRAL"
-    preferred = str(context.get("preferred_action", "")).upper()
     trend = str(context.get("trend_side", "NEUTRAL")).upper()
-    if preferred.startswith("BUY") or trend == "BUY":
+    preferred = str(context.get("preferred_action", "")).upper()
+    if trend == "BUY" or preferred.startswith("BUY"):
         return "BUY"
-    if preferred.startswith("SELL") or trend == "SELL":
+    if trend == "SELL" or preferred.startswith("SELL"):
         return "SELL"
     return "NEUTRAL"
 
@@ -500,67 +461,41 @@ def build_execution_quality(contexts: Dict[str, Dict[str, Any]]) -> Dict[str, An
     micro_side = _tf_side(m1)
     state = _state_from_contexts(contexts)
 
-    buy_allowed = True
-    sell_allowed = True
-    buy_reasons: list[str] = []
-    sell_reasons: list[str] = []
+    warnings: List[Dict[str, str]] = []
 
-    m5_quality = str(m5.get("entry_quality", "")).upper()
-    m5_pref = str(m5.get("preferred_action", "")).upper()
-    m5_price_pos = str(m5.get("price_position", "")).upper()
-    m5_diag = m5.get("diagnostics", {}) if isinstance(m5.get("diagnostics"), dict) else {}
-    m5_exhaustion = str(m5.get("exhaustion_risk", "LOW")).upper()
+    def add_warning(side: str, severity: str, reason: str, message: str) -> None:
+        item = {"side": side, "severity": severity, "reason": reason, "message": message}
+        if item not in warnings:
+            warnings.append(item)
 
-    if m5_quality == "LATE_BUY_RISK" or (m5_exhaustion == "HIGH" and m5_diag.get("false_breakout_up")):
-        buy_allowed = False
-        buy_reasons.append("M5_LATE_BUY_OR_EXHAUSTION_RISK")
-    if m5_quality == "LATE_SELL_RISK" or (m5_exhaustion == "HIGH" and m5_diag.get("false_breakout_down")):
-        sell_allowed = False
-        sell_reasons.append("M5_LATE_SELL_OR_EXHAUSTION_RISK")
+    for side, ctx in (("BUY", m5), ("SELL", m5)):
+        quality = str(ctx.get("entry_quality", "")).upper()
+        pref = str(ctx.get("preferred_action", "")).upper()
+        exhaustion = str(ctx.get("exhaustion_risk", "LOW")).upper()
+        pullback = str(ctx.get("pullback_state", "NONE")).upper()
+        diag = ctx.get("diagnostics", {}) if isinstance(ctx.get("diagnostics"), dict) else {}
 
-    if htf_side == "BUY" and m5_price_pos in {"BELOW_SLOW", "BELOW_FAST"}:
-        buy_allowed = False
-        buy_reasons.append("HTF_BUY_BUT_M5_BELOW_EMA_FAST_SLOW_WAIT_RECLAIM")
-    if htf_side == "SELL" and m5_price_pos in {"ABOVE_FAST", "ABOVE_SLOW"}:
-        sell_allowed = False
-        sell_reasons.append("HTF_SELL_BUT_M5_ABOVE_EMA_FAST_SLOW_WAIT_RECLAIM")
+        if side == "BUY" and quality == "LATE_BUY_RISK":
+            add_warning("BUY", "MEDIUM", "M5_LATE_BUY_RISK", "Compra liberada pelo Historical deve ser tratada como entrada esticada; preferir pullback/reteste ou gatilho M1/M5 limpo.")
+        if side == "SELL" and quality == "LATE_SELL_RISK":
+            add_warning("SELL", "MEDIUM", "M5_LATE_SELL_RISK", "Venda liberada pelo Historical deve ser tratada como entrada esticada; preferir pullback/reteste ou gatilho M1/M5 limpo.")
+        if exhaustion in {"MEDIUM", "HIGH"}:
+            severity = "HIGH" if exhaustion == "HIGH" else "MEDIUM"
+            if side == "BUY" and (diag.get("false_breakout_up") or diag.get("sweep_high") or trigger_side == "BUY"):
+                add_warning("BUY", severity, "BUY_EXHAUSTION_OR_CHASE_RISK", "Compra liberada pelo Historical, mas com risco de chase/exaustão; exigir candle M1/M5 confirmando e invalidar rápido se perder a região.")
+            if side == "SELL" and (diag.get("false_breakout_down") or diag.get("sweep_low") or trigger_side == "SELL"):
+                add_warning("SELL", severity, "SELL_EXHAUSTION_OR_CHASE_RISK", "Venda liberada pelo Historical, mas com risco de chase/exaustão; exigir candle M1/M5 confirmando e invalidar rápido em reclaim.")
+        if pref in {"WAIT_PULLBACK", "WAIT_RECLAIM"} or pullback in {"HEALTHY_PULLBACK", "EXTENDED_ABOVE_EMA20", "EXTENDED_BELOW_EMA20"}:
+            add_warning(side, "LOW", f"{side}_PREFER_PULLBACK_OR_RECLAIM", "Preferir pullback/reteste/reclaim e evitar agressividade excessiva; não altera a ação final do Historical.")
 
-    if state == "CONSOLIDATION":
-        buy_allowed = False
-        sell_allowed = False
-        buy_reasons.append("CONSOLIDATION_WAIT_BREAKOUT_OR_REJECTION")
-        sell_reasons.append("CONSOLIDATION_WAIT_BREAKOUT_OR_REJECTION")
+    buy_warnings = [w["reason"] for w in warnings if w["side"] in {"BUY", "BOTH"}]
+    sell_warnings = [w["reason"] for w in warnings if w["side"] in {"SELL", "BOTH"}]
 
-    if state == "EXHAUSTION_RISK":
-        if trigger_side == "BUY" or m5_diag.get("false_breakout_up") or m5_diag.get("sweep_high"):
-            buy_allowed = False
-            buy_reasons.append("EXHAUSTION_BLOCKS_BUY_CHASE")
-        if trigger_side == "SELL" or m5_diag.get("false_breakout_down") or m5_diag.get("sweep_low"):
-            sell_allowed = False
-            sell_reasons.append("EXHAUSTION_BLOCKS_SELL_CHASE")
-
-    if not buy_allowed:
-        next_buy_trigger = "Aguardar reclaim/fechamento acima da EMA5/EMA20 no M5 e gatilho M1 a favor."
-    elif m5_pref in {"BUY_CONTINUATION", "WAIT_RECLAIM"}:
-        next_buy_trigger = "Compra só com candle M5/M1 confirmando retomada, sem entrada atrasada."
-    else:
-        next_buy_trigger = "Aguardar pullback, reclaim ou rompimento limpo."
-
-    if not sell_allowed:
-        next_sell_trigger = "Aguardar perda/reclaim inverso da EMA5/EMA20 no M5 e gatilho M1 a favor."
-    elif m5_pref in {"SELL_CONTINUATION", "WAIT_RECLAIM"}:
-        next_sell_trigger = "Venda só com candle M5/M1 confirmando retomada, sem entrada atrasada."
-    else:
-        next_sell_trigger = "Aguardar pullback, rejeição ou rompimento limpo."
-
-    if not buy_allowed and not sell_allowed:
-        summary = "Ambos os lados exigem espera: contexto atual não oferece entrada limpa pelo bloco de qualidade de execução."
-    elif buy_allowed and not sell_allowed:
-        summary = "Compra pode ser considerada apenas com gatilho M5/M1; venda está bloqueada pelo contexto de execução."
-    elif sell_allowed and not buy_allowed:
-        summary = "Venda pode ser considerada apenas com gatilho M5/M1; compra está bloqueada pelo contexto de execução."
-    else:
-        summary = "Nenhum hard block de EMA/exaustão, mas ainda exige região, candle fechado e gatilho operacional."
+    summary = (
+        "Execution Quality é warning-only: qualifica risco de entrada e não cancela BUY/SELL/BUY_LIMIT/SELL_LIMIT do Historical."
+        if warnings
+        else "Execution Quality sem warning relevante; ainda exigir região, candle fechado e gatilho operacional."
+    )
 
     return {
         "htf_trend_side": htf_side,
@@ -568,14 +503,53 @@ def build_execution_quality(contexts: Dict[str, Dict[str, Any]]) -> Dict[str, An
         "trigger_side_m5": trigger_side,
         "micro_side_m1": micro_side,
         "state": state,
-        "buy_allowed": bool(buy_allowed),
-        "sell_allowed": bool(sell_allowed),
-        "buy_block_reason": "; ".join(dict.fromkeys(buy_reasons)),
-        "sell_block_reason": "; ".join(dict.fromkeys(sell_reasons)),
-        "next_buy_trigger": next_buy_trigger,
-        "next_sell_trigger": next_sell_trigger,
+        "buy_allowed": True,
+        "sell_allowed": True,
+        "buy_block_reason": "",
+        "sell_block_reason": "",
+        "buy_warning_reason": "; ".join(dict.fromkeys(buy_warnings)),
+        "sell_warning_reason": "; ".join(dict.fromkeys(sell_warnings)),
+        "warnings": warnings,
+        "next_buy_trigger": "Se Historical liberar compra, executar apenas com região válida, candle M1/M5 confirmando e gestão de risco; warnings pedem menor agressividade.",
+        "next_sell_trigger": "Se Historical liberar venda, executar apenas com região válida, candle M1/M5 confirmando e gestão de risco; warnings pedem menor agressividade.",
         "summary": summary,
-        "guard_rule": "Nunca transformar exaustão em sinal contrário automático; exaustão bloqueia perseguição e exige confirmação.",
+        "decision_semantics": "WARNING_ONLY",
+        "guard_rule": "Execution Quality não decide direção, não cancela ordem e não transforma ação do Historical em WAIT.",
+    }
+
+
+def build_execution_quality_warning(execution_quality: Dict[str, Any]) -> Dict[str, Any]:
+    warnings = execution_quality.get("warnings", [])
+    if not isinstance(warnings, list) or not warnings:
+        return {
+            "active": False,
+            "side": "NONE",
+            "severity": "LOW",
+            "reason": "NO_EXECUTION_QUALITY_WARNING",
+            "message": "Sem warning relevante de qualidade de entrada.",
+        }
+
+    severity_rank = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
+    side_set = {str(w.get("side", "NONE")).upper() for w in warnings if isinstance(w, dict)}
+    if {"BUY", "SELL"}.issubset(side_set) or "BOTH" in side_set:
+        side = "BOTH"
+    elif "BUY" in side_set:
+        side = "BUY"
+    elif "SELL" in side_set:
+        side = "SELL"
+    else:
+        side = "NONE"
+
+    top = max(
+        (w for w in warnings if isinstance(w, dict)),
+        key=lambda w: severity_rank.get(str(w.get("severity", "LOW")).upper(), 1),
+    )
+    return {
+        "active": True,
+        "side": side,
+        "severity": str(top.get("severity", "MEDIUM")).upper(),
+        "reason": "; ".join(dict.fromkeys(str(w.get("reason", "EXECUTION_WARNING")) for w in warnings if isinstance(w, dict))),
+        "message": " ".join(dict.fromkeys(str(w.get("message", "Entrada com warning de qualidade.")) for w in warnings if isinstance(w, dict))),
     }
 
 
@@ -612,17 +586,19 @@ def enrich_payload(symbol: str, market_path: Path, payload_path: Path, output_pa
         tf_payload.setdefault("indicators_exact", {})["OBV"] = _rounded(row.get("OBV"), 2)
         tf_payload.setdefault("derived_metrics_exact", {})["dist_ema5_atr"] = _rounded(row.get("dist_ema5_atr"))
 
-    payload["execution_quality"] = build_execution_quality(contexts)
+    execution_quality = build_execution_quality(contexts)
+    payload["execution_quality"] = execution_quality
+    payload["execution_quality_warning"] = build_execution_quality_warning(execution_quality)
     payload.setdefault("data_semantics", {})["ema_exhaustion_context"] = (
         "Camada de qualidade de entrada baseada em EMA5/EMA20, ATR, ADX, slopes, volume, candles e eventos. "
-        "Bloqueia perseguição e entradas atrasadas; não libera reversão automática."
+        "Qualifica entrada, mas não decide direção e não cancela ação do Historical."
     )
     payload.setdefault("data_semantics", {})["execution_quality"] = (
-        "Bloco consolidado de leitura operacional. buy_allowed/sell_allowed são filtros de qualidade, "
-        "não ordens automáticas. Ainda exigem região, candle fechado e gatilho M5/M1."
+        "WARNING_ONLY. Execution Quality não decide direção, não cancela BUY/SELL/BUY_LIMIT/SELL_LIMIT e não transforma ação em WAIT. "
+        "Use apenas para avisos: entrada esticada, risco de chase, preferir pullback/reteste ou exigir candle M1/M5."
     )
     payload.setdefault("data_limitations", {})["ema_exhaustion_decision_rule"] = (
-        "Exaustão bloqueia chase, mas não autoriza operar contra sem confirmação independente."
+        "Historical Intelligence decide a ação final. Execution Quality apenas qualifica risco operacional da entrada."
     )
     payload.setdefault("data_quality_fixes", {})["OBV"] = (
         "OBV recalculado como float64 assinado no enrichment para evitar overflow uint64 em valores negativos."
@@ -631,6 +607,7 @@ def enrich_payload(symbol: str, market_path: Path, payload_path: Path, output_pa
 
     _write_json(output_path, payload)
     print(f"[OK] Payload enriquecido: {output_path}")
+    print("[OK] Execution Quality aplicado como WARNING_ONLY")
     print("[OK] OBV recalculado como série assinada no payload/consolidado")
 
     if write_market:
