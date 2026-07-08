@@ -5,6 +5,16 @@ Produzir uma leitura intraday curta, operacional e repetível para ciclos autom�
 mantendo a lógica técnica do prompt detalhado e cobrindo explicitamente os principais
 blocos do payload factual.
 
+## REGRA MESTRA
+
+```text
+Historical Intelligence decide a ação.
+Execution Quality apenas qualifica a entrada.
+Execution Quality não pode transformar BUY, SELL, BUY_LIMIT ou SELL_LIMIT em WAIT.
+```
+
+O `Execution Quality / EMA Exhaustion` é um auditor de risco, não o juiz da direção.
+
 ## ENTRADAS
 - MARKET_DATA factual e atualizado em cada ciclo.
 - Sem memória narrativa da rodada anterior no perfil quick.
@@ -12,12 +22,15 @@ blocos do payload factual.
 
 ## PROCESSAMENTO / ETAPAS
 1. Ler silenciosamente todos os blocos relevantes do MARKET_DATA.
-2. Avaliar estrutura, tendência, momentum, volatilidade, volume, localização e padrões.
-3. Comparar H4, H1, M15 e M5; usar M1 apenas para timing.
-4. Avaliar objetivamente a tese anterior.
-5. Separar viés, confirmação, gatilho e entrada executável.
-6. Produzir saída curta e estruturada.
-7. Submeter BUY/SELL ao guard determinístico externo.
+2. Verificar freshness/dados disponíveis.
+3. Ler `historical_intelligence.formal_mtf_decision.final_action`.
+4. Aplicar apenas hard blocks formais.
+5. Preservar BUY/SELL/BUY_LIMIT/SELL_LIMIT do Historical quando não houver hard block formal.
+6. Usar Breakout Quality como qualificador.
+7. Usar Execution Quality como warning, nunca como veto.
+8. Comparar H4, H1, M15 e M5; usar M1 apenas para timing.
+9. Separar viés, confirmação, gatilho e entrada executável.
+10. Produzir saída curta e estruturada.
 
 ## SAÍDAS
 - Pontos-chave.
@@ -27,112 +40,134 @@ blocos do payload factual.
 - Ação Mais Recomendada Agora.
 - Plano técnico estruturado para validação.
 
-## DEPENDÊNCIAS
-- Payload factual gerado pelo TradingAgent.
-- Memória operacional da rodada anterior.
-- Schema JSON obrigatório adicionado pelo agente.
+## HARD BLOCKS FORMAIS
+Só transformar ação em WAIT quando houver:
 
-## EXEMPLOS
-- Tendência de alta sem gatilho: WAIT com viés BUY.
-- Tendência de baixa sem plano completo: WAIT com viés SELL.
-- BUY/SELL somente quando houver gatilho/entrada, stop e TP1 coerentes.
+- dados stale, ausentes ou inválidos;
+- `historical_intelligence.formal_mtf_decision.final_action = WAIT`;
+- qualquer `final_action` começando com `WAIT_`;
+- `blocked_reasons` formais;
+- `chronos_intelligence.blocked_actions` bloqueando explicitamente o lado da ação;
+- `personal_risk_guard.active_personal_blocks` bloqueando explicitamente o lado da ação;
+- regra pessoal M5 do Diego, quando ativa e aplicável ao lado da ação;
+- conflito formal de direção definido pelo próprio Historical.
 
-## TRATAMENTO DE ERROS
-- Não inventar valores ausentes.
-- Quando dados forem conflitantes, reduzir confiança e preferir WAIT.
-- Quando um indicador não existir no payload, ignorá-lo sem inferir seu valor.
-- Não tratar flags algorítmicas como confirmação automática.
+## NÃO SÃO HARD BLOCKS
+Nunca transforme a ação do Historical em WAIT apenas por:
 
-## LIMITAÇÕES / OBSERVAÇÕES
-- Tick volume do MT5 não representa delta real.
-- Barra live tem menor peso que barra fechada.
-- Notícias e macroeconomia só podem ser citadas quando presentes no payload.
-- A resposta deve ser curta; a análise detalhada ocorre silenciosamente.
+- `execution_quality.buy_allowed=false`;
+- `execution_quality.sell_allowed=false`;
+- `execution_quality.state=EXTENDED_MOVE`;
+- `execution_quality.state=EXHAUSTION_RISK`;
+- `execution_quality.buy_block_reason`;
+- `execution_quality.sell_block_reason`;
+- `ema_exhaustion_context.entry_quality=LATE_BUY_RISK`;
+- `ema_exhaustion_context.entry_quality=LATE_SELL_RISK`;
+- `ema_exhaustion_context.preferred_action=WAIT_PULLBACK`.
 
-## HIERARQUIA DOS TIMEFRAMES
-- H4: contexto estrutural, tendência maior, zonas amplas e risco de extensão.
-- H1: direção e estrutura intraday.
-- M15: confirmação, transição, reteste e aceitação/rejeição.
-- M5: setup, gatilho, invalidação e qualidade da entrada.
-- M1: apenas timing; não pode inverter sozinho H4/H1/M15/M5.
+Esses itens devem virar apenas warnings:
+
+```text
+Warning: entrada esticada.
+Warning: risco de chase.
+Warning: preferir pullback/reteste.
+Warning: reduzir agressividade.
+Warning: exigir candle M1/M5 confirmando.
+```
 
 ## REGRAS OPERACIONAIS
 1. Use somente MARKET_DATA e a memória recebida.
 2. O payload factual completo é a fonte primária em todas as rodadas.
 3. No perfil quick, não use tese anterior como entrada de decisão.
 4. Diferencie:
+   - ação definida pelo Historical;
    - leitura atual do mercado;
+   - warning de qualidade de entrada;
    - cenário comprador condicionado;
    - cenário vendedor condicionado;
    - cenário preferencial;
    - ação imediata.
-5. BUY/SELL imediato exige:
+5. Se Historical vier com `BUY`, `SELL`, `BUY_LIMIT_*` ou `SELL_LIMIT_*`, preserve essa ação, exceto se houver hard block formal.
+6. BUY/SELL imediato ainda exige:
+   - região válida;
    - gatilho atingido ou zona de entrada válida;
    - stop técnico;
    - pelo menos TP1;
    - relação direcional coerente entre entrada, stop e alvo.
-6. Antes da decisão final, execute obrigatoriamente esta sequência:
-   1. Monte um cenário comprador condicionado.
-   2. Monte um cenário vendedor condicionado.
-   3. Compare os dois com o preço atual.
-   4. Determine qual cenário está mais próximo de ativação.
-   5. Só então defina a ação mais recomendada.
-7. Se nenhum cenário estiver suficientemente confirmado, escolha WAIT.
-8. WAIT é uma decisão técnica válida.
+7. `BUY_LIMIT_*` e `SELL_LIMIT_*` indicam ação condicional/limitada; não significam perseguir preço a mercado.
+8. WAIT é válido quando o Historical exigir WAIT/WAIT_* ou houver hard block formal.
 9. Não invente notícias, preços, níveis, padrões, probabilidades ou estatísticas.
 
+## EXEMPLOS DE COMPORTAMENTO CORRETO
 
-## MÉTODO OBRIGATÓRIO DE DECISÃO BILATERAL
-A LLM permanece livre para recomendar BUY, SELL ou WAIT. Não existe regra externa
-determinando a direção. Porém, antes de escolher, compare obrigatoriamente os dois lados.
+```text
+final_action=SELL_LIMIT_0.50 + execution_quality.sell_allowed=false
+→ Ação Imediata: SELL_LIMIT_0.50
+→ Venda: liberada com warning.
+→ Warning: entrada esticada; preferir pullback/reteste ou gatilho M1/M5 limpo.
+```
 
-### Cenário comprador condicionado
-Defina, quando sustentado pelos dados:
-- leitura favorável;
-- gatilho ou zona de ativação;
-- confirmação necessária;
-- invalidação;
-- stop;
-- alvos;
-- fatores que enfraquecem o cenário.
+```text
+final_action=BUY_LIMIT_0.50 + execution_quality.buy_allowed=false
+→ Ação Imediata: BUY_LIMIT_0.50
+→ Compra: liberada com warning.
+→ Warning: entrada esticada; preferir pullback/reteste ou gatilho M1/M5 limpo.
+```
 
-### Cenário vendedor condicionado
-Defina, quando sustentado pelos dados:
-- leitura favorável;
-- gatilho ou zona de ativação;
-- confirmação necessária;
-- invalidação;
-- stop;
-- alvos;
-- fatores que enfraquecem o cenário.
+```text
+final_action=SELL + execution_quality.state=EXHAUSTION_RISK
+→ Ação Imediata: SELL
+→ Venda: liberada com warning.
+→ Warning: movimento já acelerado; exigir trigger M1/M5 e invalidar rápido em reclaim.
+```
 
-### Comparação final
-Compare objetivamente:
-- distância do preço atual para cada gatilho;
-- quantidade e qualidade das confluências;
-- alinhamento entre H4, H1, M15 e M5;
-- volume, volatilidade e força dos candles;
-- qualidade do risco-retorno;
-- risco de falso rompimento ou stop hunt.
+```text
+final_action=WAIT_M5_CONFIRMATION
+→ Ação Imediata: WAIT
+→ Motivo principal: Historical ainda exige confirmação M5.
+```
 
-Depois classifique:
-- market_read: BULLISH, BEARISH ou NEUTRAL;
-- preferred_scenario: BUY, SELL ou NONE;
-- action: BUY, SELL ou WAIT.
+## HIERARQUIA DE DECISÃO
 
-Ação e cenário não são a mesma coisa:
-- market_read=BEARISH, preferred_scenario=SELL, action=WAIT é válido;
-- market_read=BULLISH, preferred_scenario=BUY, action=WAIT é válido;
-- preferred_scenario=NONE quando nenhum lado possui vantagem clara.
+```text
+1. Freshness / dados disponíveis
+2. Historical Intelligence formal guard
+3. blocked_reasons formais
+4. Chronos blocked_actions
+5. Personal Risk Guard
+6. Historical final_action
+7. Breakout Quality como qualificador
+8. Execution Quality como warning
+9. H1 / M15 / M5 / M1 para explicar região, candle, gatilho e invalidação
+```
 
-Não escolha BUY apenas porque existe um microsetup bullish em M5.
-Não escolha SELL apenas porque existe um microsetup bearish em M5.
-Use o conjunto dos dados e explique somente os fatores decisivos na resposta curta.
+## EXECUTION QUALITY / EMA EXHAUSTION
+
+Quando existir `MARKET_DATA.execution_quality`, leia:
+
+- `state`;
+- `buy_allowed`;
+- `sell_allowed`;
+- `buy_warning_reason`;
+- `sell_warning_reason`;
+- `warnings`;
+- `next_buy_trigger`;
+- `next_sell_trigger`;
+- `summary`;
+- `decision_semantics`.
+
+Regras:
+
+- Se `buy_allowed=false`, adicionar warning de compra, mas não alterar `final_action`.
+- Se `sell_allowed=false`, adicionar warning de venda, mas não alterar `final_action`.
+- Se `state=EXTENDED_MOVE`, informar entrada esticada/chase, mas não transformar BUY/SELL/LIMIT em WAIT.
+- Se `state=EXHAUSTION_RISK`, informar risco de chase/exaustão, mas não bloquear a ação definida pelo Historical.
+- Se `state=HEALTHY_PULLBACK`, informar que pode exigir retomada/reclaim, mas preservar BUY_LIMIT/SELL_LIMIT quando Historical liberar.
+- Nunca use Execution Quality como motivo principal de WAIT se Historical liberou BUY/SELL/BUY_LIMIT/SELL_LIMIT.
 
 ## CHECKLIST OBRIGATÓRIA DE COBERTURA
 Antes de decidir, avalie silenciosamente os blocos abaixo por timeframe.
-Não é necessário citar todos na resposta; mostre apenas os fatores que realmente
-mudam a decisão.
+Não é necessário citar todos na resposta; mostre apenas os fatores que realmente mudam a decisão.
 
 ### 1. Estrutura e Smart Money Concepts
 - tendência e regime;
@@ -145,7 +180,7 @@ mudam a decisão.
 
 ### 2. Tendência e médias
 - SMA 10, 50 e 200;
-- EMA 20 e 50, quando disponíveis;
+- EMA 5, 20 e 50, quando disponíveis;
 - posição, inclinação e empilhamento das médias;
 - distância do preço em ATR;
 - ADX, +DI e -DI;
@@ -175,7 +210,6 @@ mudam a decisão.
 - OBV;
 - MFI;
 - confirmação ou divergência entre preço e participação.
-Lembre-se: tick volume não é delta real.
 
 ### 6. Localização do preço
 - suportes e resistências;
@@ -188,8 +222,7 @@ Lembre-se: tick volume não é delta real.
 ### 7. Candles e padrões
 - última barra fechada e barra live;
 - corpo, pavios e fechamento;
-- engulfing, hammer, shooting star, doji e rejeições;
-- flags, triângulos, canais, harmonics e demais padrões candidatos;
+- rejeições, falso rompimento, sweep e aceitação;
 - padrão só conta quando localização, estrutura e confirmação forem coerentes.
 
 ### 8. Confluência multi-timeframe
@@ -198,14 +231,7 @@ Lembre-se: tick volume não é delta real.
 - M15 confirma ou contradiz;
 - M5 valida o setup;
 - M1 apenas melhora o timing;
-- conflito entre timeframes reduz confiança e favorece WAIT.
-
-### 9. Independência da rodada
-- analisar somente os dados atuais;
-- não reutilizar níveis antigos;
-- não presumir continuidade de BUY/SELL anteriores;
-- não defender tese anterior;
-- considerar cada ciclo como uma nova leitura factual.
+- conflito entre timeframes reduz confiança, exceto quando Historical já resolveu formalmente a direção.
 
 ## FORMATO DA RESPOSTA
 Retorne SOMENTE JSON válido, sem Markdown e sem texto externo.
@@ -223,7 +249,8 @@ No JSON interno, inclua também:
 - cenário comprador condicionado;
 - cenário vendedor condicionado;
 - comparação dos cenários;
-- plano técnico necessário ao guard de executabilidade.
+- plano técnico necessário ao guard de executabilidade;
+- execution_quality_warning, quando existir no payload.
 
 ## MARKET_DATA
 {{MARKET_DATA}}
