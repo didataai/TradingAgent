@@ -41,13 +41,29 @@
 
 #--------------------------------------------------------------------
 # Semana 2 
-
+# Semana com volume legal, rompimentos em horarios...consolidação menor em resistencias e suportes. 
+# Ter buscou maxima do dia anterior - bom volume tb 
+# Quarta buscou swing com volume legal, direcional para padrao gradico ..venda. volume bom para pegar trades. 
+ 
 #------------------------------------------
 # Segunda - Preço fazia falso rompimento em suporte e resistencia - sem volume....pela manha...
 # porem teve horarios de rompimento forte..compra....final da tarde apos as 16, teve volume mais direcional tb.candles 
 # negativos em todos os tfs, rompendo fundo,
 #------------------------------------------
 
+#------------------------------------------
+# Terca - Preço com rompimentos horarios de rompimento forte..compra....
+# Rompimento com volume mais direcional tb.candles 
+# Volume bom para dt- com candles 
+#------------------------------------------
+
+#------------------------------------------
+# Quarta - Preço com rompimento buscando swing .. volume legal direcional . 
+#------------------------------------------
+
+#------------------------------------------
+# Sexta - 
+#------------------------------------------
 
 
 Hoje é um novo dia.

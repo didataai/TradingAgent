@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1.0",
   "engine_version": "V10.1",
-  "evaluated_at": "2026-07-07T14:10:00",
+  "evaluated_at": "2026-07-08T16:40:00",
   "symbol": "GOLD",
   "anchor_tf": "M5",
   "matched_laws": [],
@@ -13,11 +13,11 @@
   "chronos_action": "NO_MATCH",
   "confidence": "NONE",
   "current_segments": {
-    "HOUR_BRT": "11",
-    "SESSION_BRT": "NY_OPEN",
-    "WEEKDAY": "TUESDAY",
-    "ENERGY": "LOW",
-    "HTF_LOCATION": "DOWN_LOCATION",
+    "HOUR_BRT": "13",
+    "SESSION_BRT": "NY_AFTERNOON",
+    "WEEKDAY": "WEDNESDAY",
+    "ENERGY": "VERY_LOW",
+    "HTF_LOCATION": "MIXED_LOCATION",
     "BREAKOUT_ALIGNMENT": "NO_BREAKOUT",
     "LEVEL_PROXIMITY": "UNKNOWN"
   },
@@ -33,7 +33,7 @@
       "total_conditions": 5,
       "failed_conditions": [
         "level_attempt_side",
-        "failure_memory_bucket",
+        "attempt_bucket",
         "mtf_bias",
         "mtf_alignment_bucket_in"
       ],
@@ -41,20 +41,20 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "UP",
-          "actual": "DOWN",
+          "actual": "NONE",
           "passed": false
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
           "expected": "FIRST_ATTEMPT",
-          "actual": "FIRST_ATTEMPT",
-          "passed": true
+          "actual": "SECOND_ATTEMPT",
+          "passed": false
         },
         "failure_memory_bucket": {
           "field": "failure_memory_bucket",
           "expected": "NO_RECENT_FAILURE",
-          "actual": "ONE_RECENT_FAILURE",
-          "passed": false
+          "actual": "NO_RECENT_FAILURE",
+          "passed": true
         },
         "mtf_bias": {
           "field": "mtf_bias",
@@ -80,10 +80,11 @@
       "side": "BUY",
       "tier": "A",
       "matched": false,
-      "passed_conditions": 2,
+      "passed_conditions": 1,
       "total_conditions": 5,
       "failed_conditions": [
-        "failure_memory_bucket",
+        "level_attempt_side",
+        "attempt_bucket",
         "mtf_bias",
         "mtf_alignment_bucket_in"
       ],
@@ -91,20 +92,20 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "DOWN",
-          "actual": "DOWN",
-          "passed": true
+          "actual": "NONE",
+          "passed": false
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
           "expected": "FIRST_ATTEMPT",
-          "actual": "FIRST_ATTEMPT",
-          "passed": true
+          "actual": "SECOND_ATTEMPT",
+          "passed": false
         },
         "failure_memory_bucket": {
           "field": "failure_memory_bucket",
           "expected": "NO_RECENT_FAILURE",
-          "actual": "ONE_RECENT_FAILURE",
-          "passed": false
+          "actual": "NO_RECENT_FAILURE",
+          "passed": true
         },
         "mtf_bias": {
           "field": "mtf_bias",
@@ -134,7 +135,7 @@
       "total_conditions": 8,
       "failed_conditions": [
         "level_attempt_side",
-        "failure_memory_bucket",
+        "attempt_bucket",
         "mtf_bias",
         "mtf_alignment_bucket_in",
         "event_breakout_up"
@@ -143,20 +144,20 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "UP",
-          "actual": "DOWN",
+          "actual": "NONE",
           "passed": false
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
           "expected": "FIRST_ATTEMPT",
-          "actual": "FIRST_ATTEMPT",
-          "passed": true
+          "actual": "SECOND_ATTEMPT",
+          "passed": false
         },
         "failure_memory_bucket": {
           "field": "failure_memory_bucket",
           "expected": "NO_RECENT_FAILURE",
-          "actual": "ONE_RECENT_FAILURE",
-          "passed": false
+          "actual": "NO_RECENT_FAILURE",
+          "passed": true
         },
         "mtf_bias": {
           "field": "mtf_bias",
@@ -206,10 +207,11 @@
       "side": "BUY",
       "tier": "A",
       "matched": false,
-      "passed_conditions": 4,
+      "passed_conditions": 3,
       "total_conditions": 8,
       "failed_conditions": [
-        "failure_memory_bucket",
+        "level_attempt_side",
+        "attempt_bucket",
         "mtf_bias",
         "mtf_alignment_bucket_in",
         "event_breakout_down"
@@ -218,20 +220,20 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "DOWN",
-          "actual": "DOWN",
-          "passed": true
+          "actual": "NONE",
+          "passed": false
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
           "expected": "FIRST_ATTEMPT",
-          "actual": "FIRST_ATTEMPT",
-          "passed": true
+          "actual": "SECOND_ATTEMPT",
+          "passed": false
         },
         "failure_memory_bucket": {
           "field": "failure_memory_bucket",
           "expected": "NO_RECENT_FAILURE",
-          "actual": "ONE_RECENT_FAILURE",
-          "passed": false
+          "actual": "NO_RECENT_FAILURE",
+          "passed": true
         },
         "mtf_bias": {
           "field": "mtf_bias",
@@ -285,7 +287,7 @@
       "total_conditions": 5,
       "failed_conditions": [
         "level_attempt_side",
-        "attempt_bucket",
+        "failure_memory_bucket",
         "mtf_bias",
         "mtf_alignment_bucket_in"
       ],
@@ -293,20 +295,20 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "UP",
-          "actual": "DOWN",
+          "actual": "NONE",
           "passed": false
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
           "expected": "SECOND_ATTEMPT",
-          "actual": "FIRST_ATTEMPT",
-          "passed": false
+          "actual": "SECOND_ATTEMPT",
+          "passed": true
         },
         "failure_memory_bucket": {
           "field": "failure_memory_bucket",
           "expected": "ONE_RECENT_FAILURE",
-          "actual": "ONE_RECENT_FAILURE",
-          "passed": true
+          "actual": "NO_RECENT_FAILURE",
+          "passed": false
         },
         "mtf_bias": {
           "field": "mtf_bias",
@@ -332,10 +334,11 @@
       "side": "BUY",
       "tier": "C",
       "matched": false,
-      "passed_conditions": 2,
+      "passed_conditions": 1,
       "total_conditions": 5,
       "failed_conditions": [
-        "attempt_bucket",
+        "level_attempt_side",
+        "failure_memory_bucket",
         "mtf_bias",
         "mtf_alignment_bucket_in"
       ],
@@ -343,20 +346,20 @@
         "level_attempt_side": {
           "field": "level_attempt_side",
           "expected": "DOWN",
-          "actual": "DOWN",
-          "passed": true
+          "actual": "NONE",
+          "passed": false
         },
         "attempt_bucket": {
           "field": "attempt_bucket",
           "expected": "SECOND_ATTEMPT",
-          "actual": "FIRST_ATTEMPT",
-          "passed": false
+          "actual": "SECOND_ATTEMPT",
+          "passed": true
         },
         "failure_memory_bucket": {
           "field": "failure_memory_bucket",
           "expected": "ONE_RECENT_FAILURE",
-          "actual": "ONE_RECENT_FAILURE",
-          "passed": true
+          "actual": "NO_RECENT_FAILURE",
+          "passed": false
         },
         "mtf_bias": {
           "field": "mtf_bias",
@@ -387,7 +390,7 @@
   "registry_file": "C:\\Users\\diego\\Desktop\\Python\\TradingAgent\\data\\market_chronos\\GOLD\\laws\\market_laws_registry.json",
   "freshness": {
     "status": "FRESH",
-    "age_minutes": 3.16,
+    "age_minutes": 0.23,
     "max_age_minutes": 30
   },
   "source_mode": "live",
