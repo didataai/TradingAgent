@@ -11,6 +11,7 @@ Leituras principais:
 - volatilidade do DXY vs amplitude futura do GOLD;
 - lags do DXY em M1/M5/M15/H1;
 - estabilidade por horario e por timeframe;
+- DXY condicionado a setups simples do GOLD;
 - comparacao simples contra baseline ingenua.
 
 Nao gera sinal operacional. Nao usa shuffle. Nao usa candle aberto.
@@ -42,6 +43,7 @@ class ResearchConfig:
     lags: tuple[int, ...]
     horizons: tuple[int, ...]
     min_rows: int
+    min_setup_rows: int
     rolling_window: int
     data_dir: Path
     dxy_dir: Path
@@ -106,12 +108,9 @@ def normalize_market_frame(df: pd.DataFrame, *, value_names: tuple[str, ...], pr
     out["time"] = pd.to_datetime(work[time_col], errors="coerce", utc=True)
     out[f"{prefix}_close"] = pd.to_numeric(work[close_col], errors="coerce")
 
-    if "open" in work.columns:
-        out[f"{prefix}_open"] = pd.to_numeric(work["open"], errors="coerce")
-    if "high" in work.columns:
-        out[f"{prefix}_high"] = pd.to_numeric(work["high"], errors="coerce")
-    if "low" in work.columns:
-        out[f"{prefix}_low"] = pd.to_numeric(work["low"], errors="coerce")
+    for col in ("open", "high", "low"):
+        if col in work.columns:
+            out[f"{prefix}_{col}"] = pd.to_numeric(work[col], errors="coerce")
     if "ATR" in work.columns:
         out[f"{prefix}_atr"] = pd.to_numeric(work["ATR"], errors="coerce")
     if "is_live_bar" in work.columns:
@@ -142,7 +141,12 @@ def load_pair(config: ResearchConfig, tf: str) -> pd.DataFrame:
         prefix="dxy",
     )
 
-    merged = pd.merge(gold.drop(columns=["is_live_bar"], errors="ignore"), dxy.drop(columns=["is_live_bar"], errors="ignore"), on="time", how="inner")
+    merged = pd.merge(
+        gold.drop(columns=["is_live_bar"], errors="ignore"),
+        dxy.drop(columns=["is_live_bar"], errors="ignore"),
+        on="time",
+        how="inner",
+    )
     merged = merged.dropna(subset=["gold_close", "dxy_close"]).sort_values("time").reset_index(drop=True)
     if len(merged) < config.min_rows:
         raise ValueError(f"Poucas linhas alinhadas para {tf}: {len(merged)} < {config.min_rows}")
@@ -270,7 +274,13 @@ def select_best_rows(lag_matrix: pd.DataFrame) -> dict[str, Any]:
     def as_dict(frame: pd.DataFrame) -> dict[str, Any] | None:
         if frame.empty:
             return None
-        return {k: (None if pd.isna(v) else v) for k, v in frame.iloc[0].drop(labels=["abs_corr", "abs_vol_corr", "inverse_edge", "positive_edge"], errors="ignore").to_dict().items()}
+        return {
+            k: (None if pd.isna(v) else v)
+            for k, v in frame.iloc[0].drop(
+                labels=["abs_corr", "abs_vol_corr", "inverse_edge", "positive_edge"],
+                errors="ignore",
+            ).to_dict().items()
+        }
 
     return {
         "best_direction_correlation": as_dict(best_corr),
@@ -319,12 +329,227 @@ def interpret(best: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def add_conditional_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Cria setups simples do GOLD e estados do DXY para pesquisa condicionada."""
+    work = df.copy()
+
+    # Presets achados na pesquisa de MA Confluence. Sao usados apenas como
+    # condicoes de estudo, nao como regra operacional aqui.
+    work["ema_sell_fast"] = work["gold_close"].ewm(span=8, adjust=False).mean()
+    work["ema_sell_mid"] = work["gold_close"].ewm(span=20, adjust=False).mean()
+    work["ema_sell_slow"] = work["gold_close"].ewm(span=63, adjust=False).mean()
+
+    work["ema_buy_fast"] = work["gold_close"].ewm(span=6, adjust=False).mean()
+    work["ema_buy_mid"] = work["gold_close"].ewm(span=30, adjust=False).mean()
+    work["ema_buy_slow"] = work["gold_close"].ewm(span=85, adjust=False).mean()
+
+    red = work["gold_close"] < work["gold_open"] if "gold_open" in work.columns else work["gold_ret_1"] < 0
+    green = work["gold_close"] > work["gold_open"] if "gold_open" in work.columns else work["gold_ret_1"] > 0
+
+    work["gold_ma_sell_core"] = (
+        red
+        & (work["gold_close"] < work["ema_sell_fast"])
+        & (work["gold_close"] < work["ema_sell_mid"])
+        & (work["gold_close"] < work["ema_sell_slow"])
+        & (work["ema_sell_fast"] < work["ema_sell_mid"])
+        & (work["ema_sell_mid"] < work["ema_sell_slow"])
+    )
+    work["gold_ma_buy_core"] = (
+        green
+        & (work["gold_close"] > work["ema_buy_fast"])
+        & (work["gold_close"] > work["ema_buy_mid"])
+        & (work["gold_close"] > work["ema_buy_slow"])
+        & (work["ema_buy_fast"] > work["ema_buy_mid"])
+        & (work["ema_buy_mid"] > work["ema_buy_slow"])
+    )
+
+    if {"gold_high", "gold_low"}.issubset(work.columns):
+        work["gold_breakout_up"] = work["gold_close"] > work["gold_high"].shift(1)
+        work["gold_breakout_down"] = work["gold_close"] < work["gold_low"].shift(1)
+    else:
+        work["gold_breakout_up"] = False
+        work["gold_breakout_down"] = False
+
+    dxy_sigma = work["dxy_ret_1"].rolling(100, min_periods=30).std().replace(0, np.nan)
+    dxy_abs_med = work["dxy_abs_ret_1"].rolling(100, min_periods=30).median().replace(0, np.nan)
+    work["dxy_zret"] = work["dxy_ret_1"] / dxy_sigma
+    work["dxy_up"] = work["dxy_ret_1"] > 0
+    work["dxy_down"] = work["dxy_ret_1"] < 0
+    work["dxy_strong_up"] = work["dxy_zret"] >= 1.0
+    work["dxy_strong_down"] = work["dxy_zret"] <= -1.0
+    work["dxy_vol_expansion"] = work["dxy_abs_ret_1"] >= (dxy_abs_med * 1.5)
+    return work
+
+
+def summarize_condition(
+    *,
+    df: pd.DataFrame,
+    tf: str,
+    setup_name: str,
+    setup_side: str,
+    horizon: int,
+    setup_mask: pd.Series,
+    filter_name: str,
+    filter_mask: pd.Series,
+    min_setup_rows: int,
+    baseline_hit_rate: float | None,
+) -> dict[str, Any] | None:
+    mask = setup_mask.fillna(False) & filter_mask.fillna(False)
+    future = np.log(df["gold_close"].shift(-horizon) / df["gold_close"])
+    work = pd.DataFrame({"future": future, "mask": mask}).replace([np.inf, -np.inf], np.nan).dropna()
+    work = work[work["mask"]]
+    rows = int(len(work))
+    if rows < min_setup_rows:
+        return None
+
+    if setup_side == "SELL":
+        hits = (work["future"] < 0).mean()
+        avg_favorable = -work["future"].mean()
+    else:
+        hits = (work["future"] > 0).mean()
+        avg_favorable = work["future"].mean()
+
+    avg_abs = work["future"].abs().mean()
+    edge = None if baseline_hit_rate is None else float(hits - baseline_hit_rate)
+    return {
+        "timeframe": tf,
+        "setup": setup_name,
+        "side": setup_side,
+        "future_horizon_bars": horizon,
+        "dxy_filter": filter_name,
+        "rows": rows,
+        "hit_rate": round(float(hits), 6),
+        "baseline_hit_rate": safe_round(baseline_hit_rate),
+        "edge_vs_setup_baseline": safe_round(edge),
+        "avg_favorable_log_return": safe_round(avg_favorable),
+        "avg_abs_future_return": safe_round(avg_abs),
+    }
+
+
+def build_conditional_matrix(df: pd.DataFrame, tf: str, horizons: tuple[int, ...], min_setup_rows: int) -> pd.DataFrame:
+    work = add_conditional_features(df)
+    rows: list[dict[str, Any]] = []
+
+    setups = [
+        ("SELL_MA_CORE", "SELL", work["gold_ma_sell_core"]),
+        ("BUY_MA_CORE", "BUY", work["gold_ma_buy_core"]),
+        ("GOLD_BREAKDOWN", "SELL", work["gold_breakout_down"]),
+        ("GOLD_BREAKOUT", "BUY", work["gold_breakout_up"]),
+    ]
+
+    for setup_name, side, setup_mask in setups:
+        if side == "SELL":
+            filters = [
+                ("ALL_SETUP", pd.Series(True, index=work.index)),
+                ("DXY_ALIGNED_UP", work["dxy_up"]),
+                ("DXY_STRONG_ALIGNED_UP", work["dxy_strong_up"]),
+                ("DXY_CONFLICT_DOWN", work["dxy_down"]),
+                ("DXY_VOL_EXPANSION", work["dxy_vol_expansion"]),
+            ]
+        else:
+            filters = [
+                ("ALL_SETUP", pd.Series(True, index=work.index)),
+                ("DXY_ALIGNED_DOWN", work["dxy_down"]),
+                ("DXY_STRONG_ALIGNED_DOWN", work["dxy_strong_down"]),
+                ("DXY_CONFLICT_UP", work["dxy_up"]),
+                ("DXY_VOL_EXPANSION", work["dxy_vol_expansion"]),
+            ]
+
+        for horizon in horizons:
+            base = summarize_condition(
+                df=work,
+                tf=tf,
+                setup_name=setup_name,
+                setup_side=side,
+                horizon=horizon,
+                setup_mask=setup_mask,
+                filter_name="ALL_SETUP",
+                filter_mask=pd.Series(True, index=work.index),
+                min_setup_rows=min_setup_rows,
+                baseline_hit_rate=None,
+            )
+            baseline = finite_float(base.get("hit_rate")) if base else None
+            if base:
+                rows.append(base)
+
+            for filter_name, filter_mask in filters[1:]:
+                result = summarize_condition(
+                    df=work,
+                    tf=tf,
+                    setup_name=setup_name,
+                    setup_side=side,
+                    horizon=horizon,
+                    setup_mask=setup_mask,
+                    filter_name=filter_name,
+                    filter_mask=filter_mask,
+                    min_setup_rows=min_setup_rows,
+                    baseline_hit_rate=baseline,
+                )
+                if result:
+                    rows.append(result)
+    return pd.DataFrame(rows)
+
+
+def select_best_conditional_rows(conditional: pd.DataFrame) -> dict[str, Any]:
+    if conditional.empty:
+        return {}
+    work = conditional.copy()
+    work["edge"] = pd.to_numeric(work["edge_vs_setup_baseline"], errors="coerce")
+    work["hit"] = pd.to_numeric(work["hit_rate"], errors="coerce")
+    work["score"] = work["edge"].fillna(0) * 100 + work["hit"].fillna(0) * 10 + np.log1p(pd.to_numeric(work["rows"], errors="coerce").fillna(0))
+    filtered = work[work["dxy_filter"] != "ALL_SETUP"]
+    if filtered.empty:
+        return {}
+    best_edge = filtered.sort_values("edge", ascending=False).head(10)
+    best_score = filtered.sort_values("score", ascending=False).head(10)
+
+    def records(frame: pd.DataFrame) -> list[dict[str, Any]]:
+        keep = [
+            "timeframe", "setup", "side", "future_horizon_bars", "dxy_filter",
+            "rows", "hit_rate", "baseline_hit_rate", "edge_vs_setup_baseline",
+            "avg_favorable_log_return", "avg_abs_future_return",
+        ]
+        return [
+            {k: (None if pd.isna(v) else v) for k, v in row.items()}
+            for row in frame[keep].to_dict("records")
+        ]
+
+    return {
+        "best_edge_rows": records(best_edge),
+        "best_score_rows": records(best_score),
+    }
+
+
+def interpret_conditional(best: dict[str, Any]) -> dict[str, str]:
+    rows = best.get("best_edge_rows") or []
+    max_edge = max((finite_float(row.get("edge_vs_setup_baseline"), 0.0) or 0.0 for row in rows), default=0.0)
+    max_hit = max((finite_float(row.get("hit_rate"), 0.0) or 0.0 for row in rows), default=0.0)
+    max_rows = max((int(row.get("rows") or 0) for row in rows), default=0)
+
+    if max_edge >= 0.08 and max_hit >= 0.60 and max_rows >= 50:
+        read = "DXY_FILTER_CANDIDATE"
+    elif max_edge >= 0.04 and max_hit >= 0.55 and max_rows >= 30:
+        read = "WEAK_DXY_FILTER_CONTEXT"
+    else:
+        read = "NO_CLEAR_CONDITIONAL_EDGE"
+
+    return {
+        "conditional_read": read,
+        "max_edge_vs_setup_baseline": safe_round(max_edge),
+        "max_hit_rate": safe_round(max_hit),
+        "max_rows": str(max_rows),
+        "warning": "Pesquisa condicionada. Validar com walk-forward antes de transformar em filtro operacional.",
+    }
+
+
 def run_research(config: ResearchConfig) -> dict[str, Any]:
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
     all_lag: list[pd.DataFrame] = []
     all_hour: list[pd.DataFrame] = []
+    all_conditional: list[pd.DataFrame] = []
     tf_summaries: dict[str, Any] = {}
+    conditional_summaries: dict[str, Any] = {}
     errors: dict[str, str] = {}
 
     for tf in config.timeframes:
@@ -338,6 +563,9 @@ def run_research(config: ResearchConfig) -> dict[str, Any]:
             best_horizon = int(best_for_hour.get("future_horizon_bars", 1) or 1)
             hour_matrix = build_hour_matrix(merged, tf, best_lag, best_horizon)
 
+            conditional = build_conditional_matrix(merged, tf, config.horizons, config.min_setup_rows)
+            conditional_best = select_best_conditional_rows(conditional)
+
             tf_summaries[tf] = {
                 "rows_aligned": int(len(merged)),
                 "first_time": str(merged["time"].min()),
@@ -347,18 +575,28 @@ def run_research(config: ResearchConfig) -> dict[str, Any]:
                 "best": best,
                 "interpretation": interpret(best),
             }
+            conditional_summaries[tf] = {
+                "rows": int(len(conditional)) if not conditional.empty else 0,
+                "best": conditional_best,
+                "interpretation": interpret_conditional(conditional_best),
+            }
             all_lag.append(lag_matrix)
             all_hour.append(hour_matrix)
+            if not conditional.empty:
+                all_conditional.append(conditional)
         except Exception as exc:
             errors[tf] = f"{type(exc).__name__}: {exc}"
 
     lag_out = pd.concat(all_lag, ignore_index=True) if all_lag else pd.DataFrame()
     hour_out = pd.concat(all_hour, ignore_index=True) if all_hour else pd.DataFrame()
+    cond_out = pd.concat(all_conditional, ignore_index=True) if all_conditional else pd.DataFrame()
 
     if not lag_out.empty:
         lag_out.to_csv(config.output_dir / "dxy_gold_lag_matrix.csv", index=False)
     if not hour_out.empty:
         hour_out.to_csv(config.output_dir / "dxy_gold_by_hour.csv", index=False)
+    if not cond_out.empty:
+        cond_out.to_csv(config.output_dir / "dxy_gold_conditional_setups.csv", index=False)
 
     summary = {
         "generated_at_utc": utc_now_iso(),
@@ -368,13 +606,16 @@ def run_research(config: ResearchConfig) -> dict[str, Any]:
         "lags": list(config.lags),
         "horizons": list(config.horizons),
         "min_rows": config.min_rows,
+        "min_setup_rows": config.min_setup_rows,
         "rolling_window": config.rolling_window,
         "outputs": {
             "lag_matrix": str(config.output_dir / "dxy_gold_lag_matrix.csv"),
             "by_hour": str(config.output_dir / "dxy_gold_by_hour.csv"),
+            "conditional_setups": str(config.output_dir / "dxy_gold_conditional_setups.csv"),
             "summary": str(config.output_dir / "dxy_gold_summary.json"),
         },
         "timeframe_summaries": tf_summaries,
+        "conditional_summaries": conditional_summaries,
         "errors": errors,
         "usage_rule": "Research only. Do not create BUY/SELL from DXY alone.",
     }
@@ -396,6 +637,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lags", nargs="+", help="Lags do DXY em barras. Padrao: 0 1 2 3 5 10.")
     parser.add_argument("--horizons", nargs="+", help="Horizontes futuros do GOLD em barras. Padrao: 1 3 5 10.")
     parser.add_argument("--min-rows", type=int, default=300, help="Minimo de linhas alinhadas por timeframe.")
+    parser.add_argument("--min-setup-rows", type=int, default=30, help="Minimo de ocorrencias por setup condicionado.")
     parser.add_argument("--rolling-window", type=int, default=100, help="Janela da correlacao rolling.")
     parser.add_argument("--data-dir", default="data", help="Diretorio dos parquets do GOLD.")
     parser.add_argument("--dxy-dir", default="data/market_context/synthetic_dollar", help="Diretorio dos parquets do DXY sintetico.")
@@ -414,6 +656,7 @@ def main() -> int:
         lags=parse_int_list(args.lags, DEFAULT_LAGS),
         horizons=parse_int_list(args.horizons, DEFAULT_HORIZONS),
         min_rows=int(args.min_rows),
+        min_setup_rows=int(args.min_setup_rows),
         rolling_window=int(args.rolling_window),
         data_dir=(ROOT / args.data_dir).resolve(),
         dxy_dir=(ROOT / args.dxy_dir).resolve(),
@@ -427,12 +670,14 @@ def main() -> int:
         print(f"[OK] Output: {config.output_dir}")
         for tf, item in summary.get("timeframe_summaries", {}).items():
             interp = item.get("interpretation", {})
+            cond_interp = summary.get("conditional_summaries", {}).get(tf, {}).get("interpretation", {})
             print(
                 f"  {tf}: rows={item.get('rows_aligned')} "
                 f"latest_corr={item.get('latest_rolling_corr')} "
                 f"direction={interp.get('directional_read')} "
                 f"vol={interp.get('volatility_read')} "
-                f"relation={interp.get('relationship_read')}"
+                f"relation={interp.get('relationship_read')} "
+                f"conditional={cond_interp.get('conditional_read')}"
             )
         if summary.get("errors"):
             print(f"[WARN] Erros: {summary['errors']}")
