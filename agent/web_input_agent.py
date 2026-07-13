@@ -12,6 +12,10 @@ Antes de montar o input Web, este agente tenta enriquecer automaticamente o
 payload com a camada EMA Exhaustion / Execution Quality, quando o script
 `tools/ema_exhaustion_payload_enricher.py` estiver disponível.
 
+Também tenta atualizar e anexar o contexto Synthetic Dollar/DXY quando o script
+`tools/synthetic_dollar_context.py` estiver disponível. Essa camada é apenas
+contextual e nunca deve gerar trade sozinha.
+
 Saída:
     data/debug_llm/{SYMBOL}_{ANALYST}_latest_input.txt
 
@@ -20,6 +24,7 @@ Exemplos:
     python agent/web_input_agent.py --symbol GOLD --analyst analyst_1
     python agent/web_input_agent.py --symbol GOLD --profile quick
     python agent/web_input_agent.py --symbol GOLD --skip-ema-enrichment
+    python agent/web_input_agent.py --symbol GOLD --skip-synthetic-dollar
 """
 
 from __future__ import annotations
@@ -184,6 +189,14 @@ def payload_path(config: dict[str, Any], symbol: str) -> Path:
     return ROOT / str(template).format(symbol=symbol)
 
 
+def synthetic_context_paths(symbol: str) -> tuple[Path, Path]:
+    base_dir = ROOT / "data" / "market_context" / "synthetic_dollar"
+    return (
+        base_dir / f"{symbol}_synthetic_dollar_context.json",
+        base_dir / f"{symbol}_synthetic_dollar_block.txt",
+    )
+
+
 def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bool) -> None:
     enricher = ROOT / "tools" / "ema_exhaustion_payload_enricher.py"
     if not enricher.exists():
@@ -211,11 +224,65 @@ def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bo
         raise RuntimeError(f"EMA enrichment falhou antes do Web input. return_code={completed.returncode}")
 
 
-def build_prompt(*, config: dict[str, Any], role: dict[str, Any], profile: str, payload: dict[str, Any]) -> tuple[str, Path]:
+def run_synthetic_dollar(symbol: str) -> None:
+    builder = ROOT / "tools" / "synthetic_dollar_context.py"
+    if not builder.exists():
+        safe_print("[WARN] Synthetic Dollar ignorado: script não encontrado |", f"path={builder}")
+        return
+
+    command = [sys.executable, str(builder), "--symbol", symbol]
+    safe_print("[INFO] Executando Synthetic Dollar context antes do Web input |", f"symbol={symbol}")
+    completed = subprocess.run(
+        command,
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="backslashreplace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if completed.stdout:
+        for line in completed.stdout.splitlines():
+            safe_print("   ", line)
+    if completed.returncode != 0:
+        # Contexto DXY nunca deve derrubar o fluxo Web. O payload seguirá sem essa camada.
+        safe_print("[WARN] Synthetic Dollar indisponível antes do Web input |", f"return_code={completed.returncode}")
+
+
+def attach_synthetic_dollar(payload: dict[str, Any], symbol: str) -> tuple[dict[str, Any], str | None]:
+    context_path, block_path = synthetic_context_paths(symbol)
+    if context_path.exists():
+        try:
+            context = read_json(context_path)
+            synthetic = context.get("synthetic_dollar")
+            if isinstance(synthetic, dict):
+                payload = dict(payload)
+                payload["synthetic_dollar"] = synthetic
+        except Exception as exc:
+            safe_print("[WARN] Falha ao anexar synthetic_dollar ao payload |", f"erro={type(exc).__name__}: {exc}")
+    block = None
+    if block_path.exists():
+        try:
+            block = block_path.read_text(encoding="utf-8").strip()
+        except Exception as exc:
+            safe_print("[WARN] Falha ao ler bloco Synthetic Dollar |", f"erro={type(exc).__name__}: {exc}")
+    return payload, block
+
+
+def build_prompt(
+    *,
+    config: dict[str, Any],
+    role: dict[str, Any],
+    profile: str,
+    payload: dict[str, Any],
+    synthetic_block: str | None = None,
+) -> tuple[str, Path]:
     source_path = prompt_path_for_profile(config, role, profile)
     source = source_path.read_text(encoding="utf-8")
     market_data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     prompt = source.replace("{{MARKET_DATA}}", market_data)
+    if synthetic_block:
+        prompt += "\n\n" + synthetic_block + "\n"
     if profile == "quick":
         prompt += QUICK_ANALYST_SCHEMA
     else:
@@ -236,6 +303,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--analyst", default="analyst_1", help="Analista usado para resolver prompt/modelo. Padrão: analyst_1.")
     parser.add_argument("--profile", choices=["quick", "detailed"], help="Sobrescreve temporariamente o perfil configurado.")
     parser.add_argument("--skip-ema-enrichment", action="store_true", help="Não enriquece o payload com execution_quality antes do input Web.")
+    parser.add_argument("--skip-synthetic-dollar", action="store_true", help="Não atualiza/anexa o contexto Synthetic Dollar/DXY ao input Web.")
     parser.add_argument("--write-timeframe-parquets", action="store_true", help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.")
     return parser.parse_args()
 
@@ -253,8 +321,21 @@ def main() -> int:
         if not args.skip_ema_enrichment:
             run_ema_enrichment(symbol=symbol, payload=current_payload_path, update_timeframe_parquets=args.write_timeframe_parquets)
 
+        if not args.skip_synthetic_dollar:
+            run_synthetic_dollar(symbol=symbol)
+
         payload = read_json(current_payload_path)
-        prompt, _source_prompt_path = build_prompt(config=config, role=role, profile=profile, payload=payload)
+        synthetic_block = None
+        if not args.skip_synthetic_dollar:
+            payload, synthetic_block = attach_synthetic_dollar(payload, symbol)
+
+        prompt, _source_prompt_path = build_prompt(
+            config=config,
+            role=role,
+            profile=profile,
+            payload=payload,
+            synthetic_block=synthetic_block,
+        )
 
         debug_dir = ROOT / "data" / "debug_llm"
         latest_path = debug_dir / f"{symbol}_{analyst_id}_latest_input.txt"
@@ -263,6 +344,7 @@ def main() -> int:
         safe_print(
             "Web input gerado |",
             f"symbol={symbol} | analyst={analyst_id} | profile={profile}",
+            f"| synthetic_dollar={not args.skip_synthetic_dollar}",
             f"| chars={len(prompt)} | llm_called=False",
         )
         safe_print(f"Arquivo gerado: {latest_path}")
