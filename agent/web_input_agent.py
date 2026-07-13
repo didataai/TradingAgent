@@ -4,19 +4,15 @@
 TradingAgent - Web Input Agent
 ==============================
 
-Gera o arquivo de entrada completo para análise manual via ChatGPT Web,
-usando o mesmo prompt e o mesmo MARKET_DATA que seriam enviados à LLM local,
-sem chamar Ollama, API externa, crítico ou árbitro.
+Gera o arquivo de entrada completo para analise manual via ChatGPT Web,
+usando o mesmo prompt e o mesmo MARKET_DATA que seriam enviados a LLM local,
+sem chamar Ollama, API externa, critico ou arbitro.
 
 Antes de montar o input Web, este agente tenta enriquecer automaticamente o
 payload com a camada EMA Exhaustion / Execution Quality, quando o script
-`tools/ema_exhaustion_payload_enricher.py` estiver disponível.
+`tools/ema_exhaustion_payload_enricher.py` estiver disponivel.
 
-Também tenta atualizar e anexar o contexto Synthetic Dollar/DXY quando o script
-`tools/synthetic_dollar_context.py` estiver disponível. Essa camada é apenas
-contextual e nunca deve gerar trade sozinha.
-
-Saída:
+Saida:
     data/debug_llm/{SYMBOL}_{ANALYST}_latest_input.txt
 
 Exemplos:
@@ -24,7 +20,6 @@ Exemplos:
     python agent/web_input_agent.py --symbol GOLD --analyst analyst_1
     python agent/web_input_agent.py --symbol GOLD --profile quick
     python agent/web_input_agent.py --symbol GOLD --skip-ema-enrichment
-    python agent/web_input_agent.py --symbol GOLD --skip-synthetic-dollar
 """
 
 from __future__ import annotations
@@ -133,7 +128,10 @@ def safe_print(*values: Any, sep: str = " ", end: str = "\n") -> None:
     try:
         print(sep.join(safe_text(v) for v in values), end=end)
     except UnicodeEncodeError:
-        fallback = sep.join(str(v).encode("ascii", errors="replace").decode("ascii") for v in values)
+        fallback = sep.join(
+            str(v).encode("ascii", errors="replace").decode("ascii")
+            for v in values
+        )
         print(fallback, end=end)
 
 
@@ -159,7 +157,9 @@ def effective_profile(config: dict[str, Any], cli_profile: str | None) -> str:
     profiles = config.get("agent", {}).get("analysis_profiles", {})
     enabled = [profile for profile in ("quick", "detailed") if profiles.get(profile) is True]
     if len(enabled) != 1:
-        raise ValueError("Exatamente um perfil deve estar True em agent.analysis_profiles: quick ou detailed.")
+        raise ValueError(
+            "Exatamente um perfil deve estar True em agent.analysis_profiles: quick ou detailed."
+        )
     return enabled[0]
 
 
@@ -173,11 +173,15 @@ def analyst_role(config: dict[str, Any], analyst_id: str) -> dict[str, Any]:
 
 def prompt_path_for_profile(config: dict[str, Any], role: dict[str, Any], profile: str) -> Path:
     if profile == "quick":
-        relative = config.get("agent", {}).get("quick_profile", {}).get("prompt_path", "prompts/promptIntradayQuick.md")
+        relative = config.get("agent", {}).get("quick_profile", {}).get(
+            "prompt_path", "prompts/promptIntradayQuick.md"
+        )
     else:
         relative = role.get("prompt_path")
     if not relative:
-        raise ValueError(f"Prompt não configurado para analista={role.get('id')} profile={profile}.")
+        raise ValueError(
+            f"Prompt não configurado para analista={role.get('id')} profile={profile}."
+        )
     path = ROOT / str(relative)
     if not path.exists():
         raise FileNotFoundError(f"Prompt não encontrado: {path}")
@@ -185,16 +189,10 @@ def prompt_path_for_profile(config: dict[str, Any], role: dict[str, Any], profil
 
 
 def payload_path(config: dict[str, Any], symbol: str) -> Path:
-    template = config.get("agent", {}).get("paths", {}).get("payload_template", "data/payload/{symbol}_intraday_payload.json")
+    template = config.get("agent", {}).get(
+        "paths", {}
+    ).get("payload_template", "data/payload/{symbol}_intraday_payload.json")
     return ROOT / str(template).format(symbol=symbol)
-
-
-def synthetic_context_paths(symbol: str) -> tuple[Path, Path]:
-    base_dir = ROOT / "data" / "market_context" / "synthetic_dollar"
-    return (
-        base_dir / f"{symbol}_synthetic_dollar_context.json",
-        base_dir / f"{symbol}_synthetic_dollar_block.txt",
-    )
 
 
 def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bool) -> None:
@@ -221,52 +219,9 @@ def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bo
         for line in completed.stdout.splitlines():
             safe_print("   ", line)
     if completed.returncode != 0:
-        raise RuntimeError(f"EMA enrichment falhou antes do Web input. return_code={completed.returncode}")
-
-
-def run_synthetic_dollar(symbol: str) -> None:
-    builder = ROOT / "tools" / "synthetic_dollar_context.py"
-    if not builder.exists():
-        safe_print("[WARN] Synthetic Dollar ignorado: script não encontrado |", f"path={builder}")
-        return
-
-    command = [sys.executable, str(builder), "--symbol", symbol]
-    safe_print("[INFO] Executando Synthetic Dollar context antes do Web input |", f"symbol={symbol}")
-    completed = subprocess.run(
-        command,
-        cwd=ROOT,
-        text=True,
-        encoding="utf-8",
-        errors="backslashreplace",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    if completed.stdout:
-        for line in completed.stdout.splitlines():
-            safe_print("   ", line)
-    if completed.returncode != 0:
-        # Contexto DXY nunca deve derrubar o fluxo Web. O payload seguirá sem essa camada.
-        safe_print("[WARN] Synthetic Dollar indisponível antes do Web input |", f"return_code={completed.returncode}")
-
-
-def attach_synthetic_dollar(payload: dict[str, Any], symbol: str) -> tuple[dict[str, Any], str | None]:
-    context_path, block_path = synthetic_context_paths(symbol)
-    if context_path.exists():
-        try:
-            context = read_json(context_path)
-            synthetic = context.get("synthetic_dollar")
-            if isinstance(synthetic, dict):
-                payload = dict(payload)
-                payload["synthetic_dollar"] = synthetic
-        except Exception as exc:
-            safe_print("[WARN] Falha ao anexar synthetic_dollar ao payload |", f"erro={type(exc).__name__}: {exc}")
-    block = None
-    if block_path.exists():
-        try:
-            block = block_path.read_text(encoding="utf-8").strip()
-        except Exception as exc:
-            safe_print("[WARN] Falha ao ler bloco Synthetic Dollar |", f"erro={type(exc).__name__}: {exc}")
-    return payload, block
+        raise RuntimeError(
+            f"EMA enrichment falhou antes do Web input. return_code={completed.returncode}"
+        )
 
 
 def build_prompt(
@@ -275,14 +230,11 @@ def build_prompt(
     role: dict[str, Any],
     profile: str,
     payload: dict[str, Any],
-    synthetic_block: str | None = None,
 ) -> tuple[str, Path]:
     source_path = prompt_path_for_profile(config, role, profile)
     source = source_path.read_text(encoding="utf-8")
     market_data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     prompt = source.replace("{{MARKET_DATA}}", market_data)
-    if synthetic_block:
-        prompt += "\n\n" + synthetic_block + "\n"
     if profile == "quick":
         prompt += QUICK_ANALYST_SCHEMA
     else:
@@ -298,13 +250,30 @@ def build_prompt(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Gera o input completo para análise manual via ChatGPT Web, sem chamar LLM.")
+    parser = argparse.ArgumentParser(
+        description="Gera o input completo para análise manual via ChatGPT Web, sem chamar LLM."
+    )
     parser.add_argument("--symbol", required=True, help="Símbolo, por exemplo GOLD.")
-    parser.add_argument("--analyst", default="analyst_1", help="Analista usado para resolver prompt/modelo. Padrão: analyst_1.")
-    parser.add_argument("--profile", choices=["quick", "detailed"], help="Sobrescreve temporariamente o perfil configurado.")
-    parser.add_argument("--skip-ema-enrichment", action="store_true", help="Não enriquece o payload com execution_quality antes do input Web.")
-    parser.add_argument("--skip-synthetic-dollar", action="store_true", help="Não atualiza/anexa o contexto Synthetic Dollar/DXY ao input Web.")
-    parser.add_argument("--write-timeframe-parquets", action="store_true", help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.")
+    parser.add_argument(
+        "--analyst",
+        default="analyst_1",
+        help="Analista usado para resolver prompt/modelo. Padrão: analyst_1.",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["quick", "detailed"],
+        help="Sobrescreve temporariamente o perfil configurado.",
+    )
+    parser.add_argument(
+        "--skip-ema-enrichment",
+        action="store_true",
+        help="Não enriquece o payload com execution_quality antes do input Web.",
+    )
+    parser.add_argument(
+        "--write-timeframe-parquets",
+        action="store_true",
+        help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.",
+    )
     return parser.parse_args()
 
 
@@ -319,22 +288,18 @@ def main() -> int:
         current_payload_path = payload_path(config, symbol)
 
         if not args.skip_ema_enrichment:
-            run_ema_enrichment(symbol=symbol, payload=current_payload_path, update_timeframe_parquets=args.write_timeframe_parquets)
-
-        if not args.skip_synthetic_dollar:
-            run_synthetic_dollar(symbol=symbol)
+            run_ema_enrichment(
+                symbol=symbol,
+                payload=current_payload_path,
+                update_timeframe_parquets=args.write_timeframe_parquets,
+            )
 
         payload = read_json(current_payload_path)
-        synthetic_block = None
-        if not args.skip_synthetic_dollar:
-            payload, synthetic_block = attach_synthetic_dollar(payload, symbol)
-
         prompt, _source_prompt_path = build_prompt(
             config=config,
             role=role,
             profile=profile,
             payload=payload,
-            synthetic_block=synthetic_block,
         )
 
         debug_dir = ROOT / "data" / "debug_llm"
@@ -344,7 +309,6 @@ def main() -> int:
         safe_print(
             "Web input gerado |",
             f"symbol={symbol} | analyst={analyst_id} | profile={profile}",
-            f"| synthetic_dollar={not args.skip_synthetic_dollar}",
             f"| chars={len(prompt)} | llm_called=False",
         )
         safe_print(f"Arquivo gerado: {latest_path}")
