@@ -6,9 +6,11 @@ TradingAgent - Technical Patterns Payload Enricher
 
 Enriquece o payload intraday com uma leitura grafica estruturada:
 triangulos, bandeiras, flamulas, canais, ranges, topo/fundo duplo,
-falso rompimento, sweeps e candles relevantes.
+falso rompimento, sweeps, BOS/CHOCH, FVG e candles relevantes.
 
-A camada e CONTEXT_ONLY: nao decide BUY/SELL/WAIT e nao cria hard block.
+A camada e CONTEXT_ONLY: nao decide BUY/SELL/WAIT, nao cria hard block
+e nao sobrescreve Historical Intelligence. Padroes em formacao servem
+para leitura de possivel consolidacao, compressao ou preparacao de setup.
 """
 from __future__ import annotations
 
@@ -21,35 +23,6 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TFS = ("H1", "M15", "M5", "M1")
-
-CONTINUATION_PATTERNS = {
-    "BULL_FLAG",
-    "BEAR_FLAG",
-    "BULLISH_PENNANT",
-    "BEARISH_PENNANT",
-    "ASCENDING_TRIANGLE",
-    "DESCENDING_TRIANGLE",
-    "SYMMETRICAL_TRIANGLE",
-    "ASCENDING_CHANNEL",
-    "DESCENDING_CHANNEL",
-    "RANGE_RECTANGLE",
-    "COMPRESSION",
-}
-
-REVERSAL_PATTERNS = {
-    "DOUBLE_TOP",
-    "DOUBLE_BOTTOM",
-    "TRIPLE_TOP",
-    "TRIPLE_BOTTOM",
-    "HEAD_AND_SHOULDERS",
-    "INVERTED_HEAD_AND_SHOULDERS",
-    "RISING_WEDGE",
-    "FALLING_WEDGE",
-    "FALSE_BREAKOUT_UP",
-    "FALSE_BREAKOUT_DOWN",
-    "SWEEP_HIGH",
-    "SWEEP_LOW",
-}
 
 BULLISH_CANDLES = {
     "Hammer",
@@ -72,13 +45,140 @@ BEARISH_CANDLES = {
 
 NEUTRAL_CANDLES = {"Doji", "Inside_Bar", "Outside_Bar"}
 
+FORMATION_STATUSES = {
+    "FORMING",
+    "FORMING_OR_TESTING",
+    "INFERRED_FORMING",
+    "CANDIDATE",
+    "CANDIDATE_NOT_CONFIRMED",
+    "ACTIVE_CANDIDATE",
+}
+
+CONFIRMED_STATUSES = {
+    "CONFIRMED",
+    "BREAKOUT_CONFIRMED",
+    "DETECTED_CONFIRMED",
+}
+
+
+PATTERN_RULES: dict[str, dict[str, Any]] = {
+    "BULL_FLAG": {
+        "family": "CONTINUATION",
+        "directional_intent": "BUY",
+        "trigger": "break_and_accept_above_flag_resistance",
+        "invalidation": "loss_of_flag_base",
+        "formation_read": "Bull flag em formacao: pullback/canal curto contra impulso de alta; aguardar rompimento ou reteste.",
+    },
+    "BEAR_FLAG": {
+        "family": "CONTINUATION",
+        "directional_intent": "SELL",
+        "trigger": "break_and_accept_below_flag_support",
+        "invalidation": "reclaim_above_flag_top",
+        "formation_read": "Bear flag em formacao: pullback/canal curto contra impulso de queda; aguardar perda da base ou rejeicao.",
+    },
+    "BULLISH_PENNANT": {
+        "family": "CONTINUATION",
+        "directional_intent": "BUY",
+        "trigger": "break_and_accept_above_pennant_resistance",
+        "invalidation": "loss_of_pennant_base",
+        "formation_read": "Flamula altista em formacao: triangulo curto apos impulso de alta; aguardar rompimento.",
+    },
+    "BEARISH_PENNANT": {
+        "family": "CONTINUATION",
+        "directional_intent": "SELL",
+        "trigger": "break_and_accept_below_pennant_support",
+        "invalidation": "reclaim_above_pennant_top",
+        "formation_read": "Flamula baixista em formacao: triangulo curto apos impulso de queda; aguardar rompimento.",
+    },
+    "ASCENDING_TRIANGLE": {
+        "family": "CONTINUATION_OR_BREAKOUT",
+        "directional_intent": "BUY",
+        "trigger": "break_and_accept_above_horizontal_resistance",
+        "invalidation": "loss_of_ascending_lows",
+        "formation_read": "Triangulo ascendente em formacao: fundos ascendentes pressionam resistencia; ainda e compressao ate romper.",
+    },
+    "DESCENDING_TRIANGLE": {
+        "family": "CONTINUATION_OR_BREAKOUT",
+        "directional_intent": "SELL",
+        "trigger": "break_and_accept_below_horizontal_support",
+        "invalidation": "reclaim_above_descending_highs",
+        "formation_read": "Triangulo descendente em formacao: topos descendentes pressionam suporte; ainda e compressao ate romper.",
+    },
+    "SYMMETRICAL_TRIANGLE": {
+        "family": "COMPRESSION",
+        "directional_intent": "NEUTRAL",
+        "trigger": "wait_for_breakout_and_acceptance",
+        "invalidation": "opposite_side_breakout_after_acceptance",
+        "formation_read": "Triangulo simetrico: compressao sem lado definido; aguardar rompimento e aceitacao.",
+    },
+    "ASCENDING_CHANNEL": {
+        "family": "TREND_CHANNEL",
+        "directional_intent": "BUY",
+        "trigger": "buy_rejection_at_channel_base_or_break_channel_top",
+        "invalidation": "acceptance_below_channel_base",
+        "formation_read": "Canal ascendente: estrutura de alta, mas entrada depende de base/topo e candle fechado.",
+    },
+    "DESCENDING_CHANNEL": {
+        "family": "TREND_CHANNEL",
+        "directional_intent": "SELL",
+        "trigger": "sell_rejection_at_channel_top_or_break_channel_low",
+        "invalidation": "acceptance_above_channel_top",
+        "formation_read": "Canal descendente: estrutura de queda, mas entrada depende de topo/base e candle fechado.",
+    },
+    "DOUBLE_TOP": {
+        "family": "REVERSAL",
+        "directional_intent": "SELL",
+        "trigger": "break_below_neckline",
+        "invalidation": "acceptance_above_second_top",
+        "formation_read": "Topo duplo candidato: possivel reversao vendedora, mas so confirma abaixo da neckline.",
+    },
+    "DOUBLE_BOTTOM": {
+        "family": "REVERSAL",
+        "directional_intent": "BUY",
+        "trigger": "break_above_neckline",
+        "invalidation": "loss_of_second_bottom",
+        "formation_read": "Fundo duplo candidato: possivel reversao compradora, mas so confirma acima da neckline.",
+    },
+    "RANGE_RECTANGLE": {
+        "family": "CONSOLIDATION",
+        "directional_intent": "NEUTRAL",
+        "trigger": "wait_for_range_breakout_or_rejection_at_extremes",
+        "invalidation": "none_until_breakout_acceptance",
+        "formation_read": "Range/retangulo: consolidacao; operar extremos ou aguardar rompimento aceito.",
+    },
+    "COMPRESSION": {
+        "family": "CONSOLIDATION",
+        "directional_intent": "NEUTRAL",
+        "trigger": "wait_for_expansion_breakout",
+        "invalidation": "false_breakout_return_to_range",
+        "formation_read": "Compressao: mercado preparando expansao; lado ainda indefinido.",
+    },
+}
+
+EVENT_RULES = [
+    ("breakout_up", "BREAKOUT_UP", "CONTINUATION", "BUY"),
+    ("breakout_down", "BREAKOUT_DOWN", "CONTINUATION", "SELL"),
+    ("false_breakout_up", "FALSE_BREAKOUT_UP", "REVERSAL_OR_TRAP", "SELL"),
+    ("false_breakout_down", "FALSE_BREAKOUT_DOWN", "REVERSAL_OR_TRAP", "BUY"),
+    ("sweep_high", "SWEEP_HIGH", "LIQUIDITY_SWEEP", "SELL"),
+    ("sweep_low", "SWEEP_LOW", "LIQUIDITY_SWEEP", "BUY"),
+    ("bos_up", "BOS_UP", "STRUCTURE_BREAK", "BUY"),
+    ("bos_dn", "BOS_DOWN", "STRUCTURE_BREAK", "SELL"),
+    ("choch_up", "CHOCH_UP", "POTENTIAL_REVERSAL", "BUY"),
+    ("choch_dn", "CHOCH_DOWN", "POTENTIAL_REVERSAL", "SELL"),
+    ("fvg_up", "FVG_UP", "IMBALANCE", "BUY"),
+    ("fvg_dn", "FVG_DOWN", "IMBALANCE", "SELL"),
+    ("compression_flag", "COMPRESSION", "CONSOLIDATION", "NEUTRAL"),
+    ("inside_previous_range", "INSIDE_RANGE", "CONSOLIDATION", "NEUTRAL"),
+]
+
 
 def safe_float(value: Any, default: float | None = None) -> float | None:
     try:
-        value = float(value)
+        number = float(value)
     except (TypeError, ValueError):
         return default
-    return value if math.isfinite(value) else default
+    return number if math.isfinite(number) else default
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -101,13 +201,57 @@ def payload_path(symbol: str) -> Path:
     return ROOT / "data" / "payload" / f"{symbol}_intraday_payload.json"
 
 
-def normalize_name(name: str) -> str:
+def normalize_name(name: Any) -> str:
     return str(name or "").strip().upper().replace(" ", "_").replace("-", "_")
 
 
 def compact_level(value: Any) -> float | None:
     number = safe_float(value)
     return round(number, 5) if number is not None else None
+
+
+def quality_from_score(score: float) -> str:
+    if score >= 0.80:
+        return "HIGH"
+    if score >= 0.60:
+        return "MEDIUM"
+    return "LOW"
+
+
+def stage_from_status(status: str) -> str:
+    normalized = normalize_name(status)
+    if normalized in CONFIRMED_STATUSES:
+        return "CONFIRMED"
+    if normalized in FORMATION_STATUSES or "FORM" in normalized or "CANDIDATE" in normalized:
+        return "FORMING"
+    if "TEST" in normalized:
+        return "FORMING"
+    return "DETECTED"
+
+
+def operational_bias_from_stage(name: str, directional_intent: str, stage: str) -> str:
+    """Bias usado no resumo operacional. Candidato/formacao fica mais conservador."""
+    if directional_intent == "NEUTRAL":
+        return "NEUTRAL"
+    if stage == "CONFIRMED":
+        return directional_intent
+    if name in {"DOUBLE_TOP", "DOUBLE_BOTTOM", "HEAD_AND_SHOULDERS", "INVERTED_HEAD_AND_SHOULDERS"}:
+        return "MIXED"
+    if name in {"ASCENDING_TRIANGLE", "DESCENDING_TRIANGLE", "SYMMETRICAL_TRIANGLE", "BULLISH_PENNANT", "BEARISH_PENNANT"}:
+        return "MIXED"
+    return directional_intent
+
+
+def formation_label(name: str, family: str, stage: str) -> str:
+    if stage == "CONFIRMED":
+        return "CONFIRMED_PATTERN"
+    if family in {"COMPRESSION", "CONSOLIDATION"} or "TRIANGLE" in name or "PENNANT" in name:
+        return "FORMATION_OR_CONSOLIDATION"
+    if family == "REVERSAL":
+        return "REVERSAL_CANDIDATE"
+    if family == "CONTINUATION":
+        return "CONTINUATION_CANDIDATE"
+    return "CONTEXT_CANDIDATE"
 
 
 def candle_direction_from_flags(pattern_flags: dict[str, Any]) -> tuple[str, list[str]]:
@@ -127,26 +271,22 @@ def candle_direction_from_flags(pattern_flags: dict[str, Any]) -> tuple[str, lis
 
 def event_patterns(event_flags: dict[str, Any]) -> list[dict[str, Any]]:
     patterns: list[dict[str, Any]] = []
-
-    mapping = [
-        ("breakout_up", "BREAKOUT_UP", "CONTINUATION", "BUY"),
-        ("breakout_down", "BREAKOUT_DOWN", "CONTINUATION", "SELL"),
-        ("false_breakout_up", "FALSE_BREAKOUT_UP", "REVERSAL_OR_TRAP", "SELL"),
-        ("false_breakout_down", "FALSE_BREAKOUT_DOWN", "REVERSAL_OR_TRAP", "BUY"),
-        ("sweep_high", "SWEEP_HIGH", "LIQUIDITY_SWEEP", "SELL"),
-        ("sweep_low", "SWEEP_LOW", "LIQUIDITY_SWEEP", "BUY"),
-        ("bos_up", "BOS_UP", "STRUCTURE_BREAK", "BUY"),
-        ("bos_dn", "BOS_DOWN", "STRUCTURE_BREAK", "SELL"),
-        ("choch_up", "CHOCH_UP", "POTENTIAL_REVERSAL", "BUY"),
-        ("choch_dn", "CHOCH_DOWN", "POTENTIAL_REVERSAL", "SELL"),
-        ("fvg_up", "FVG_UP", "IMBALANCE", "BUY"),
-        ("fvg_dn", "FVG_DOWN", "IMBALANCE", "SELL"),
-        ("compression_flag", "COMPRESSION", "CONTINUATION_OR_BREAKOUT", "NEUTRAL"),
-        ("inside_previous_range", "INSIDE_RANGE", "CONSOLIDATION", "NEUTRAL"),
-    ]
-    for key, name, family, bias in mapping:
+    for key, name, family, bias in EVENT_RULES:
         if event_flags.get(key) is True:
-            patterns.append({"name": name, "family": family, "bias": bias, "status": "DETECTED"})
+            patterns.append(
+                {
+                    "name": name,
+                    "family": family,
+                    "directional_intent": bias,
+                    "bias": bias,
+                    "stage": "DETECTED",
+                    "status": "DETECTED",
+                    "formation_label": "EVENT_DETECTED",
+                    "trigger": None,
+                    "invalidation": None,
+                    "formation_read": "Evento detectado no candle atual/recente; usar apenas como contexto.",
+                }
+            )
     return patterns
 
 
@@ -155,58 +295,15 @@ def classify_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     name = normalize_name(raw_name)
     score = safe_float(candidate.get("algorithmic_score"), 0.0) or 0.0
     status = str(candidate.get("status") or "CANDIDATE").upper()
+    stage = stage_from_status(status)
 
-    family = "UNKNOWN"
-    bias = "NEUTRAL"
-    trigger = None
-    invalidation = None
-
-    if name in {"BULL_FLAG", "BULLISH_PENNANT"}:
-        family, bias = "CONTINUATION", "BUY"
-        trigger = "break_and_accept_above_flag_or_pennant_resistance"
-        invalidation = "loss_of_flag_or_pennant_base"
-    elif name in {"BEAR_FLAG", "BEARISH_PENNANT"}:
-        family, bias = "CONTINUATION", "SELL"
-        trigger = "break_and_accept_below_flag_or_pennant_support"
-        invalidation = "reclaim_above_flag_or_pennant_top"
-    elif name == "ASCENDING_TRIANGLE":
-        family, bias = "CONTINUATION_OR_BREAKOUT", "BUY"
-        trigger = "break_and_accept_above_horizontal_resistance"
-        invalidation = "loss_of_ascending_lows"
-    elif name == "DESCENDING_TRIANGLE":
-        family, bias = "CONTINUATION_OR_BREAKOUT", "SELL"
-        trigger = "break_and_accept_below_horizontal_support"
-        invalidation = "reclaim_above_descending_highs"
-    elif name == "SYMMETRICAL_TRIANGLE":
-        family, bias = "COMPRESSION", "NEUTRAL"
-        trigger = "wait_for_breakout_and_acceptance"
-        invalidation = "opposite_side_breakout"
-    elif name == "DESCENDING_CHANNEL":
-        family, bias = "TREND_CHANNEL", "SELL"
-        trigger = "sell_rejection_at_channel_top_or_break_channel_low"
-        invalidation = "acceptance_above_channel_top"
-    elif name == "ASCENDING_CHANNEL":
-        family, bias = "TREND_CHANNEL", "BUY"
-        trigger = "buy_rejection_at_channel_base_or_break_channel_top"
-        invalidation = "acceptance_below_channel_base"
-    elif name == "DOUBLE_TOP":
-        family, bias = "REVERSAL", "SELL"
-        trigger = "break_below_neckline"
-        invalidation = "acceptance_above_second_top"
-    elif name == "DOUBLE_BOTTOM":
-        family, bias = "REVERSAL", "BUY"
-        trigger = "break_above_neckline"
-        invalidation = "loss_of_second_bottom"
-    elif name in CONTINUATION_PATTERNS:
-        family = "CONTINUATION"
-    elif name in REVERSAL_PATTERNS:
-        family = "REVERSAL"
-
-    quality = "LOW"
-    if score >= 0.80:
-        quality = "HIGH"
-    elif score >= 0.60:
-        quality = "MEDIUM"
+    rule = PATTERN_RULES.get(name, {})
+    family = rule.get("family", "UNKNOWN")
+    directional_intent = rule.get("directional_intent", "NEUTRAL")
+    trigger = rule.get("trigger")
+    invalidation = rule.get("invalidation")
+    formation_read = rule.get("formation_read", "Candidato grafico detectado; usar apenas como contexto ate confirmacao.")
+    bias = operational_bias_from_stage(name, directional_intent, stage)
 
     levels = {}
     for key in (
@@ -224,13 +321,19 @@ def classify_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": name,
         "family": family,
+        "directional_intent": directional_intent,
         "bias": bias,
+        "stage": stage,
         "status": status,
-        "quality": quality,
+        "formation_label": formation_label(name, family, stage),
+        "quality": quality_from_score(score),
         "score": round(score, 3),
         "trigger": trigger,
         "invalidation": invalidation,
         "levels": levels,
+        "confirmation_required": stage != "CONFIRMED",
+        "formation_read": formation_read,
+        "semantics": "CONTEXT_ONLY",
     }
 
 
@@ -245,45 +348,41 @@ def infer_pennant_from_geometry(tf_data: dict[str, Any]) -> list[dict[str, Any]]
     width_atr = safe_float(impulse.get("consolidation_width_atr"), None)
     compression_ratio = safe_float(trendline.get("range_compression_ratio_second_half_vs_first_half"), None)
 
-    out: list[dict[str, Any]] = []
     if impulse_atr < 0.80 or consolidation_bars < 3:
-        return out
+        return []
     if width_atr is not None and width_atr > 2.50:
-        return out
+        return []
     if compression_ratio is not None and compression_ratio > 1.15:
-        return out
+        return []
 
-    if impulse_dir == "UP":
-        out.append({
-            "name": "BULLISH_PENNANT",
-            "family": "CONTINUATION",
-            "bias": "BUY",
+    name = "BULLISH_PENNANT" if impulse_dir == "UP" else "BEARISH_PENNANT" if impulse_dir == "DOWN" else None
+    if not name:
+        return []
+
+    rule = PATTERN_RULES[name]
+    score = round(min(1.0, impulse_atr / 2.0), 3)
+    return [
+        {
+            "name": name,
+            "family": rule["family"],
+            "directional_intent": rule["directional_intent"],
+            "bias": "MIXED",
+            "stage": "FORMING",
             "status": "INFERRED_FORMING",
+            "formation_label": "FORMATION_OR_CONSOLIDATION",
             "quality": "MEDIUM" if impulse_atr >= 1.20 else "LOW",
-            "score": round(min(1.0, impulse_atr / 2.0), 3),
-            "trigger": "break_and_accept_above_pennant_resistance",
-            "invalidation": "loss_of_pennant_base",
+            "score": score,
+            "trigger": rule["trigger"],
+            "invalidation": rule["invalidation"],
             "levels": {
                 "upper_breakout_reference": compact_level(impulse.get("upper_breakout_reference")),
                 "lower_breakout_reference": compact_level(impulse.get("lower_breakout_reference")),
             },
-        })
-    elif impulse_dir == "DOWN":
-        out.append({
-            "name": "BEARISH_PENNANT",
-            "family": "CONTINUATION",
-            "bias": "SELL",
-            "status": "INFERRED_FORMING",
-            "quality": "MEDIUM" if impulse_atr >= 1.20 else "LOW",
-            "score": round(min(1.0, impulse_atr / 2.0), 3),
-            "trigger": "break_and_accept_below_pennant_support",
-            "invalidation": "reclaim_above_pennant_top",
-            "levels": {
-                "upper_breakout_reference": compact_level(impulse.get("upper_breakout_reference")),
-                "lower_breakout_reference": compact_level(impulse.get("lower_breakout_reference")),
-            },
-        })
-    return out
+            "confirmation_required": True,
+            "formation_read": rule["formation_read"],
+            "semantics": "CONTEXT_ONLY",
+        }
+    ]
 
 
 def recent_event_bias(tf_data: dict[str, Any]) -> tuple[str, list[str]]:
@@ -309,15 +408,47 @@ def recent_event_bias(tf_data: dict[str, Any]) -> tuple[str, list[str]]:
 
 
 def aggregate_bias(items: list[dict[str, Any]]) -> str:
-    buy = sum(1 for item in items if item.get("bias") == "BUY")
-    sell = sum(1 for item in items if item.get("bias") == "SELL")
-    if buy > sell and buy >= 1:
-        return "BUY"
-    if sell > buy and sell >= 1:
-        return "SELL"
+    directional = [item.get("bias") for item in items if item.get("bias") in {"BUY", "SELL", "MIXED"}]
+    if any(bias == "MIXED" for bias in directional):
+        return "MIXED"
+    buy = sum(1 for bias in directional if bias == "BUY")
+    sell = sum(1 for bias in directional if bias == "SELL")
     if buy and sell:
         return "MIXED"
+    if buy:
+        return "BUY"
+    if sell:
+        return "SELL"
     return "NEUTRAL"
+
+
+def choose_main_pattern(candidates: list[dict[str, Any]], events: list[dict[str, Any]], candles: list[str], candle_bias: str) -> dict[str, Any] | None:
+    if candidates:
+        priority = {"CONFIRMED": 3, "FORMING": 2, "DETECTED": 1}
+        return sorted(
+            candidates,
+            key=lambda item: (
+                priority.get(str(item.get("stage")), 0),
+                item.get("quality") == "HIGH",
+                item.get("score") or 0,
+            ),
+            reverse=True,
+        )[0]
+    if events:
+        return events[0]
+    if candles:
+        return {
+            "name": candles[0],
+            "family": "CANDLE",
+            "directional_intent": candle_bias,
+            "bias": candle_bias,
+            "stage": "DETECTED",
+            "status": "DETECTED",
+            "formation_label": "CANDLE_CONTEXT",
+            "confirmation_required": True,
+            "semantics": "CONTEXT_ONLY",
+        }
+    return None
 
 
 def summarize_tf(tf: str, tf_data: dict[str, Any]) -> dict[str, Any]:
@@ -339,13 +470,8 @@ def summarize_tf(tf: str, tf_data: dict[str, Any]) -> dict[str, Any]:
     if pattern_bias == "NEUTRAL" and recent_bias in {"BUY", "SELL"}:
         pattern_bias = recent_bias
 
-    main = None
-    if candidates:
-        main = sorted(candidates, key=lambda x: (x.get("quality") == "HIGH", x.get("score") or 0), reverse=True)[0]
-    elif events:
-        main = events[0]
-    elif candles:
-        main = {"name": candles[0], "family": "CANDLE", "bias": candle_bias, "status": "DETECTED"}
+    main = choose_main_pattern(candidates, events, candles, candle_bias)
+    main_stage = str((main or {}).get("stage") or "NONE")
 
     entry_relevance = "LOW"
     if tf in {"M15", "M5"} and main:
@@ -353,16 +479,39 @@ def summarize_tf(tf: str, tf_data: dict[str, Any]) -> dict[str, Any]:
     elif tf in {"H1", "M1"} and main:
         entry_relevance = "MEDIUM"
 
+    formation_status = "NONE"
+    if main:
+        if main_stage == "CONFIRMED":
+            formation_status = "CONFIRMED"
+        elif str(main.get("formation_label")) in {"FORMATION_OR_CONSOLIDATION", "CONTINUATION_CANDIDATE", "REVERSAL_CANDIDATE"}:
+            formation_status = str(main.get("formation_label"))
+        else:
+            formation_status = "CONTEXT_DETECTED"
+
+    operational_read = "Sem padrao grafico relevante; usar suporte/resistencia e candle fechado."
+    if main:
+        name = main.get("name")
+        trigger = main.get("trigger")
+        invalidation = main.get("invalidation")
+        formation_read = main.get("formation_read") or "Padrao detectado como contexto."
+        operational_read = f"{name}: {formation_read}"
+        if trigger:
+            operational_read += f" Trigger: {trigger}."
+        if invalidation:
+            operational_read += f" Invalidacao: {invalidation}."
+
     return {
         "timeframe": tf,
         "main_pattern": main,
         "pattern_bias": pattern_bias,
+        "formation_status": formation_status,
         "entry_relevance": entry_relevance,
-        "chart_patterns": candidates[:5],
+        "chart_patterns": candidates[:6],
         "event_patterns": events[:8],
         "candlestick_patterns": candles[:8],
         "recent_event_bias": recent_bias,
         "recent_events": recent_events,
+        "operational_read": operational_read,
         "semantics": "CONTEXT_ONLY",
     }
 
@@ -376,8 +525,9 @@ def build_summary(tf_contexts: dict[str, Any]) -> str:
         main = item.get("main_pattern") or {}
         name = main.get("name")
         bias = item.get("pattern_bias")
+        formation = item.get("formation_status")
         if name:
-            parts.append(f"{tf}: {name} ({bias})")
+            parts.append(f"{tf}: {name} ({formation}/{bias})")
     if not parts:
         return "Nenhum padrao grafico relevante detectado; usar suporte/resistencia, candle fechado e gatilho operacional."
     return " | ".join(parts)
@@ -394,7 +544,8 @@ def enrich_payload(payload: dict[str, Any]) -> dict[str, Any]:
     context = {
         "available": bool(tf_contexts),
         "decision_semantics": "CONTEXT_ONLY",
-        "priority_rule": "Patterns explain setup, trigger and invalidation; they do not override Historical Intelligence or hard blocks.",
+        "priority_rule": "Patterns explain setup, consolidation, trigger and invalidation; they do not override Historical Intelligence or hard blocks.",
+        "formation_rule": "Patterns in FORMING/CANDIDATE_NOT_CONFIRMED stage indicate possible consolidation or setup preparation; do not treat them as confirmed direction.",
         "timeframe_role": {
             "M15": "setup_pattern",
             "M5": "operational_confirmation",
