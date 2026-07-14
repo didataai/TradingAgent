@@ -11,6 +11,22 @@ falso rompimento, sweeps, BOS/CHOCH, FVG e candles relevantes.
 A camada e CONTEXT_ONLY: nao decide BUY/SELL/WAIT, nao cria hard block
 e nao sobrescreve Historical Intelligence. Padroes em formacao servem
 para leitura de possivel consolidacao, compressao ou preparacao de setup.
+
+Camada de tentativas de rompimento
+----------------------------------
+Esta versao tambem cria breakout_attempt_context para cada timeframe.
+A ideia operacional segue o estudo/heuristica do TradingAgent:
+- formacoes raramente rompem limpo na primeira tentativa;
+- primeira tentativa tem maior risco de fakeout/chase;
+- retorno para dentro da formacao apos rompimento favorece leitura de fade;
+- terceira tentativa ganha mais relevancia quando tambem houver candle fechado,
+  aceitacao, volume e permissao do restante do sistema.
+
+Importante: essa leitura tambem e CONTEXT_ONLY. Ela qualifica o risco do
+rompimento, mas nao cria ordem automatica e nao cancela o Historical.
+
+Compatibilidade: usa apenas pathlib/json/os, sem paths absolutos fixos;
+funciona em Windows e Linux.
 """
 from __future__ import annotations
 
@@ -59,7 +75,6 @@ CONFIRMED_STATUSES = {
     "BREAKOUT_CONFIRMED",
     "DETECTED_CONFIRMED",
 }
-
 
 PATTERN_RULES: dict[str, dict[str, Any]] = {
     "BULL_FLAG": {
@@ -451,6 +466,169 @@ def choose_main_pattern(candidates: list[dict[str, Any]], events: list[dict[str,
     return None
 
 
+def candle_ohlc(bar: dict[str, Any]) -> tuple[float | None, float | None, float | None, float | None]:
+    ohlc = bar.get("ohlc", {}) or {}
+    return (
+        safe_float(ohlc.get("open")),
+        safe_float(ohlc.get("high")),
+        safe_float(ohlc.get("low")),
+        safe_float(ohlc.get("close")),
+    )
+
+
+def boundary_levels(main: dict[str, Any] | None) -> tuple[float | None, float | None]:
+    if not main:
+        return None, None
+    levels = main.get("levels", {}) or {}
+    name = normalize_name(main.get("name"))
+
+    upper = safe_float(levels.get("upper_breakout_reference"))
+    lower = safe_float(levels.get("lower_breakout_reference"))
+
+    if upper is None:
+        upper = safe_float(levels.get("upper_reference"))
+    if lower is None:
+        lower = safe_float(levels.get("lower_reference"))
+
+    breakout = safe_float(levels.get("breakout_level"))
+    invalidation = safe_float(levels.get("invalidation_level"))
+    neckline = safe_float(levels.get("neckline_reference"))
+
+    if name in {"BULL_FLAG", "BULLISH_PENNANT", "ASCENDING_TRIANGLE", "ASCENDING_CHANNEL"}:
+        upper = upper if upper is not None else breakout
+        lower = lower if lower is not None else invalidation
+    elif name in {"BEAR_FLAG", "BEARISH_PENNANT", "DESCENDING_TRIANGLE", "DESCENDING_CHANNEL"}:
+        lower = lower if lower is not None else breakout
+        upper = upper if upper is not None else invalidation
+    elif name == "DOUBLE_TOP":
+        upper = upper if upper is not None else invalidation
+        lower = lower if lower is not None else neckline
+    elif name == "DOUBLE_BOTTOM":
+        upper = upper if upper is not None else neckline
+        lower = lower if lower is not None else invalidation
+    else:
+        upper = upper if upper is not None else breakout
+        lower = lower if lower is not None else invalidation
+
+    if upper is not None and lower is not None and lower > upper:
+        upper, lower = lower, upper
+    return compact_level(upper), compact_level(lower)
+
+
+def analyze_breakout_attempts(tf_data: dict[str, Any], main: dict[str, Any] | None) -> dict[str, Any]:
+    """Conta tentativas simples de rompimento e identifica fakeout/retorno.
+
+    Usa apenas dados ja existentes em recent_bars/pattern levels. Nao gera sinal;
+    classifica risco de chase e contexto de fade/terceira tentativa.
+    """
+    upper, lower = boundary_levels(main)
+    recent = [bar for bar in (tf_data.get("recent_bars", []) or []) if not bool(bar.get("is_live_bar"))]
+    if not recent or (upper is None and lower is None):
+        return {
+            "available": False,
+            "reason": "insufficient_recent_bars_or_boundaries",
+            "decision_semantics": "CONTEXT_ONLY",
+        }
+
+    attempts_up = 0
+    attempts_down = 0
+    failed_up = 0
+    failed_down = 0
+    accepted_up = 0
+    accepted_down = 0
+    last_attempt_side = "NONE"
+    last_attempt_result = "NONE"
+    last_attempt_time = None
+
+    for bar in recent[-12:]:
+        _open, high, low, close = candle_ohlc(bar)
+        time_brt = bar.get("time_brt")
+        if upper is not None and high is not None and close is not None and high > upper:
+            attempts_up += 1
+            last_attempt_side = "UP"
+            last_attempt_time = time_brt
+            if close <= upper:
+                failed_up += 1
+                last_attempt_result = "FAILED_BREAKOUT"
+            else:
+                accepted_up += 1
+                last_attempt_result = "ACCEPTED_BREAKOUT"
+        if lower is not None and low is not None and close is not None and low < lower:
+            attempts_down += 1
+            last_attempt_side = "DOWN"
+            last_attempt_time = time_brt
+            if close >= lower:
+                failed_down += 1
+                last_attempt_result = "FAILED_BREAKOUT"
+            else:
+                accepted_down += 1
+                last_attempt_result = "ACCEPTED_BREAKOUT"
+
+    latest_closed = recent[-1]
+    _open, high, low, close = candle_ohlc(latest_closed)
+    inside_now = None
+    if close is not None and upper is not None and lower is not None:
+        inside_now = lower <= close <= upper
+
+    total_attempts = attempts_up + attempts_down
+    failed_total = failed_up + failed_down
+    accepted_total = accepted_up + accepted_down
+
+    preferred = "WAIT_CONFIRMATION"
+    fakeout_risk = "LOW"
+    third_attempt_watch = False
+    fade_context = "NONE"
+    read = "Sem tentativa de rompimento relevante nas barras recentes."
+
+    if total_attempts == 0:
+        fakeout_risk = "LOW"
+        read = "Formacao ainda sem teste claro de borda; aguardar aproximação da borda e candle fechado."
+    elif total_attempts == 1 and failed_total >= 1:
+        fakeout_risk = "HIGH"
+        preferred = "FADE_FIRST_BREAKOUT_OR_WAIT_RETEST"
+        fade_context = "ACTIVE"
+        read = "Primeira tentativa de rompimento falhou; evitar chase e observar retorno para dentro da formacao."
+    elif total_attempts <= 2 and failed_total >= 1 and accepted_total == 0:
+        fakeout_risk = "MEDIUM_HIGH"
+        preferred = "WAIT_THIRD_ATTEMPT_OR_FADE_REJECTION"
+        fade_context = "POSSIBLE"
+        read = "Rompimento ainda sem aceitacao; terceira tentativa pode ser mais relevante que perseguir a primeira/segunda."
+    elif total_attempts >= 3 and accepted_total == 0:
+        fakeout_risk = "MEDIUM"
+        preferred = "THIRD_ATTEMPT_WATCH"
+        third_attempt_watch = True
+        read = "Formacao ja teve multiplos testes sem aceitacao; proxima tentativa exige candle fechado, volume e permissao M5."
+    elif accepted_total >= 1:
+        fakeout_risk = "MEDIUM"
+        preferred = "WAIT_ACCEPTANCE_OR_RETEST"
+        read = "Houve rompimento aceito; preferir reteste/aceitacao em vez de entrada atrasada."
+
+    return {
+        "available": True,
+        "upper_boundary": upper,
+        "lower_boundary": lower,
+        "breakout_attempts_up": attempts_up,
+        "breakout_attempts_down": attempts_down,
+        "failed_breakouts_up": failed_up,
+        "failed_breakouts_down": failed_down,
+        "accepted_breakouts_up": accepted_up,
+        "accepted_breakouts_down": accepted_down,
+        "total_attempts": total_attempts,
+        "failed_breakouts_total": failed_total,
+        "accepted_breakouts_total": accepted_total,
+        "last_attempt_side": last_attempt_side,
+        "last_attempt_result": last_attempt_result,
+        "last_attempt_time_brt": last_attempt_time,
+        "inside_formation_now": inside_now,
+        "third_attempt_watch": third_attempt_watch,
+        "fakeout_risk": fakeout_risk,
+        "fade_breakout_context": fade_context,
+        "preferred_interpretation": preferred,
+        "read": read,
+        "decision_semantics": "CONTEXT_ONLY",
+    }
+
+
 def summarize_tf(tf: str, tf_data: dict[str, Any]) -> dict[str, Any]:
     annotations = tf_data.get("algorithmic_annotations", {}) or {}
     event_flags = annotations.get("event_flags", {}) or {}
@@ -472,6 +650,7 @@ def summarize_tf(tf: str, tf_data: dict[str, Any]) -> dict[str, Any]:
 
     main = choose_main_pattern(candidates, events, candles, candle_bias)
     main_stage = str((main or {}).get("stage") or "NONE")
+    attempt_context = analyze_breakout_attempts(tf_data, main)
 
     entry_relevance = "LOW"
     if tf in {"M15", "M5"} and main:
@@ -499,6 +678,8 @@ def summarize_tf(tf: str, tf_data: dict[str, Any]) -> dict[str, Any]:
             operational_read += f" Trigger: {trigger}."
         if invalidation:
             operational_read += f" Invalidacao: {invalidation}."
+        if attempt_context.get("available"):
+            operational_read += f" Tentativas: {attempt_context.get('read')}"
 
     return {
         "timeframe": tf,
@@ -511,6 +692,7 @@ def summarize_tf(tf: str, tf_data: dict[str, Any]) -> dict[str, Any]:
         "candlestick_patterns": candles[:8],
         "recent_event_bias": recent_bias,
         "recent_events": recent_events,
+        "breakout_attempt_context": attempt_context,
         "operational_read": operational_read,
         "semantics": "CONTEXT_ONLY",
     }
@@ -526,8 +708,14 @@ def build_summary(tf_contexts: dict[str, Any]) -> str:
         name = main.get("name")
         bias = item.get("pattern_bias")
         formation = item.get("formation_status")
+        attempt = item.get("breakout_attempt_context") or {}
+        suffix = ""
+        if attempt.get("available"):
+            preferred = attempt.get("preferred_interpretation")
+            risk = attempt.get("fakeout_risk")
+            suffix = f"; {preferred}/{risk}"
         if name:
-            parts.append(f"{tf}: {name} ({formation}/{bias})")
+            parts.append(f"{tf}: {name} ({formation}/{bias}{suffix})")
     if not parts:
         return "Nenhum padrao grafico relevante detectado; usar suporte/resistencia, candle fechado e gatilho operacional."
     return " | ".join(parts)
@@ -546,6 +734,7 @@ def enrich_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "decision_semantics": "CONTEXT_ONLY",
         "priority_rule": "Patterns explain setup, consolidation, trigger and invalidation; they do not override Historical Intelligence or hard blocks.",
         "formation_rule": "Patterns in FORMING/CANDIDATE_NOT_CONFIRMED stage indicate possible consolidation or setup preparation; do not treat them as confirmed direction.",
+        "breakout_attempt_rule": "First/second breakout attempts have fakeout risk; third attempt can be more relevant only with closed candle, acceptance, volume and operational permission.",
         "timeframe_role": {
             "M15": "setup_pattern",
             "M5": "operational_confirmation",
