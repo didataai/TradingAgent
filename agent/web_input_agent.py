@@ -32,6 +32,10 @@ payload com camadas auxiliares, quando os scripts estiverem disponiveis:
    - transforma alto risco de fakeout em leitura de setup de retorno/fade,
      sem virar ordem automatica.
 
+5. Console summary
+   - apenas imprime um resumo curto no PowerShell/Linux apos o enrichment.
+   - nao altera payload, prompt, MARKET_DATA ou decisao.
+
 Nenhuma dessas camadas sobrescreve Historical Intelligence, Chronos hard blocks,
 Personal Guard ou regra M5 pessoal.
 
@@ -285,6 +289,85 @@ def run_fakeout_return_setup(symbol: str, payload: Path) -> bool:
     )
 
 
+def first_present(*values: Any, default: str = "NA") -> str:
+    for value in values:
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    return default
+
+
+def deep_find_first(obj: Any, keys: tuple[str, ...]) -> Any:
+    """Busca curta e defensiva para campos decisórios em payloads com schemas variáveis."""
+    if isinstance(obj, dict):
+        for key in keys:
+            if key in obj and obj[key] not in (None, ""):
+                return obj[key]
+        for value in obj.values():
+            found = deep_find_first(value, keys)
+            if found not in (None, ""):
+                return found
+    elif isinstance(obj, list):
+        for value in obj:
+            found = deep_find_first(value, keys)
+            if found not in (None, ""):
+                return found
+    return None
+
+
+def pick_console_tf(data: dict[str, Any], priority: tuple[str, ...] = ("M15", "M5", "M1", "H1")) -> tuple[str | None, dict[str, Any]]:
+    tfs = data.get("timeframes", {}) if isinstance(data, dict) else {}
+    if not isinstance(tfs, dict):
+        return None, {}
+    for tf in priority:
+        item = tfs.get(tf)
+        if isinstance(item, dict) and item.get("available", True):
+            return tf, item
+    for tf, item in tfs.items():
+        if isinstance(item, dict) and item.get("available", True):
+            return str(tf), item
+    return None, {}
+
+
+def build_console_operational_summary(payload: dict[str, Any]) -> str:
+    """Resumo curto apenas para console; nao altera prompt, JSON ou MARKET_DATA."""
+    med = first_present(
+        deep_find_first(payload.get("historical_intelligence", {}), ("preferred_action_now", "formal_mtf_decision", "action_now")),
+        deep_find_first(payload.get("market_intelligence", {}), ("preferred_action_now", "formal_mtf_decision", "action_now")),
+        deep_find_first(payload, ("preferred_action_now",)),
+        default="NA",
+    )
+
+    edge_ctx = payload.get("pattern_attempt_edge_context", {}) or {}
+    edge_tf, edge = pick_console_tf(edge_ctx)
+    if edge_tf:
+        edge_txt = (
+            f"{edge_tf}:{first_present(edge.get('pattern_name'))} "
+            f"att={first_present(edge.get('attempt_number'))} "
+            f"h={first_present(edge.get('current_hour_brt'))} "
+            f"sess={first_present(edge.get('session_name'))} "
+            f"dow={first_present(edge.get('day_of_week'))} "
+            f"wom={first_present(edge.get('week_of_month'))} "
+            f"{first_present(edge.get('preferred_interpretation'))}/{first_present(edge.get('edge_classification'))}"
+        )
+    else:
+        edge_txt = "NA"
+
+    fakeout_ctx = payload.get("fakeout_return_setup_context", {}) or {}
+    fake_tf, fake = pick_console_tf(fakeout_ctx)
+    if fake_tf:
+        fake_txt = (
+            f"{fake_tf}:{first_present(fake.get('setup_state'))} "
+            f"side={first_present(fake.get('side_if_confirmed'))}"
+        )
+    else:
+        fake_txt = "NA"
+
+    return f"Resumo operacional | med={med} | edge={edge_txt} | fakeout={fake_txt}"
+
+
 def build_prompt(*, config: dict[str, Any], role: dict[str, Any], profile: str, payload: dict[str, Any]) -> tuple[str, Path]:
     source_path = prompt_path_for_profile(config, role, profile)
     source = source_path.read_text(encoding="utf-8")
@@ -313,8 +396,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--profile", choices=["quick", "detailed"], help="Sobrescreve temporariamente o perfil configurado.")
     parser.add_argument("--skip-ema-enrichment", action="store_true", help="Não enriquece o payload com execution_quality antes do input Web.")
     parser.add_argument("--skip-technical-patterns", action="store_true", help="Não enriquece o payload com technical_patterns_context antes do input Web.")
-    parser.add_argument("--skip-pattern-attempt-edge", action="store_true", help="Não enriquece o payload com pattern_attempt_edge_context antes do input Web.")
-    parser.add_argument("--skip-fakeout-return-setup", action="store_true", help="Não enriquece o payload com fakeout_return_setup_context antes do input Web.")
+    parser.add_argument("--skip-pattern-attempt-edge", action="store_true", help="Não enriquece o payload com pattern_attempt_edge_context antes do Web input.")
+    parser.add_argument("--skip-fakeout-return-setup", action="store_true", help="Não enriquece o payload com fakeout_return_setup_context antes do Web input.")
     parser.add_argument("--write-timeframe-parquets", action="store_true", help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.")
     return parser.parse_args()
 
@@ -362,6 +445,7 @@ def main() -> int:
         latest_path = debug_dir / f"{symbol}_{analyst_id}_latest_input.txt"
         write_text_atomic(latest_path, prompt)
 
+        safe_print(build_console_operational_summary(payload))
         safe_print(
             "Web input gerado |",
             f"symbol={symbol} | analyst={analyst_id} | profile={profile}",
