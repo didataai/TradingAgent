@@ -26,6 +26,12 @@ payload com camadas auxiliares, quando os scripts estiverem disponiveis:
    - filtra estatisticas de fakeout/aceitacao por padrao, tentativa, horario,
      sessao, dia da semana e semana do mes.
 
+4. Fakeout Return Setup Context
+   - script: tools/fakeout_return_setup_payload_enricher.py
+   - semantica: CONTEXT_ONLY / WARNING_ONLY
+   - transforma alto risco de fakeout em leitura de setup de retorno/fade,
+     sem virar ordem automatica.
+
 Nenhuma dessas camadas sobrescreve Historical Intelligence, Chronos hard blocks,
 Personal Guard ou regra M5 pessoal.
 
@@ -39,6 +45,7 @@ Exemplos:
     python agent/web_input_agent.py --symbol GOLD --skip-ema-enrichment
     python agent/web_input_agent.py --symbol GOLD --skip-technical-patterns
     python agent/web_input_agent.py --symbol GOLD --skip-pattern-attempt-edge
+    python agent/web_input_agent.py --symbol GOLD --skip-fakeout-return-setup
 """
 
 from __future__ import annotations
@@ -269,6 +276,15 @@ def run_pattern_attempt_edge(symbol: str, payload: Path) -> bool:
     )
 
 
+def run_fakeout_return_setup(symbol: str, payload: Path) -> bool:
+    return run_helper_script(
+        label=f"Fakeout Return Setup enrichment | symbol={symbol}",
+        script=ROOT / "tools" / "fakeout_return_setup_payload_enricher.py",
+        command_args=["--symbol", symbol, "--payload", str(payload)],
+        required=False,
+    )
+
+
 def build_prompt(*, config: dict[str, Any], role: dict[str, Any], profile: str, payload: dict[str, Any]) -> tuple[str, Path]:
     source_path = prompt_path_for_profile(config, role, profile)
     source = source_path.read_text(encoding="utf-8")
@@ -298,6 +314,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-ema-enrichment", action="store_true", help="Não enriquece o payload com execution_quality antes do input Web.")
     parser.add_argument("--skip-technical-patterns", action="store_true", help="Não enriquece o payload com technical_patterns_context antes do input Web.")
     parser.add_argument("--skip-pattern-attempt-edge", action="store_true", help="Não enriquece o payload com pattern_attempt_edge_context antes do input Web.")
+    parser.add_argument("--skip-fakeout-return-setup", action="store_true", help="Não enriquece o payload com fakeout_return_setup_context antes do input Web.")
     parser.add_argument("--write-timeframe-parquets", action="store_true", help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.")
     return parser.parse_args()
 
@@ -315,6 +332,7 @@ def main() -> int:
         ema_used = False
         technical_patterns_used = False
         pattern_attempt_edge_used = False
+        fakeout_return_setup_used = False
 
         if not args.skip_ema_enrichment:
             ema_used = run_ema_enrichment(
@@ -328,6 +346,9 @@ def main() -> int:
 
         if not args.skip_pattern_attempt_edge:
             pattern_attempt_edge_used = run_pattern_attempt_edge(symbol=symbol, payload=current_payload_path)
+
+        if not args.skip_fakeout_return_setup:
+            fakeout_return_setup_used = run_fakeout_return_setup(symbol=symbol, payload=current_payload_path)
 
         payload = read_json(current_payload_path)
         prompt, _source_prompt_path = build_prompt(
@@ -347,6 +368,7 @@ def main() -> int:
             f"| ema={ema_used}",
             f"| technical_patterns={technical_patterns_used}",
             f"| pattern_attempt_edge={pattern_attempt_edge_used}",
+            f"| fakeout_return_setup={fakeout_return_setup_used}",
             f"| chars={len(prompt)} | llm_called=False",
         )
         safe_print(f"Arquivo gerado: {latest_path}")
