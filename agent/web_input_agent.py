@@ -34,6 +34,7 @@ payload com camadas auxiliares, quando os scripts estiverem disponiveis:
 
 5. Console summary
    - apenas imprime um resumo curto no PowerShell/Linux apos o enrichment.
+   - exibe patterns/edge/fakeout em linhas por timeframe.
    - nao altera payload, prompt, MARKET_DATA ou decisao.
 
 Nenhuma dessas camadas sobrescreve Historical Intelligence, Chronos hard blocks,
@@ -64,6 +65,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "tradingagent.json"
+CONSOLE_TF_ORDER = ("M15", "M5", "M1", "H1")
 
 ANALYST_SCHEMA = '''
 Responda SOMENTE com JSON válido, sem Markdown:
@@ -317,18 +319,84 @@ def deep_find_first(obj: Any, keys: tuple[str, ...]) -> Any:
     return None
 
 
-def pick_console_tf(data: dict[str, Any], priority: tuple[str, ...] = ("M15", "M5", "M1", "H1")) -> tuple[str | None, dict[str, Any]]:
+def tf_items(data: dict[str, Any], order: tuple[str, ...] = CONSOLE_TF_ORDER) -> list[tuple[str, dict[str, Any]]]:
     tfs = data.get("timeframes", {}) if isinstance(data, dict) else {}
     if not isinstance(tfs, dict):
-        return None, {}
-    for tf in priority:
+        return []
+    items: list[tuple[str, dict[str, Any]]] = []
+    for tf in order:
         item = tfs.get(tf)
         if isinstance(item, dict) and item.get("available", True):
-            return tf, item
+            items.append((tf, item))
     for tf, item in tfs.items():
-        if isinstance(item, dict) and item.get("available", True):
-            return str(tf), item
-    return None, {}
+        if tf not in order and isinstance(item, dict) and item.get("available", True):
+            items.append((str(tf), item))
+    return items
+
+
+def split_summary_by_tf(summary: Any) -> dict[str, str]:
+    text = str(summary or "").strip()
+    rows: dict[str, str] = {}
+    if not text:
+        return rows
+    for raw_part in text.split(" | "):
+        part = raw_part.strip()
+        if ":" not in part:
+            continue
+        tf, rest = part.split(":", 1)
+        tf = tf.strip().upper()
+        if tf:
+            rows[tf] = rest.strip()
+    return rows
+
+
+def format_pattern_row(tf: str, item: dict[str, Any], summary_rows: dict[str, str]) -> str:
+    summary_text = summary_rows.get(tf)
+    if summary_text:
+        return f"    {tf}: {summary_text}"
+
+    main = item.get("main_pattern") or item.get("pattern") or {}
+    pattern = first_present(main.get("name"), item.get("pattern_name"))
+    status = first_present(
+        main.get("formation_status"),
+        main.get("stage"),
+        main.get("status"),
+        item.get("formation_status"),
+        item.get("stage"),
+    )
+    bias = first_present(main.get("bias"), item.get("bias"))
+    read = first_present(
+        main.get("operational_read"),
+        main.get("preferred_interpretation"),
+        item.get("operational_read"),
+        item.get("preferred_interpretation"),
+    )
+    risk = first_present(
+        main.get("fakeout_risk"),
+        item.get("fakeout_risk"),
+        (item.get("breakout_attempt_context") or {}).get("fakeout_risk") if isinstance(item.get("breakout_attempt_context"), dict) else None,
+    )
+    return f"    {tf}: {pattern} ({status}/{bias}; {read}/{risk})"
+
+
+def format_edge_row(tf: str, edge: dict[str, Any]) -> str:
+    return (
+        f"    {tf}: {first_present(edge.get('pattern_name'))} | "
+        f"att={first_present(edge.get('attempt_number'))} | "
+        f"h={first_present(edge.get('current_hour_brt'))} | "
+        f"sess={first_present(edge.get('session_name'))} | "
+        f"day={first_present(edge.get('day_of_week'))} | "
+        f"wom={first_present(edge.get('week_of_month'))} | "
+        f"{first_present(edge.get('preferred_interpretation'))}/{first_present(edge.get('edge_classification'))}"
+    )
+
+
+def format_fakeout_row(tf: str, fake: dict[str, Any]) -> str:
+    return (
+        f"    {tf}: {first_present(fake.get('pattern_name'))} | "
+        f"{first_present(fake.get('setup_state'))} | "
+        f"side={first_present(fake.get('side_if_confirmed'))}"
+    )
 
 
 def build_console_operational_summary(payload: dict[str, Any]) -> str:
@@ -340,47 +408,44 @@ def build_console_operational_summary(payload: dict[str, Any]) -> str:
         default="NA",
     )
 
+    tech_ctx = payload.get("technical_patterns_context", {}) or {}
     edge_ctx = payload.get("pattern_attempt_edge_context", {}) or {}
-    edge_tf, edge = pick_console_tf(edge_ctx)
-
     fakeout_ctx = payload.get("fakeout_return_setup_context", {}) or {}
-    fake_tf, fake = pick_console_tf(fakeout_ctx)
 
     lines = [
         "Resumo operacional",
         f"  med: {med}",
+        "",
+        "  patterns:",
     ]
 
-    if edge_tf:
-        lines.extend([
-            "  edge:",
-            f"    tf: {edge_tf}",
-            f"    pattern: {first_present(edge.get('pattern_name'))}",
-            f"    attempt: {first_present(edge.get('attempt_number'))}",
-            f"    hour_brt: {first_present(edge.get('current_hour_brt'))}",
-            f"    session: {first_present(edge.get('session_name'))}",
-            f"    day: {first_present(edge.get('day_of_week'))}",
-            f"    week_month: {first_present(edge.get('week_of_month'))}",
-            f"    read: {first_present(edge.get('preferred_interpretation'))} / {first_present(edge.get('edge_classification'))}",
-        ])
+    tech_items = tf_items(tech_ctx)
+    tech_summary_rows = split_summary_by_tf(tech_ctx.get("summary"))
+    if tech_items:
+        for tf, item in tech_items:
+            lines.append(format_pattern_row(tf, item, tech_summary_rows))
+    elif tech_summary_rows:
+        for tf in CONSOLE_TF_ORDER:
+            if tf in tech_summary_rows:
+                lines.append(f"    {tf}: {tech_summary_rows[tf]}")
     else:
-        lines.extend([
-            "  edge:",
-            "    status: NA",
-        ])
+        lines.append("    status: NA")
 
-    if fake_tf:
-        lines.extend([
-            "  fakeout:",
-            f"    tf: {fake_tf}",
-            f"    state: {first_present(fake.get('setup_state'))}",
-            f"    side_if_confirmed: {first_present(fake.get('side_if_confirmed'))}",
-        ])
+    lines.extend(["", "  edge:"])
+    edge_items = tf_items(edge_ctx)
+    if edge_items:
+        for tf, edge in edge_items:
+            lines.append(format_edge_row(tf, edge))
     else:
-        lines.extend([
-            "  fakeout:",
-            "    status: NA",
-        ])
+        lines.append("    status: NA")
+
+    lines.extend(["", "  fakeout:"])
+    fake_items = tf_items(fakeout_ctx)
+    if fake_items:
+        for tf, fake in fake_items:
+            lines.append(format_fakeout_row(tf, fake))
+    else:
+        lines.append("    status: NA")
 
     return "\n".join(lines)
 
