@@ -9,12 +9,25 @@ usando o mesmo prompt e o mesmo MARKET_DATA que seriam enviados a LLM local,
 sem chamar Ollama, API externa, critico ou arbitro.
 
 Antes de montar o input Web, este agente tenta enriquecer automaticamente o
-payload com a camada EMA Exhaustion / Execution Quality, quando o script
-`tools/ema_exhaustion_payload_enricher.py` estiver disponivel.
+payload com camadas auxiliares, quando os scripts estiverem disponiveis:
 
-Tambem tenta enriquecer o payload com `technical_patterns_context`, quando o
-script `tools/technical_patterns_payload_enricher.py` estiver disponivel.
-Essa camada e apenas contexto grafico; nao decide BUY/SELL/WAIT.
+1. EMA Exhaustion / Execution Quality
+   - script: tools/ema_exhaustion_payload_enricher.py
+   - semantica: WARNING_ONLY
+
+2. Technical Patterns Context
+   - script: tools/technical_patterns_payload_enricher.py
+   - semantica: CONTEXT_ONLY
+
+3. Pattern Attempt Edge Context
+   - script: tools/pattern_attempt_edge_payload_enricher.py
+   - semantica: CONTEXT_ONLY / WARNING_ONLY
+   - le os CSVs de data/research/pattern_attempt/<SYMBOL>/ quando existirem
+   - filtra estatisticas de fakeout/aceitacao por padrao, tentativa, horario,
+     sessao, dia da semana e semana do mes.
+
+Nenhuma dessas camadas sobrescreve Historical Intelligence, Chronos hard blocks,
+Personal Guard ou regra M5 pessoal.
 
 Saida:
     data/debug_llm/{SYMBOL}_{ANALYST}_latest_input.txt
@@ -25,6 +38,7 @@ Exemplos:
     python agent/web_input_agent.py --symbol GOLD --profile quick
     python agent/web_input_agent.py --symbol GOLD --skip-ema-enrichment
     python agent/web_input_agent.py --symbol GOLD --skip-technical-patterns
+    python agent/web_input_agent.py --symbol GOLD --skip-pattern-attempt-edge
 """
 
 from __future__ import annotations
@@ -37,10 +51,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "tradingagent.json"
-
 
 ANALYST_SCHEMA = '''
 Responda SOMENTE com JSON válido, sem Markdown:
@@ -87,7 +99,6 @@ Regras adicionais:
 - Não invente níveis, probabilidades ou fatos ausentes.
 - A memória serve para testar a tese anterior, não para defendê-la.
 '''
-
 
 QUICK_ANALYST_SCHEMA = '''
 
@@ -200,16 +211,10 @@ def payload_path(config: dict[str, Any], symbol: str) -> Path:
     return ROOT / str(template).format(symbol=symbol)
 
 
-def run_helper_script(
-    *,
-    label: str,
-    script: Path,
-    command_args: list[str],
-    required: bool,
-) -> None:
+def run_helper_script(*, label: str, script: Path, command_args: list[str], required: bool) -> bool:
     if not script.exists():
         safe_print(f"[WARN] {label} ignorado: script não encontrado |", f"path={script}")
-        return
+        return False
 
     command = [sys.executable, str(script), *command_args]
     safe_print(f"[INFO] Executando {label} antes do Web input")
@@ -230,13 +235,15 @@ def run_helper_script(
         if required:
             raise RuntimeError(message)
         safe_print("[WARN]", message)
+        return False
+    return True
 
 
-def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bool) -> None:
+def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bool) -> bool:
     args = ["--symbol", symbol, "--payload", str(payload)]
     if update_timeframe_parquets:
         args.append("--write-timeframe-parquets")
-    run_helper_script(
+    return run_helper_script(
         label=f"EMA/Execution Quality enrichment | symbol={symbol}",
         script=ROOT / "tools" / "ema_exhaustion_payload_enricher.py",
         command_args=args,
@@ -244,8 +251,8 @@ def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bo
     )
 
 
-def run_technical_patterns(symbol: str, payload: Path) -> None:
-    run_helper_script(
+def run_technical_patterns(symbol: str, payload: Path) -> bool:
+    return run_helper_script(
         label=f"Technical Patterns enrichment | symbol={symbol}",
         script=ROOT / "tools" / "technical_patterns_payload_enricher.py",
         command_args=["--symbol", symbol, "--payload", str(payload)],
@@ -253,13 +260,16 @@ def run_technical_patterns(symbol: str, payload: Path) -> None:
     )
 
 
-def build_prompt(
-    *,
-    config: dict[str, Any],
-    role: dict[str, Any],
-    profile: str,
-    payload: dict[str, Any],
-) -> tuple[str, Path]:
+def run_pattern_attempt_edge(symbol: str, payload: Path) -> bool:
+    return run_helper_script(
+        label=f"Pattern Attempt Edge enrichment | symbol={symbol}",
+        script=ROOT / "tools" / "pattern_attempt_edge_payload_enricher.py",
+        command_args=["--symbol", symbol, "--payload", str(payload)],
+        required=False,
+    )
+
+
+def build_prompt(*, config: dict[str, Any], role: dict[str, Any], profile: str, payload: dict[str, Any]) -> tuple[str, Path]:
     source_path = prompt_path_for_profile(config, role, profile)
     source = source_path.read_text(encoding="utf-8")
     market_data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
@@ -283,31 +293,12 @@ def parse_args() -> argparse.Namespace:
         description="Gera o input completo para análise manual via ChatGPT Web, sem chamar LLM."
     )
     parser.add_argument("--symbol", required=True, help="Símbolo, por exemplo GOLD.")
-    parser.add_argument(
-        "--analyst",
-        default="analyst_1",
-        help="Analista usado para resolver prompt/modelo. Padrão: analyst_1.",
-    )
-    parser.add_argument(
-        "--profile",
-        choices=["quick", "detailed"],
-        help="Sobrescreve temporariamente o perfil configurado.",
-    )
-    parser.add_argument(
-        "--skip-ema-enrichment",
-        action="store_true",
-        help="Não enriquece o payload com execution_quality antes do input Web.",
-    )
-    parser.add_argument(
-        "--skip-technical-patterns",
-        action="store_true",
-        help="Não enriquece o payload com technical_patterns_context antes do input Web.",
-    )
-    parser.add_argument(
-        "--write-timeframe-parquets",
-        action="store_true",
-        help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.",
-    )
+    parser.add_argument("--analyst", default="analyst_1", help="Analista usado para resolver prompt/modelo. Padrão: analyst_1.")
+    parser.add_argument("--profile", choices=["quick", "detailed"], help="Sobrescreve temporariamente o perfil configurado.")
+    parser.add_argument("--skip-ema-enrichment", action="store_true", help="Não enriquece o payload com execution_quality antes do input Web.")
+    parser.add_argument("--skip-technical-patterns", action="store_true", help="Não enriquece o payload com technical_patterns_context antes do input Web.")
+    parser.add_argument("--skip-pattern-attempt-edge", action="store_true", help="Não enriquece o payload com pattern_attempt_edge_context antes do input Web.")
+    parser.add_argument("--write-timeframe-parquets", action="store_true", help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.")
     return parser.parse_args()
 
 
@@ -321,15 +312,22 @@ def main() -> int:
         role = analyst_role(config, analyst_id)
         current_payload_path = payload_path(config, symbol)
 
+        ema_used = False
+        technical_patterns_used = False
+        pattern_attempt_edge_used = False
+
         if not args.skip_ema_enrichment:
-            run_ema_enrichment(
+            ema_used = run_ema_enrichment(
                 symbol=symbol,
                 payload=current_payload_path,
                 update_timeframe_parquets=args.write_timeframe_parquets,
             )
 
         if not args.skip_technical_patterns:
-            run_technical_patterns(symbol=symbol, payload=current_payload_path)
+            technical_patterns_used = run_technical_patterns(symbol=symbol, payload=current_payload_path)
+
+        if not args.skip_pattern_attempt_edge:
+            pattern_attempt_edge_used = run_pattern_attempt_edge(symbol=symbol, payload=current_payload_path)
 
         payload = read_json(current_payload_path)
         prompt, _source_prompt_path = build_prompt(
@@ -346,7 +344,9 @@ def main() -> int:
         safe_print(
             "Web input gerado |",
             f"symbol={symbol} | analyst={analyst_id} | profile={profile}",
-            f"| technical_patterns={not args.skip_technical_patterns}",
+            f"| ema={ema_used}",
+            f"| technical_patterns={technical_patterns_used}",
+            f"| pattern_attempt_edge={pattern_attempt_edge_used}",
             f"| chars={len(prompt)} | llm_called=False",
         )
         safe_print(f"Arquivo gerado: {latest_path}")
