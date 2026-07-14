@@ -12,6 +12,10 @@ Antes de montar o input Web, este agente tenta enriquecer automaticamente o
 payload com a camada EMA Exhaustion / Execution Quality, quando o script
 `tools/ema_exhaustion_payload_enricher.py` estiver disponivel.
 
+Tambem tenta enriquecer o payload com `technical_patterns_context`, quando o
+script `tools/technical_patterns_payload_enricher.py` estiver disponivel.
+Essa camada e apenas contexto grafico; nao decide BUY/SELL/WAIT.
+
 Saida:
     data/debug_llm/{SYMBOL}_{ANALYST}_latest_input.txt
 
@@ -20,6 +24,7 @@ Exemplos:
     python agent/web_input_agent.py --symbol GOLD --analyst analyst_1
     python agent/web_input_agent.py --symbol GOLD --profile quick
     python agent/web_input_agent.py --symbol GOLD --skip-ema-enrichment
+    python agent/web_input_agent.py --symbol GOLD --skip-technical-patterns
 """
 
 from __future__ import annotations
@@ -195,17 +200,19 @@ def payload_path(config: dict[str, Any], symbol: str) -> Path:
     return ROOT / str(template).format(symbol=symbol)
 
 
-def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bool) -> None:
-    enricher = ROOT / "tools" / "ema_exhaustion_payload_enricher.py"
-    if not enricher.exists():
-        safe_print("[WARN] EMA enrichment ignorado: script não encontrado |", f"path={enricher}")
+def run_helper_script(
+    *,
+    label: str,
+    script: Path,
+    command_args: list[str],
+    required: bool,
+) -> None:
+    if not script.exists():
+        safe_print(f"[WARN] {label} ignorado: script não encontrado |", f"path={script}")
         return
 
-    command = [sys.executable, str(enricher), "--symbol", symbol, "--payload", str(payload)]
-    if update_timeframe_parquets:
-        command.append("--write-timeframe-parquets")
-
-    safe_print("[INFO] Executando EMA/Execution Quality enrichment antes do Web input |", f"symbol={symbol}")
+    command = [sys.executable, str(script), *command_args]
+    safe_print(f"[INFO] Executando {label} antes do Web input")
     completed = subprocess.run(
         command,
         cwd=ROOT,
@@ -219,9 +226,31 @@ def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bo
         for line in completed.stdout.splitlines():
             safe_print("   ", line)
     if completed.returncode != 0:
-        raise RuntimeError(
-            f"EMA enrichment falhou antes do Web input. return_code={completed.returncode}"
-        )
+        message = f"{label} falhou antes do Web input. return_code={completed.returncode}"
+        if required:
+            raise RuntimeError(message)
+        safe_print("[WARN]", message)
+
+
+def run_ema_enrichment(symbol: str, payload: Path, update_timeframe_parquets: bool) -> None:
+    args = ["--symbol", symbol, "--payload", str(payload)]
+    if update_timeframe_parquets:
+        args.append("--write-timeframe-parquets")
+    run_helper_script(
+        label=f"EMA/Execution Quality enrichment | symbol={symbol}",
+        script=ROOT / "tools" / "ema_exhaustion_payload_enricher.py",
+        command_args=args,
+        required=True,
+    )
+
+
+def run_technical_patterns(symbol: str, payload: Path) -> None:
+    run_helper_script(
+        label=f"Technical Patterns enrichment | symbol={symbol}",
+        script=ROOT / "tools" / "technical_patterns_payload_enricher.py",
+        command_args=["--symbol", symbol, "--payload", str(payload)],
+        required=False,
+    )
 
 
 def build_prompt(
@@ -270,6 +299,11 @@ def parse_args() -> argparse.Namespace:
         help="Não enriquece o payload com execution_quality antes do input Web.",
     )
     parser.add_argument(
+        "--skip-technical-patterns",
+        action="store_true",
+        help="Não enriquece o payload com technical_patterns_context antes do input Web.",
+    )
+    parser.add_argument(
         "--write-timeframe-parquets",
         action="store_true",
         help="Atualiza também os parquets data/<SYMBOL>_<TF>.parquet durante o enrichment.",
@@ -294,6 +328,9 @@ def main() -> int:
                 update_timeframe_parquets=args.write_timeframe_parquets,
             )
 
+        if not args.skip_technical_patterns:
+            run_technical_patterns(symbol=symbol, payload=current_payload_path)
+
         payload = read_json(current_payload_path)
         prompt, _source_prompt_path = build_prompt(
             config=config,
@@ -309,6 +346,7 @@ def main() -> int:
         safe_print(
             "Web input gerado |",
             f"symbol={symbol} | analyst={analyst_id} | profile={profile}",
+            f"| technical_patterns={not args.skip_technical_patterns}",
             f"| chars={len(prompt)} | llm_called=False",
         )
         safe_print(f"Arquivo gerado: {latest_path}")
