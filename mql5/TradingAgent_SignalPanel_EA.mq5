@@ -2,11 +2,11 @@
 //| TradingAgent_SignalPanel_EA.mq5                                  |
 //| Painel/alerta operacional baseado nas regras estudadas            |
 //|                                                                  |
-//| v7: breakout power + entry check, SIGNAL ONLY.                    |
+//| v8: level zones por TF, breakout power e entry check compacto.    |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "7.00"
-#property description "TradingAgent signal-only panel: MA research replica, event state, breakout power, entry check."
+#property version   "8.00"
+#property description "TradingAgent signal-only panel: MA research replica, event state, level zones, breakout power, M5/M1 filter."
 
 // -------------------------------------------------------------------
 // IMPORTANTE
@@ -15,13 +15,11 @@
 // Nao usa CTrade, nao chama OrderSend, nao abre/fecha posicoes.
 // Pode ser usado em conta real como painel visual, mas valide sempre.
 //
-// Nota de alinhamento com o TradingAgent Python:
-// - No Python, Technical Patterns usa pattern_geometry, candidates, levels,
-//   breakout_attempt_context, fakeout edge e setup de retorno.
-// - Neste EA MQL5, o breakout atual e uma replica operacional simples:
-//   high/low do candle fechado anterior de cada TF.
-// - Portanto: BREAKOUT POWER aqui mede alinhamento de rompimento por candles,
-//   nao padroes graficos completos multi-toque.
+// Nota de fidelidade com o projeto Python:
+// - O Python possui leitura mais rica: pattern_geometry, nearby level zones,
+//   swings/ZigZag, BOS/CHOCH, sweeps, FVG e breakout_attempt_context.
+// - Este EA v8 aproxima a leitura local usando candle fechado anterior e
+//   zonas simples por lookback/swing. Nao e uma replica completa do Python.
 
 input string             InpSymbol                    = "";
 input bool               InpSignalOnlyMode            = true;
@@ -75,17 +73,32 @@ input double             InpBothStopATR               = 1.3;
 input double             InpBothTargetATR             = 1.0;
 input int                InpBothMaxHoldMin            = 15;
 
+// Niveis / breakout local
+input bool               InpUseLevelZonesForBreakout  = true;
+input int                InpZoneLookbackBars          = 36;
+input double             InpZoneToleranceATR          = 0.18;
+input int                InpAttemptLookbackBars       = 30;
+input double             InpAttemptToleranceATR       = 0.20;
+
 // Filtros operacionais
 input bool               InpRequireM5Permission       = true;
 input bool               InpRequireM1Trigger          = true;
-input int                InpAttemptLookbackBars       = 30;
-input double             InpAttemptToleranceATR       = 0.20;
 input double             InpMaxM1RangeATRWarning      = 1.50;
 
 string g_symbol;
 string g_last_action = "";
 datetime g_last_alert_time = 0;
 string PREFIX = "TA_PANEL_";
+
+struct TFState
+{
+   string pattern;
+   int attempt;
+   string basis;
+   double breakout_level;
+   double support;
+   double resistance;
+};
 
 struct SignalContext
 {
@@ -105,18 +118,14 @@ struct SignalContext
    string both_sell_state;
    string both_buy_state;
 
-   string h1_pattern;
-   string m15_pattern;
-   string m5_pattern;
-   string m1_pattern;
-   int h1_attempt;
-   int m15_attempt;
-   int m5_attempt;
-   int m1_attempt;
+   TFState h1;
+   TFState m15;
+   TFState m5;
+   TFState m1;
 
    string breakout_power;
    string breakout_power_detail;
-   string breakout_basis;
+   string breakout_basis_summary;
 
    bool m5_sell_ok;
    bool m5_buy_ok;
@@ -127,9 +136,10 @@ struct SignalContext
    string m1_sell_detail;
    string m1_buy_detail;
 
-   string entry_check;
-   string entry_blocked_by;
-   string entry_next;
+   string entry_side;
+   string entry_status;
+   string blocked_by;
+   string next_step;
 };
 
 //+------------------------------------------------------------------+
@@ -226,7 +236,6 @@ double GetATR(const ENUM_TIMEFRAMES tf, const int period=14, const int shift=1)
 {
    int handle = iATR(g_symbol, tf, period);
    if(handle == INVALID_HANDLE) return 0.0;
-
    double buffer[];
    ArraySetAsSeries(buffer, true);
    int copied = CopyBuffer(handle, 0, shift, 1, buffer);
@@ -239,7 +248,6 @@ double GetMA(const ENUM_TIMEFRAMES tf, const int period, const int shift)
 {
    int handle = iMA(g_symbol, tf, period, 0, InpMAMethod, InpMAPrice);
    if(handle == INVALID_HANDLE) return 0.0;
-
    double buffer[];
    ArraySetAsSeries(buffer, true);
    int copied = CopyBuffer(handle, 0, shift, 1, buffer);
@@ -268,8 +276,7 @@ bool MAAlignedTF(const ENUM_TIMEFRAMES tf, const int fast, const int mid, const 
    else
       ok = (maFast > 0 && maMid > 0 && maSlow > 0 && maFast > maMid && maMid > maSlow && closev >= maFast);
 
-   detail = StringFormat("%s %s close=%.2f ma(%d/%d/%d)=%.2f/%.2f/%.2f",
-                         TFName(tf), side, closev, fast, mid, slow, maFast, maMid, maSlow);
+   detail = StringFormat("%s %s close=%.2f ma(%d/%d/%d)=%.2f/%.2f/%.2f", TFName(tf), side, closev, fast, mid, slow, maFast, maMid, maSlow);
    return ok;
 }
 
@@ -312,7 +319,33 @@ string MAReplicaState(const string name, const string side, const int fast, cons
 }
 
 //+------------------------------------------------------------------+
-int CountAttempts(const ENUM_TIMEFRAMES tf, const bool upper)
+bool CalculateLevelZone(const ENUM_TIMEFRAMES tf, double &support, double &resistance, string &basis)
+{
+   int bars = MathMax(10, InpZoneLookbackBars);
+   MqlRates r[];
+   if(!GetRates(tf, bars + 5, r))
+   {
+      support = 0.0;
+      resistance = 0.0;
+      basis = "no_data";
+      return false;
+   }
+
+   // usa candles fechados anteriores, ignorando candle atual e candle imediatamente anterior
+   double highv = r[2].high;
+   double lowv  = r[2].low;
+   for(int i = 2; i < bars + 2; i++)
+   {
+      if(r[i].high > highv) highv = r[i].high;
+      if(r[i].low  < lowv)  lowv  = r[i].low;
+   }
+   support = lowv;
+   resistance = highv;
+   basis = "zone_lookback_" + IntegerToString(bars);
+   return true;
+}
+
+int CountAttempts(const ENUM_TIMEFRAMES tf, const bool upper, const double level)
 {
    MqlRates r[];
    int need = MathMax(10, InpAttemptLookbackBars + 3);
@@ -320,122 +353,96 @@ int CountAttempts(const ENUM_TIMEFRAMES tf, const bool upper)
 
    double atr = GetATR(tf, 14, 1);
    if(atr <= 0.0) atr = MathMax(_Point, MathAbs(r[1].high - r[1].low));
-   double ref = (upper ? r[1].high : r[1].low);
    double tol = atr * InpAttemptToleranceATR;
    int attempts = 0;
 
-   for(int i = 2; i < need; i++)
+   for(int i = 1; i < need; i++)
    {
       double v = (upper ? r[i].high : r[i].low);
-      if(MathAbs(v - ref) <= tol) attempts++;
+      if(MathAbs(v - level) <= tol) attempts++;
    }
-
-   attempts++;
+   if(attempts < 1) attempts = 1;
    if(attempts > 3) attempts = 3;
    return attempts;
 }
 
-string PatternTF(const ENUM_TIMEFRAMES tf, int &attempt)
+void BuildTFState(const ENUM_TIMEFRAMES tf, TFState &st)
 {
+   st.pattern = "NO_DATA";
+   st.attempt = 0;
+   st.basis = "none";
+   st.breakout_level = 0.0;
+   st.support = 0.0;
+   st.resistance = 0.0;
+
    MqlRates r[];
-   if(!GetRates(tf, 4, r))
-   {
-      attempt = 0;
-      return "NO_DATA";
-   }
+   if(!GetRates(tf, MathMax(8, InpZoneLookbackBars + 5), r)) return;
 
    double price = (Bid() + Ask()) / 2.0;
-   bool breakoutUp = price > r[1].high;
-   bool breakoutDn = price < r[1].low;
-   bool fakeUp = (r[0].high > r[1].high && price <= r[1].high);
-   bool fakeDn = (r[0].low < r[1].low && price >= r[1].low);
-   bool inside = (price <= r[1].high && price >= r[1].low);
+   double atr = GetATR(tf, 14, 1);
+   if(atr <= 0.0) atr = MathMax(_Point, MathAbs(r[1].high - r[1].low));
+   double tol = atr * InpZoneToleranceATR;
 
-   if(fakeUp){ attempt = CountAttempts(tf, true); return "FAKEOUT_UP"; }
-   if(fakeDn){ attempt = CountAttempts(tf, false); return "FAKEOUT_DOWN"; }
-   if(breakoutUp){ attempt = CountAttempts(tf, true); return "BREAKOUT_UP_LIVE"; }
-   if(breakoutDn){ attempt = CountAttempts(tf, false); return "BREAKOUT_DOWN_LIVE"; }
-   if(inside){ attempt = 1; return "INSIDE_OR_CONSOLIDATION"; }
+   double prevHigh = r[1].high;
+   double prevLow  = r[1].low;
+   double support = 0.0;
+   double resistance = 0.0;
+   string basis = "prev_closed_candle";
+   bool hasZone = false;
 
-   attempt = 1;
-   return "RANGE_CONTEXT";
-}
+   if(InpUseLevelZonesForBreakout)
+      hasZone = CalculateLevelZone(tf, support, resistance, basis);
 
-bool PatternSupportsSide(const string pattern, const string side, const bool fakeout_mode)
-{
-   if(side == "BUY")
+   double upLevel = hasZone ? resistance : prevHigh;
+   double dnLevel = hasZone ? support : prevLow;
+
+   st.support = hasZone ? support : prevLow;
+   st.resistance = hasZone ? resistance : prevHigh;
+   st.basis = hasZone ? basis : "prev_closed_candle";
+
+   bool breakoutUp = price > upLevel + tol;
+   bool breakoutDn = price < dnLevel - tol;
+   bool fakeUp = (r[0].high > upLevel + tol && price <= upLevel);
+   bool fakeDn = (r[0].low < dnLevel - tol && price >= dnLevel);
+   bool inside = (price <= upLevel && price >= dnLevel);
+
+   if(fakeUp)
    {
-      if(fakeout_mode) return pattern == "FAKEOUT_DOWN";
-      return pattern == "BREAKOUT_UP_LIVE";
+      st.pattern = "FAKEOUT_UP";
+      st.breakout_level = upLevel;
+      st.attempt = CountAttempts(tf, true, upLevel);
+      return;
    }
-   if(side == "SELL")
+   if(fakeDn)
    {
-      if(fakeout_mode) return pattern == "FAKEOUT_UP";
-      return pattern == "BREAKOUT_DOWN_LIVE";
+      st.pattern = "FAKEOUT_DOWN";
+      st.breakout_level = dnLevel;
+      st.attempt = CountAttempts(tf, false, dnLevel);
+      return;
    }
-   return false;
-}
-
-bool PatternOpposesSide(const string pattern, const string side, const bool fakeout_mode)
-{
-   if(side == "BUY")
+   if(breakoutUp)
    {
-      if(fakeout_mode) return pattern == "FAKEOUT_UP";
-      return pattern == "BREAKOUT_DOWN_LIVE";
+      st.pattern = "BREAKOUT_UP_LIVE";
+      st.breakout_level = upLevel;
+      st.attempt = CountAttempts(tf, true, upLevel);
+      return;
    }
-   if(side == "SELL")
+   if(breakoutDn)
    {
-      if(fakeout_mode) return pattern == "FAKEOUT_DOWN";
-      return pattern == "BREAKOUT_UP_LIVE";
+      st.pattern = "BREAKOUT_DOWN_LIVE";
+      st.breakout_level = dnLevel;
+      st.attempt = CountAttempts(tf, false, dnLevel);
+      return;
    }
-   return false;
-}
-
-void BuildBreakoutPower(SignalContext &ctx)
-{
-   string side = ctx.active_side;
-   if(side == "NONE")
+   if(inside)
    {
-      ctx.breakout_power = "NONE";
-      ctx.breakout_power_detail = "side=NONE";
-      ctx.breakout_basis = "prev_closed_candle_HL_by_TF";
+      st.pattern = "INSIDE_OR_CONSOLIDATION";
+      st.attempt = 1;
       return;
    }
 
-   bool fakeout_mode = (StringFind(ctx.active_event, "FAILED_FAKEOUT") >= 0);
-   int score = 0;
-   int opp = 0;
-   string tfs = "";
-
-   if(PatternSupportsSide(ctx.h1_pattern, side, fakeout_mode)){ score += 3; tfs += "H1/"; }
-   if(PatternSupportsSide(ctx.m15_pattern, side, fakeout_mode)){ score += 3; tfs += "M15/"; }
-   if(PatternSupportsSide(ctx.m5_pattern, side, fakeout_mode)){ score += 2; tfs += "M5/"; }
-   if(PatternSupportsSide(ctx.m1_pattern, side, fakeout_mode)){ score += 1; tfs += "M1/"; }
-
-   if(PatternOpposesSide(ctx.h1_pattern, side, fakeout_mode)) opp++;
-   if(PatternOpposesSide(ctx.m15_pattern, side, fakeout_mode)) opp++;
-   if(PatternOpposesSide(ctx.m5_pattern, side, fakeout_mode)) opp++;
-   if(PatternOpposesSide(ctx.m1_pattern, side, fakeout_mode)) opp++;
-
-   if(StringLen(tfs) > 0) tfs = StringSubstr(tfs, 0, StringLen(tfs)-1);
-   else tfs = "none";
-
-   if(score > 0 && opp > 0)
-      ctx.breakout_power = "MIXED";
-   else if(score >= 7)
-      ctx.breakout_power = "VERY_STRONG";
-   else if(score >= 5)
-      ctx.breakout_power = "STRONG";
-   else if(score >= 3)
-      ctx.breakout_power = "MEDIUM";
-   else if(score >= 1)
-      ctx.breakout_power = "WEAK";
-   else
-      ctx.breakout_power = "NONE";
-
-   string mode = fakeout_mode ? "fakeout_return" : "live_breakout";
-   ctx.breakout_power_detail = ctx.breakout_power + " | " + tfs + " | side=" + side + " | mode=" + mode;
-   ctx.breakout_basis = "basis: prev closed candle high/low per TF";
+   st.pattern = "RANGE_CONTEXT";
+   st.attempt = 1;
 }
 
 bool M5SellPermission(string &detail)
@@ -470,8 +477,7 @@ bool M1SellTrigger(string &detail)
    double atr = GetATR(PERIOD_M1, 14, 1);
    double rangeAtr = (atr > 0.0 ? (r[1].high - r[1].low) / atr : 0.0);
    bool ok = previousRed && brokeLow;
-   detail = StringFormat("M1 SELL=%s | prevRed=%s | bid %.2f < low %.2f | rATR=%.2f",
-                         ok ? "OK" : "NO", previousRed ? "Y" : "N", bid, r[1].low, rangeAtr);
+   detail = StringFormat("M1 SELL=%s | prevRed=%s | bid %.2f < low %.2f | rATR=%.2f", ok ? "OK" : "NO", previousRed ? "Y" : "N", bid, r[1].low, rangeAtr);
    return ok;
 }
 
@@ -485,8 +491,7 @@ bool M1BuyTrigger(string &detail)
    double atr = GetATR(PERIOD_M1, 14, 1);
    double rangeAtr = (atr > 0.0 ? (r[1].high - r[1].low) / atr : 0.0);
    bool ok = previousGreen && brokeHigh;
-   detail = StringFormat("M1 BUY=%s | prevGreen=%s | ask %.2f > high %.2f | rATR=%.2f",
-                         ok ? "OK" : "NO", previousGreen ? "Y" : "N", ask, r[1].high, rangeAtr);
+   detail = StringFormat("M1 BUY=%s | prevGreen=%s | ask %.2f > high %.2f | rATR=%.2f", ok ? "OK" : "NO", previousGreen ? "Y" : "N", ask, r[1].high, rangeAtr);
    return ok;
 }
 
@@ -509,82 +514,126 @@ void RegisterMAResult(SignalContext &ctx, const string state, const string label
    }
 }
 
+int PatternSideScore(const TFState &st, const string side)
+{
+   if(side == "BUY" && st.pattern == "BREAKOUT_UP_LIVE") return 1;
+   if(side == "SELL" && st.pattern == "BREAKOUT_DOWN_LIVE") return 1;
+   return 0;
+}
+
+string TFsAlignedForSide(const SignalContext &ctx, const string side)
+{
+   string text = "";
+   if(PatternSideScore(ctx.h1, side) > 0)  text += (text == "" ? "H1" : "/H1");
+   if(PatternSideScore(ctx.m15, side) > 0) text += (text == "" ? "M15" : "/M15");
+   if(PatternSideScore(ctx.m5, side) > 0)  text += (text == "" ? "M5" : "/M5");
+   if(PatternSideScore(ctx.m1, side) > 0)  text += (text == "" ? "M1" : "/M1");
+   return text == "" ? "NONE" : text;
+}
+
+void BuildBreakoutPower(SignalContext &ctx)
+{
+   int buy = PatternSideScore(ctx.h1, "BUY") + PatternSideScore(ctx.m15, "BUY") + PatternSideScore(ctx.m5, "BUY") + PatternSideScore(ctx.m1, "BUY");
+   int sell = PatternSideScore(ctx.h1, "SELL") + PatternSideScore(ctx.m15, "SELL") + PatternSideScore(ctx.m5, "SELL") + PatternSideScore(ctx.m1, "SELL");
+
+   string side = "NONE";
+   int score = 0;
+   bool mixed = (buy > 0 && sell > 0);
+   if(buy > sell){ side = "BUY"; score = buy; }
+   else if(sell > buy){ side = "SELL"; score = sell; }
+   else if(buy == sell && buy > 0){ side = "MIXED"; score = buy; }
+
+   if(mixed || side == "MIXED")
+      ctx.breakout_power = "MIXED";
+   else if(score <= 0)
+      ctx.breakout_power = "NONE";
+   else if(score == 1)
+      ctx.breakout_power = "WEAK";
+   else if(score == 2)
+      ctx.breakout_power = "MEDIUM";
+   else if(score == 3)
+      ctx.breakout_power = "STRONG";
+   else
+      ctx.breakout_power = "VERY_STRONG";
+
+   string tfs = (side == "BUY" || side == "SELL") ? TFsAlignedForSide(ctx, side) : "mixed_tf";
+   ctx.breakout_power_detail = ctx.breakout_power + " | " + tfs + " | side=" + side;
+   ctx.breakout_basis_summary = "basis: level zones lookback/swing; fallback prev candle H/L";
+}
+
 void BuildEntryCheck(SignalContext &ctx)
 {
-   string relevant = ctx.ma_side;
-   if(relevant == "NONE") relevant = ctx.active_side;
+   string side = ctx.ma_side;
+   if(side == "NONE") side = ctx.active_side;
+   ctx.entry_side = side;
 
-   bool m5ok = true;
-   bool m1ok = true;
-   if(relevant == "SELL")
+   bool m5ok = false;
+   bool m1ok = false;
+   if(side == "SELL")
    {
       m5ok = ctx.m5_sell_ok;
       m1ok = ctx.m1_sell_ok;
    }
-   else if(relevant == "BUY")
+   else if(side == "BUY")
    {
       m5ok = ctx.m5_buy_ok;
       m1ok = ctx.m1_buy_ok;
    }
 
-   ctx.entry_blocked_by = "NONE";
-   ctx.entry_next = "sem setup operacional ativo";
+   ctx.blocked_by = "NONE";
+   ctx.next_step = "aguardar novo contexto";
+   ctx.entry_status = "side=" + side + " | M5=" + (m5ok ? "OK" : "NO") + " | M1=" + (m1ok ? "OK" : "NO");
 
-   if(ctx.ma_selected == "NONE" && ctx.ma_candidate != "NONE")
+   if(side == "NONE")
    {
-      ctx.entry_blocked_by = ctx.ma_missing;
-      ctx.entry_next = "aguardar MA_RESEARCH validar " + ctx.ma_missing;
+      ctx.blocked_by = "NO_ACTIVE_SIDE";
+      ctx.next_step = "aguardar padrao/evento ou MA valido";
+   }
+   else if(ctx.ma_candidate != "NONE" && ctx.ma_selected == "NONE")
+   {
+      ctx.blocked_by = ctx.ma_state;
+      ctx.next_step = "aguardar " + ctx.ma_missing + " do MA_RESEARCH";
    }
    else if(ctx.event_state == "WAIT_ACCEPTANCE_OR_RETEST")
    {
-      ctx.entry_blocked_by = "WAIT_ACCEPTANCE_OR_RETEST";
-      ctx.entry_next = "aguardar candle fechado/reteste da regiao rompida";
+      ctx.blocked_by = "WAIT_ACCEPTANCE_OR_RETEST";
+      ctx.next_step = "aguardar candle fechado/reteste da regiao rompida";
    }
    else if(ctx.event_state == "WAIT_FAKEOUT_RETURN")
    {
-      if(relevant == "NONE")
+      if(!m5ok)
       {
-         ctx.entry_blocked_by = "NO_RELEVANT_SIDE";
-         ctx.entry_next = "aguardar lado ativo";
+         ctx.blocked_by = "M5_PERMISSION";
+         ctx.next_step = "aguardar M5 permitir o lado do fade";
       }
-      else if(InpRequireM5Permission && !m5ok)
+      else if(!m1ok)
       {
-         ctx.entry_blocked_by = "M5_PERMISSION";
-         ctx.entry_next = "aguardar M5 permitir " + relevant;
-      }
-      else if(InpRequireM1Trigger && !m1ok)
-      {
-         ctx.entry_blocked_by = "M1_TRIGGER";
-         ctx.entry_next = "aguardar gatilho M1 para " + relevant;
+         ctx.blocked_by = "M1_TRIGGER";
+         ctx.next_step = "aguardar gatilho M1 no lado do fade";
       }
       else
       {
-         ctx.entry_blocked_by = "FAKEOUT_RETURN_NOT_CONFIRMED";
-         ctx.entry_next = "M5/M1 ok; ainda validar retorno/risco de chase";
+         ctx.blocked_by = "FAKEOUT_RETURN_CONFIRMATION";
+         ctx.next_step = "aguardar confirmacao/reteste do retorno";
       }
    }
-   else if(ctx.ma_selected != "NONE")
+   else if(!m5ok)
    {
-      if(InpRequireM5Permission && !m5ok)
-      {
-         ctx.entry_blocked_by = "M5_PERMISSION";
-         ctx.entry_next = "aguardar M5 permitir " + relevant;
-      }
-      else if(InpRequireM1Trigger && !m1ok)
-      {
-         ctx.entry_blocked_by = "M1_TRIGGER";
-         ctx.entry_next = "aguardar gatilho M1 para " + relevant;
-      }
-      else
-      {
-         ctx.entry_blocked_by = "NONE";
-         ctx.entry_next = "entrada operacional liberada pelo painel";
-      }
+      ctx.blocked_by = "M5_PERMISSION";
+      ctx.next_step = "aguardar M5 permitir o lado relevante";
+   }
+   else if(!m1ok)
+   {
+      ctx.blocked_by = "M1_TRIGGER";
+      ctx.next_step = "aguardar gatilho M1";
+   }
+   else
+   {
+      ctx.blocked_by = "NONE";
+      ctx.next_step = "entrada operacional alinhada, validar risco manual";
    }
 
-   string m5txt = m5ok ? "OK" : "NO";
-   string m1txt = m1ok ? "OK" : "NO";
-   ctx.entry_check = "side=" + relevant + " | M5=" + m5txt + " | M1=" + m1txt + " | blocked_by=" + ctx.entry_blocked_by;
+   ctx.entry_status += " | blocked_by=" + ctx.blocked_by;
 }
 
 void BuildContext(SignalContext &ctx)
@@ -597,10 +646,10 @@ void BuildContext(SignalContext &ctx)
    ctx.ma_side = "NONE";
    ctx.ma_state = "NO_SETUP";
 
-   ctx.h1_pattern  = PatternTF(PERIOD_H1,  ctx.h1_attempt);
-   ctx.m15_pattern = PatternTF(PERIOD_M15, ctx.m15_attempt);
-   ctx.m5_pattern  = PatternTF(PERIOD_M5,  ctx.m5_attempt);
-   ctx.m1_pattern  = PatternTF(PERIOD_M1,  ctx.m1_attempt);
+   BuildTFState(PERIOD_H1,  ctx.h1);
+   BuildTFState(PERIOD_M15, ctx.m15);
+   BuildTFState(PERIOD_M5,  ctx.m5);
+   BuildTFState(PERIOD_M1,  ctx.m1);
 
    string miss = "";
    string dbg = "";
@@ -632,37 +681,37 @@ void BuildContext(SignalContext &ctx)
    ctx.event_state = "WAIT_CONTEXT";
    ctx.active_side = "NONE";
 
-   if(ctx.m5_pattern == "BREAKOUT_UP_LIVE" || ctx.m1_pattern == "BREAKOUT_UP_LIVE")
+   if(ctx.m5.pattern == "BREAKOUT_UP_LIVE" || ctx.m1.pattern == "BREAKOUT_UP_LIVE")
    {
       ctx.active_event = "BREAKOUT_UP_WAIT_ACCEPTANCE";
       ctx.event_state = "WAIT_ACCEPTANCE_OR_RETEST";
       ctx.active_side = "BUY";
    }
-   if(ctx.m5_pattern == "BREAKOUT_DOWN_LIVE" || ctx.m1_pattern == "BREAKOUT_DOWN_LIVE")
+   if(ctx.m5.pattern == "BREAKOUT_DOWN_LIVE" || ctx.m1.pattern == "BREAKOUT_DOWN_LIVE")
    {
       ctx.active_event = "BREAKOUT_DOWN_WAIT_ACCEPTANCE";
       ctx.event_state = "WAIT_ACCEPTANCE_OR_RETEST";
       ctx.active_side = "SELL";
    }
-   if(ctx.m5_pattern == "FAKEOUT_UP" || ctx.m1_pattern == "FAKEOUT_UP" || ctx.m15_pattern == "FAKEOUT_UP")
+   if(ctx.m5.pattern == "FAKEOUT_UP" || ctx.m1.pattern == "FAKEOUT_UP" || ctx.m15.pattern == "FAKEOUT_UP")
    {
       ctx.active_event = "BREAKOUT_UP_FAILED_FAKEOUT";
       ctx.event_state = "WAIT_FAKEOUT_RETURN";
       ctx.active_side = "SELL";
    }
-   if(ctx.m5_pattern == "FAKEOUT_DOWN" || ctx.m1_pattern == "FAKEOUT_DOWN" || ctx.m15_pattern == "FAKEOUT_DOWN")
+   if(ctx.m5.pattern == "FAKEOUT_DOWN" || ctx.m1.pattern == "FAKEOUT_DOWN" || ctx.m15.pattern == "FAKEOUT_DOWN")
    {
       ctx.active_event = "BREAKOUT_DOWN_FAILED_FAKEOUT";
       ctx.event_state = "WAIT_FAKEOUT_RETURN";
       ctx.active_side = "BUY";
    }
 
-   BuildBreakoutPower(ctx);
-
    ctx.m5_sell_ok = M5SellPermission(ctx.m5_sell_detail);
    ctx.m5_buy_ok  = M5BuyPermission(ctx.m5_buy_detail);
    ctx.m1_sell_ok = M1SellTrigger(ctx.m1_sell_detail);
    ctx.m1_buy_ok  = M1BuyTrigger(ctx.m1_buy_detail);
+
+   BuildBreakoutPower(ctx);
 
    if(ctx.ma_selected != "NONE")
    {
@@ -733,15 +782,6 @@ color ActionColor(const string value)
    return clrWhite;
 }
 
-color PowerColor(const string value)
-{
-   if(value == "VERY_STRONG" || value == "STRONG") return clrLime;
-   if(value == "MEDIUM") return clrGold;
-   if(value == "WEAK") return clrSilver;
-   if(value == "MIXED") return clrOrange;
-   return clrDimGray;
-}
-
 void AddLabel(const string id, const int x, const int y, const string text, const color clr, const int size, const bool bold=false)
 {
    string name = PREFIX + id;
@@ -805,7 +845,7 @@ void UpdatePanel()
    if(lh < InpFontSize + 4) lh = InpFontSize + 4;
    int row = 0;
 
-   AddLabel("title", x, y + row * lh, "TradingAgent Signal Panel v7", clrWhite, InpTitleFontSize, true); row++;
+   AddLabel("title", x, y + row * lh, "TradingAgent Signal Panel v8", clrWhite, InpTitleFontSize, true); row++;
    AddRow("sub", row, x, y, lh, StringFormat("%s | TF=%s | bid %.2f ask %.2f", g_symbol, TFName((ENUM_TIMEFRAMES)_Period), Bid(), Ask()), clrSilver);
    AddRow("mode", row, x, y, lh, "SIGNAL ONLY - no trades / no OrderSend", clrDeepSkyBlue, true);
    AddRow("action", row, x, y, lh, "ACTION: " + ctx.action, ActionColor(ctx.action), true);
@@ -838,22 +878,25 @@ void UpdatePanel()
    AddRow("ev_h", row, x, y, lh, "EVENT STATE", clrAqua, true);
    AddRow("ev1", row, x, y, lh, "active_event: " + ctx.active_event, clrOrange, true);
    AddRow("ev2", row, x, y, lh, "active_side : " + ctx.active_side + " | state: " + ctx.event_state, ActionColor(ctx.active_side), true);
-   AddRow("ev3", row, x, y, lh, StringFormat("H1:%s | M15:%s", ctx.h1_pattern, ctx.m15_pattern), clrSilver);
-   AddRow("ev4", row, x, y, lh, StringFormat("M5:%s | M1:%s | att=%d", ctx.m5_pattern, ctx.m1_pattern, ctx.m1_attempt), clrSilver);
-   AddRow("bp1", row, x, y, lh, "breakout_power: " + ctx.breakout_power_detail, PowerColor(ctx.breakout_power), true);
-   AddRow("bp2", row, x, y, lh, ctx.breakout_basis, clrDimGray);
+   AddRow("evp", row, x, y, lh, "breakout_power: " + ctx.breakout_power_detail, ActionColor(ctx.breakout_power_detail), true);
+   AddRow("evb", row, x, y, lh, ctx.breakout_basis_summary, clrSilver);
+   AddRow("ev3", row, x, y, lh, StringFormat("H1:%s | M15:%s", ctx.h1.pattern, ctx.m15.pattern), clrSilver);
+   AddRow("ev4", row, x, y, lh, StringFormat("M5:%s | M1:%s | att=%d", ctx.m5.pattern, ctx.m1.pattern, ctx.m1.attempt), clrSilver);
+   row++;
+
+   AddRow("lvl_h", row, x, y, lh, "LEVEL ZONES", clrAqua, true);
+   AddRow("lvl1", row, x, y, lh, StringFormat("H1  sup/res %.2f / %.2f | %s", ctx.h1.support, ctx.h1.resistance, ctx.h1.basis), clrSilver);
+   AddRow("lvl2", row, x, y, lh, StringFormat("M15 sup/res %.2f / %.2f | %s", ctx.m15.support, ctx.m15.resistance, ctx.m15.basis), clrSilver);
+   AddRow("lvl3", row, x, y, lh, StringFormat("M5  sup/res %.2f / %.2f | %s", ctx.m5.support, ctx.m5.resistance, ctx.m5.basis), clrSilver);
    row++;
 
    string relevant = ctx.ma_side;
    if(relevant == "NONE") relevant = ctx.active_side;
 
-   AddRow("entry_h", row, x, y, lh, "ENTRY CHECK", clrAqua, true);
-   AddRow("entry1", row, x, y, lh, ctx.entry_check, ActionColor(relevant), true);
-   AddRow("entry2", row, x, y, lh, "next: " + ctx.entry_next, clrSilver);
-   row++;
-
    AddRow("op_h", row, x, y, lh, "OPERATIONAL FILTER", clrAqua, true);
    AddRow("rel", row, x, y, lh, "relevant side: " + relevant, ActionColor(relevant), true);
+   AddRow("entry", row, x, y, lh, "entry_check: " + ctx.entry_status, ActionColor(relevant), true);
+   AddRow("next", row, x, y, lh, "next: " + ctx.next_step, clrGold);
 
    if(InpShowBothSideTriggers || relevant == "SELL" || relevant == "NONE")
    {
@@ -869,7 +912,8 @@ void UpdatePanel()
    if(InpShowDebugDetails)
    {
       row++;
-      AddRow("dbg", row, x, y, lh, "debug: M5 closed_all bars=" + IntegerToString(InpM5ClosedAllBars), clrDimGray);
+      AddRow("dbg1", row, x, y, lh, "debug: M5 closed_all bars=" + IntegerToString(InpM5ClosedAllBars), clrDimGray);
+      AddRow("dbg2", row, x, y, lh, StringFormat("M1 level %.2f | M5 level %.2f | M15 level %.2f", ctx.m1.breakout_level, ctx.m5.breakout_level, ctx.m15.breakout_level), clrDimGray);
    }
 
    if(ctx.action != g_last_action)
