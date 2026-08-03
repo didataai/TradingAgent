@@ -1,1 +1,7 @@
-*.parquet filter=lfs diff=lfs merge=lfs -text
+# Git LFS tracking
+#
+# Runtime market datasets and research outputs are intentionally NOT tracked in LFS.
+# They are generated locally by the TradingAgent pipeline and ignored by .gitignore.
+#
+# If a large artifact is truly required for the solution, add it explicitly here
+# after reviewing its size, retention need, and regeneration path.
