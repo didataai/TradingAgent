@@ -2,18 +2,19 @@
 //| TradingAgent_SignalPanel_EA.mq5                                  |
 //| Painel/alerta operacional baseado nas regras estudadas            |
 //|                                                                  |
-//| v2: painel visual limpo, SIGNAL ONLY, sem qualquer envio de ordem. |
+//| v3: SIGNAL ONLY + MA Research Replica + Operational Filters       |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "2.00"
-#property description "TradingAgent signal-only panel: MA confluence, M1 trigger, M5 permission, breakout/fakeout context."
+#property version   "3.00"
+#property description "TradingAgent signal-only panel: MA research replica, M1 trigger, M5 permission, breakout/fakeout context."
 
 // -------------------------------------------------------------------
 // IMPORTANTE
 // -------------------------------------------------------------------
 // Este EA e somente sinalizador/painel.
 // Nao usa CTrade, nao chama OrderSend, nao abre/fecha posicoes.
-// Pode ser usado em conta real como painel visual, mas valide sempre.
+// A secao MA_RESEARCH tenta replicar o estudo das medias.
+// A secao OPERATIONAL aplica filtros/leituras operacionais separados.
 
 input string             InpSymbol                    = "";          // Vazio = simbolo do grafico
 input bool               InpSignalOnlyMode            = true;        // Sempre true: sem trades
@@ -21,123 +22,132 @@ input bool               InpEnableAlerts              = true;        // Alerta p
 input bool               InpEnablePush                = false;       // Push notification quando acao muda
 input int                InpTimerSeconds              = 3;           // Atualizacao do painel
 
-// Visual
-input bool               InpHideCandles               = false;       // Esconder grafico/candles
-input bool               InpDimCandles                = true;        // Apagar candles mantendo grafico
+input bool               InpHideCandles               = false;       // Esconde candles/grafico
+input bool               InpDimCandles                = true;        // Apaga visual dos candles
 input bool               InpCompactPanel              = true;        // Painel compacto
-input bool               InpShowDebugDetails          = false;       // Mostrar detalhes extras de MA/trigger
-input ENUM_BASE_CORNER   InpPanelCorner               = CORNER_LEFT_UPPER;
-input int                InpPanelX                    = 12;
-input int                InpPanelY                    = 24;
+input bool               InpShowDebugDetails          = false;       // Mostra detalhes de MA/trigger
+input int                InpPanelX                    = 8;
+input int                InpPanelY                    = 28;
 input int                InpPanelWidth                = 455;
-input int                InpLineHeight                = 17;
-input int                InpFontSize                  = 9;
-input string             InpFontName                  = "Consolas";
+input int                InpFontSize                  = 8;
 
-// Medias
 input ENUM_MA_METHOD     InpMAMethod                  = MODE_EMA;
 input ENUM_APPLIED_PRICE InpMAPrice                   = PRICE_CLOSE;
-input bool               InpUseClosedCandleForMA      = true;
+input bool               InpUseClosedCandleForMA      = true;        // Estudo: candle fechado
 
-// Estrategias de medias descobertas no estudo
+// -------------------------------------------------------------------
+// MA RESEARCH REPLICA - parametros do estudo
+// -------------------------------------------------------------------
+input bool               InpMAResearchReplicaMode     = true;
+
 input bool               InpUseSellCoreMA             = true;        // SELL_CORE 8/20/63
 input int                InpSellFast                  = 8;
 input int                InpSellMid                   = 20;
 input int                InpSellSlow                  = 63;
+input double             InpSellStopATR               = 1.6;
+input double             InpSellTargetATR             = 1.3;
+input int                InpSellMaxHoldMin            = 20;
 
 input bool               InpUseBuyCoreMA              = true;        // BUY_CORE 6/30/85
 input int                InpBuyFast                   = 6;
 input int                InpBuyMid                    = 30;
 input int                InpBuySlow                   = 85;
+input double             InpBuyStopATR                = 1.0;
+input double             InpBuyTargetATR              = 0.8;
+input int                InpBuyMaxHoldMin             = 10;
 
 input bool               InpUseBothGeneralMA          = true;        // BOTH_GENERAL 5/30/81
 input int                InpBothFast                  = 5;
 input int                InpBothMid                   = 30;
 input int                InpBothSlow                  = 81;
+input double             InpBothStopATR               = 1.3;
+input double             InpBothTargetATR             = 1.0;
+input int                InpBothMaxHoldMin            = 15;
 
-input bool               InpUseQuadMA_5_10_20_80      = true;        // Familia citada: 5/10/20/80
+input bool               InpUseQuadMA_5_10_20_80      = true;        // Contexto extra citado
 input int                InpQuadFast                  = 5;
 input int                InpQuadMid1                  = 10;
 input int                InpQuadMid2                  = 20;
 input int                InpQuadSlow                  = 80;
 
-// Filtros e gatilhos
-input bool               InpRequireM15MA              = true;
-input bool               InpRequireM5MA               = true;
-input bool               InpRequireM5Permission       = true;
-input bool               InpRequireM1Trigger          = true;
+// -------------------------------------------------------------------
+// OPERATIONAL FILTERS - nao fazem parte do WR original automaticamente
+// -------------------------------------------------------------------
+input bool               InpRequireM5Permission       = true;        // Regra pessoal M5 Diego
+input bool               InpRequireM1Trigger          = true;        // M1 candle anterior + rompimento
 input int                InpAttemptLookbackBars       = 30;
 input double             InpAttemptToleranceATR       = 0.20;
 input double             InpMaxM1RangeATRWarning      = 1.50;
 
-string   g_symbol;
-string   g_last_action = "";
-datetime g_last_alert_bar = 0;
-string   PFX = "TA_PANEL_";
+string PREFIX = "TA_PANEL_V3_";
+string g_symbol;
+string g_last_action = "";
 
-// -------------------------------------------------------------------
-struct TfRead
+struct MAReplicaResult
 {
-   string tf;
-   string pattern;
+   string name;
+   string side;
+   bool   valid;
    string state;
-   string wait;
-   string fakeout_state;
-   string fakeout_side;
-   int    attempt;
+   string m15_state;
+   string m5_state;
+   double stop_atr;
+   double target_atr;
+   int    hold_min;
+   string detail;
 };
 
-// -------------------------------------------------------------------
+//+------------------------------------------------------------------+
 int OnInit()
 {
    g_symbol = (InpSymbol == "" ? _Symbol : InpSymbol);
    EventSetTimer(MathMax(1, InpTimerSeconds));
    ApplyChartStyle();
-   RenderStatus("Inicializando painel...");
+   UpdatePanel();
    return(INIT_SUCCEEDED);
 }
 
-// -------------------------------------------------------------------
+//+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
    EventKillTimer();
    DeletePanelObjects();
    Comment("");
-   ChartSetInteger(0, CHART_SHOW, true);
 }
 
-// -------------------------------------------------------------------
+//+------------------------------------------------------------------+
 void OnTick(){ UpdatePanel(); }
 void OnTimer(){ UpdatePanel(); }
 
-// -------------------------------------------------------------------
+//+------------------------------------------------------------------+
 void ApplyChartStyle()
 {
    ChartSetInteger(0, CHART_SHOW_TRADE_LEVELS, false);
    ChartSetInteger(0, CHART_SHOW_GRID, false);
    ChartSetInteger(0, CHART_SHOW_VOLUMES, false);
-   ChartSetInteger(0, CHART_SHOW_PERIOD_SEP, false);
 
    if(InpHideCandles)
    {
       ChartSetInteger(0, CHART_SHOW, false);
    }
-   else if(InpDimCandles)
+   else
    {
-      ChartSetInteger(0, CHART_COLOR_BACKGROUND, clrWhite);
-      ChartSetInteger(0, CHART_COLOR_FOREGROUND, clrSilver);
-      ChartSetInteger(0, CHART_COLOR_GRID, clrWhite);
-      ChartSetInteger(0, CHART_COLOR_CANDLE_BULL, clrGainsboro);
-      ChartSetInteger(0, CHART_COLOR_CANDLE_BEAR, clrLightGray);
-      ChartSetInteger(0, CHART_COLOR_CHART_UP, clrGainsboro);
-      ChartSetInteger(0, CHART_COLOR_CHART_DOWN, clrLightGray);
-      ChartSetInteger(0, CHART_COLOR_BID, clrSilver);
-      ChartSetInteger(0, CHART_COLOR_ASK, clrSilver);
+      ChartSetInteger(0, CHART_SHOW, true);
+      if(InpDimCandles)
+      {
+         ChartSetInteger(0, CHART_COLOR_BACKGROUND, clrWhiteSmoke);
+         ChartSetInteger(0, CHART_COLOR_FOREGROUND, clrDimGray);
+         ChartSetInteger(0, CHART_COLOR_GRID, clrWhiteSmoke);
+         ChartSetInteger(0, CHART_COLOR_CHART_UP, clrSilver);
+         ChartSetInteger(0, CHART_COLOR_CHART_DOWN, clrSilver);
+         ChartSetInteger(0, CHART_COLOR_CANDLE_BULL, clrGainsboro);
+         ChartSetInteger(0, CHART_COLOR_CANDLE_BEAR, clrLightGray);
+      }
    }
    ChartRedraw();
 }
 
-// -------------------------------------------------------------------
+//+------------------------------------------------------------------+
 bool GetRates(const ENUM_TIMEFRAMES tf, const int count, MqlRates &rates[])
 {
    ArraySetAsSeries(rates, true);
@@ -150,30 +160,18 @@ double Ask(){ double v=0.0; SymbolInfoDouble(g_symbol, SYMBOL_ASK, v); return v;
 
 string TFName(const ENUM_TIMEFRAMES tf)
 {
-   if(tf==PERIOD_M1)  return "M1";
-   if(tf==PERIOD_M5)  return "M5";
+   if(tf==PERIOD_M1) return "M1";
+   if(tf==PERIOD_M5) return "M5";
    if(tf==PERIOD_M15) return "M15";
-   if(tf==PERIOD_H1)  return "H1";
-   if(tf==PERIOD_H4)  return "H4";
+   if(tf==PERIOD_H1) return "H1";
+   if(tf==PERIOD_H4) return "H4";
    return EnumToString(tf);
 }
 
 bool IsBullish(const MqlRates &bar){ return bar.close > bar.open; }
 bool IsBearish(const MqlRates &bar){ return bar.close < bar.open; }
 
-// -------------------------------------------------------------------
-double GetATR(const ENUM_TIMEFRAMES tf, const int period=14, const int shift=1)
-{
-   int handle = iATR(g_symbol, tf, period);
-   if(handle == INVALID_HANDLE) return 0.0;
-   double buffer[];
-   ArraySetAsSeries(buffer, true);
-   int copied = CopyBuffer(handle, 0, shift, 1, buffer);
-   IndicatorRelease(handle);
-   if(copied < 1) return 0.0;
-   return buffer[0];
-}
-
+//+------------------------------------------------------------------+
 double GetMA(const ENUM_TIMEFRAMES tf, const int period, const int shift)
 {
    int handle = iMA(g_symbol, tf, period, 0, InpMAMethod, InpMAPrice);
@@ -186,95 +184,161 @@ double GetMA(const ENUM_TIMEFRAMES tf, const int period, const int shift)
    return buffer[0];
 }
 
-// -------------------------------------------------------------------
-bool MAAlignedSellTF(const ENUM_TIMEFRAMES tf, const int fast, const int mid, const int slow)
+double GetATR(const ENUM_TIMEFRAMES tf, const int period=14, const int shift=1)
 {
-   MqlRates r[];
-   if(!GetRates(tf, 3, r)) return false;
-   int shift = (InpUseClosedCandleForMA ? 1 : 0);
-   double f = GetMA(tf, fast, shift);
-   double m = GetMA(tf, mid,  shift);
-   double s = GetMA(tf, slow, shift);
-   double c = r[shift].close;
-   return (f>0 && m>0 && s>0 && f<m && m<s && c<=f);
+   int handle = iATR(g_symbol, tf, period);
+   if(handle == INVALID_HANDLE) return 0.0;
+   double buffer[];
+   ArraySetAsSeries(buffer, true);
+   int copied = CopyBuffer(handle, 0, shift, 1, buffer);
+   IndicatorRelease(handle);
+   if(copied < 1) return 0.0;
+   return buffer[0];
 }
 
-bool MAAlignedBuyTF(const ENUM_TIMEFRAMES tf, const int fast, const int mid, const int slow)
+//+------------------------------------------------------------------+
+bool M15RequiredOK(const string side, const int fast, const int mid, const int slow, string &state, string &detail)
 {
    MqlRates r[];
-   if(!GetRates(tf, 3, r)) return false;
-   int shift = (InpUseClosedCandleForMA ? 1 : 0);
-   double f = GetMA(tf, fast, shift);
-   double m = GetMA(tf, mid,  shift);
-   double s = GetMA(tf, slow, shift);
-   double c = r[shift].close;
-   return (f>0 && m>0 && s>0 && f>m && m>s && c>=f);
-}
+   if(!GetRates(PERIOD_M15, 5, r))
+   {
+      state = "NO_DATA";
+      detail = "M15 sem dados";
+      return false;
+   }
 
-bool QuadAlignedSellTF(const ENUM_TIMEFRAMES tf)
-{
-   MqlRates r[];
-   if(!GetRates(tf, 3, r)) return false;
    int shift = (InpUseClosedCandleForMA ? 1 : 0);
-   double ma5=GetMA(tf,InpQuadFast,shift), ma10=GetMA(tf,InpQuadMid1,shift);
-   double ma20=GetMA(tf,InpQuadMid2,shift), ma80=GetMA(tf,InpQuadSlow,shift);
-   double c=r[shift].close;
-   return (ma5>0 && ma10>0 && ma20>0 && ma80>0 && ma5<ma10 && ma10<ma20 && ma20<ma80 && c<=ma5);
-}
+   double maF = GetMA(PERIOD_M15, fast, shift);
+   double maM = GetMA(PERIOD_M15, mid, shift);
+   double maS = GetMA(PERIOD_M15, slow, shift);
+   double c   = r[shift].close;
 
-bool QuadAlignedBuyTF(const ENUM_TIMEFRAMES tf)
-{
-   MqlRates r[];
-   if(!GetRates(tf, 3, r)) return false;
-   int shift = (InpUseClosedCandleForMA ? 1 : 0);
-   double ma5=GetMA(tf,InpQuadFast,shift), ma10=GetMA(tf,InpQuadMid1,shift);
-   double ma20=GetMA(tf,InpQuadMid2,shift), ma80=GetMA(tf,InpQuadSlow,shift);
-   double c=r[shift].close;
-   return (ma5>0 && ma10>0 && ma20>0 && ma80>0 && ma5>ma10 && ma10>ma20 && ma20>ma80 && c>=ma5);
-}
+   if(maF<=0 || maM<=0 || maS<=0)
+   {
+      state = "NO_MA";
+      detail = "M15 medias indisponiveis";
+      return false;
+   }
 
-bool StrategySellMA(const int fast, const int mid, const int slow)
-{
-   bool ok=true;
-   if(InpRequireM15MA) ok = ok && MAAlignedSellTF(PERIOD_M15, fast, mid, slow);
-   if(InpRequireM5MA)  ok = ok && MAAlignedSellTF(PERIOD_M5,  fast, mid, slow);
+   bool ok=false;
+   if(side == "SELL")
+      ok = (maF < maM && maM < maS && c <= maF);
+   else
+      ok = (maF > maM && maM > maS && c >= maF);
+
+   state = (ok ? "OK" : "WAIT_M15");
+   detail = StringFormat("M15 %s required | close=%.2f | ma=%d/%d/%d %.2f/%.2f/%.2f | %s",
+                         side, c, fast, mid, slow, maF, maM, maS, state);
    return ok;
 }
 
-bool StrategyBuyMA(const int fast, const int mid, const int slow)
+// M5 closed_all: candle fechado do M5 precisa fechar acima/abaixo de todas as medias do setup.
+bool M5ClosedAllOK(const string side, const int fast, const int mid, const int slow, string &state, string &detail)
 {
-   bool ok=true;
-   if(InpRequireM15MA) ok = ok && MAAlignedBuyTF(PERIOD_M15, fast, mid, slow);
-   if(InpRequireM5MA)  ok = ok && MAAlignedBuyTF(PERIOD_M5,  fast, mid, slow);
+   MqlRates r[];
+   if(!GetRates(PERIOD_M5, 5, r))
+   {
+      state = "NO_DATA";
+      detail = "M5 sem dados";
+      return false;
+   }
+
+   int shift = 1; // replica do estudo: sempre candle fechado
+   double maF = GetMA(PERIOD_M5, fast, shift);
+   double maM = GetMA(PERIOD_M5, mid, shift);
+   double maS = GetMA(PERIOD_M5, slow, shift);
+   double c   = r[shift].close;
+
+   if(maF<=0 || maM<=0 || maS<=0)
+   {
+      state = "NO_MA";
+      detail = "M5 medias indisponiveis";
+      return false;
+   }
+
+   bool ok=false;
+   if(side == "SELL")
+      ok = (c <= maF && c <= maM && c <= maS);
+   else
+      ok = (c >= maF && c >= maM && c >= maS);
+
+   state = (ok ? "OK" : "WAIT_M5_CLOSED_ALL");
+   detail = StringFormat("M5 %s closed_all | close=%.2f | ma=%d/%d/%d %.2f/%.2f/%.2f | %s",
+                         side, c, fast, mid, slow, maF, maM, maS, state);
    return ok;
 }
 
-bool StrategyQuadSell()
+MAReplicaResult EvaluateMAReplica(const string name, const string side, const int fast, const int mid, const int slow,
+                                  const double stopATR, const double targetATR, const int holdMin)
 {
-   bool ok=true;
-   if(InpRequireM15MA) ok = ok && QuadAlignedSellTF(PERIOD_M15);
-   if(InpRequireM5MA)  ok = ok && QuadAlignedSellTF(PERIOD_M5);
+   MAReplicaResult res;
+   res.name = name;
+   res.side = side;
+   res.stop_atr = stopATR;
+   res.target_atr = targetATR;
+   res.hold_min = holdMin;
+
+   string m15_detail="", m5_detail="";
+   bool m15 = M15RequiredOK(side, fast, mid, slow, res.m15_state, m15_detail);
+   bool m5  = M5ClosedAllOK(side, fast, mid, slow, res.m5_state, m5_detail);
+
+   res.valid = (m15 && m5);
+   if(res.valid) res.state = "VALID";
+   else if(!m15) res.state = "WAIT_M15";
+   else if(!m5) res.state = "WAIT_M5_CLOSED_ALL";
+   else res.state = "NO_SETUP";
+
+   res.detail = m15_detail + " | " + m5_detail;
+   return res;
+}
+
+//+------------------------------------------------------------------+
+bool QuadContext(const string side, string &state)
+{
+   string s1="", s2="";
+   bool m15 = M15RequiredOK(side, InpQuadFast, InpQuadMid1, InpQuadSlow, s1, s2);
+   string s3="", s4="";
+   bool m5  = M5ClosedAllOK(side, InpQuadFast, InpQuadMid1, InpQuadSlow, s3, s4);
+   state = (m15 && m5 ? "OK" : "NO");
+   return (m15 && m5);
+}
+
+//+------------------------------------------------------------------+
+bool M5PermissionSell(string &detail)
+{
+   MqlRates r[];
+   if(!GetRates(PERIOD_M5, 3, r)) { detail="M5 sem dados"; return false; }
+   double bid = Bid();
+   bool blockedAbovePrevHigh = (bid > r[1].high);
+   bool insideBody = (bid <= MathMax(r[1].open,r[1].close) && bid >= MathMin(r[1].open,r[1].close));
+   bool breakPrevLow = (bid < r[1].low);
+   bool ok = !blockedAbovePrevHigh && (insideBody || breakPrevLow || bid <= r[1].high);
+   detail = StringFormat("M5 SELL=%s | bid %.2f | prev H/L %.2f/%.2f", ok?"OK":"BLOCK", bid, r[1].high, r[1].low);
    return ok;
 }
 
-bool StrategyQuadBuy()
+bool M5PermissionBuy(string &detail)
 {
-   bool ok=true;
-   if(InpRequireM15MA) ok = ok && QuadAlignedBuyTF(PERIOD_M15);
-   if(InpRequireM5MA)  ok = ok && QuadAlignedBuyTF(PERIOD_M5);
+   MqlRates r[];
+   if(!GetRates(PERIOD_M5, 3, r)) { detail="M5 sem dados"; return false; }
+   double ask = Ask();
+   bool blockedBelowPrevLow = (ask < r[1].low);
+   bool insideBody = (ask <= MathMax(r[1].open,r[1].close) && ask >= MathMin(r[1].open,r[1].close));
+   bool breakPrevHigh = (ask > r[1].high);
+   bool ok = !blockedBelowPrevLow && (insideBody || breakPrevHigh || ask >= r[1].low);
+   detail = StringFormat("M5 BUY=%s | ask %.2f | prev H/L %.2f/%.2f", ok?"OK":"BLOCK", ask, r[1].high, r[1].low);
    return ok;
 }
 
-// -------------------------------------------------------------------
 bool M1SellTrigger(string &detail)
 {
    MqlRates r[];
-   if(!GetRates(PERIOD_M1, 3, r)){ detail="M1 sem dados"; return false; }
+   if(!GetRates(PERIOD_M1, 3, r)) { detail="M1 sem dados"; return false; }
    double bid = Bid();
-   double atr = GetATR(PERIOD_M1, 14, 1);
+   double atr = GetATR(PERIOD_M1,14,1);
    double rangeAtr = (atr>0 ? (r[1].high-r[1].low)/atr : 0.0);
    bool ok = IsBearish(r[1]) && bid < r[1].low;
-   detail = StringFormat("SELL:%s | prevRed=%s | bid %.2f < low %.2f | rngATR %.2f",
+   detail = StringFormat("M1 SELL=%s | prevRed=%s | bid %.2f < low %.2f | rATR=%.2f",
                          ok?"OK":"NO", IsBearish(r[1])?"Y":"N", bid, r[1].low, rangeAtr);
    return ok;
 }
@@ -282,166 +346,66 @@ bool M1SellTrigger(string &detail)
 bool M1BuyTrigger(string &detail)
 {
    MqlRates r[];
-   if(!GetRates(PERIOD_M1, 3, r)){ detail="M1 sem dados"; return false; }
+   if(!GetRates(PERIOD_M1, 3, r)) { detail="M1 sem dados"; return false; }
    double ask = Ask();
-   double atr = GetATR(PERIOD_M1, 14, 1);
+   double atr = GetATR(PERIOD_M1,14,1);
    double rangeAtr = (atr>0 ? (r[1].high-r[1].low)/atr : 0.0);
    bool ok = IsBullish(r[1]) && ask > r[1].high;
-   detail = StringFormat("BUY:%s | prevGreen=%s | ask %.2f > high %.2f | rngATR %.2f",
+   detail = StringFormat("M1 BUY=%s | prevGreen=%s | ask %.2f > high %.2f | rATR=%.2f",
                          ok?"OK":"NO", IsBullish(r[1])?"Y":"N", ask, r[1].high, rangeAtr);
    return ok;
 }
 
-bool M5SellPermission(string &detail)
+//+------------------------------------------------------------------+
+string PatternState(const ENUM_TIMEFRAMES tf)
 {
    MqlRates r[];
-   if(!GetRates(PERIOD_M5, 3, r)){ detail="M5 sem dados"; return false; }
-   double bid = Bid();
-   bool brokeAgainst = (r[0].high > r[1].high || bid > r[1].high);
-   bool ok = !brokeAgainst;
-   detail = StringFormat("SELL:%s | bid %.2f | prevHigh %.2f | currentHigh %.2f",
-                         ok?"OK":"NO", bid, r[1].high, r[0].high);
-   return ok;
+   if(!GetRates(tf, 5, r)) return "NO_DATA";
+   if(r[0].high > r[1].high && r[0].close < r[1].high) return "FAKEOUT_UP";
+   if(r[0].low  < r[1].low  && r[0].close > r[1].low)  return "FAKEOUT_DOWN";
+   if(r[0].high > r[1].high) return "BREAKOUT_UP_LIVE";
+   if(r[0].low  < r[1].low)  return "BREAKOUT_DOWN_LIVE";
+   return "INSIDE_OR_CONSOLIDATION";
 }
 
-bool M5BuyPermission(string &detail)
+int CountAttempts(const ENUM_TIMEFRAMES tf, const string side)
 {
+   int need = MathMax(10, InpAttemptLookbackBars+2);
    MqlRates r[];
-   if(!GetRates(PERIOD_M5, 3, r)){ detail="M5 sem dados"; return false; }
-   double ask = Ask();
-   bool brokeAgainst = (r[0].low < r[1].low || ask < r[1].low);
-   bool ok = !brokeAgainst;
-   detail = StringFormat("BUY:%s | ask %.2f | prevLow %.2f | currentLow %.2f",
-                         ok?"OK":"NO", ask, r[1].low, r[0].low);
-   return ok;
-}
-
-// -------------------------------------------------------------------
-int CountAttempts(const ENUM_TIMEFRAMES tf, const double level, const bool resistance)
-{
-   int need = MathMax(10, InpAttemptLookbackBars + 5);
-   MqlRates r[];
-   if(!GetRates(tf, need, r)) return 1;
-   double atr = GetATR(tf, 14, 1);
-   if(atr <= 0.0) atr = MathMax(_Point, MathAbs(r[1].high-r[1].low));
+   if(!GetRates(tf, need, r)) return 0;
+   double atr = GetATR(tf,14,1);
+   if(atr<=0) atr = (r[1].high-r[1].low);
    double tol = atr * InpAttemptToleranceATR;
-   int count = 0;
-   for(int i=1; i<MathMin(need, InpAttemptLookbackBars+1); i++)
+   double level = (side=="UP" ? r[1].high : r[1].low);
+   int attempts = 0;
+   for(int i=1; i<need-1; i++)
    {
-      double probe = resistance ? r[i].high : r[i].low;
-      if(MathAbs(probe-level) <= tol) count++;
+      if(side=="UP" && MathAbs(r[i].high-level)<=tol) attempts++;
+      if(side=="DOWN" && MathAbs(r[i].low-level)<=tol) attempts++;
    }
-   if(count < 1) count = 1;
-   if(count > 3) count = 3;
-   return count;
+   if(attempts<1) attempts=1;
+   if(attempts>3) attempts=3;
+   return attempts;
 }
 
-TfRead ReadTF(const ENUM_TIMEFRAMES tf)
-{
-   TfRead out;
-   out.tf = TFName(tf);
-   out.pattern="NO_SETUP";
-   out.state="MIXED";
-   out.wait="WAIT_CONFIRMATION/LOW";
-   out.fakeout_state="NO_SETUP";
-   out.fakeout_side="NONE";
-   out.attempt=1;
-
-   MqlRates r[];
-   if(!GetRates(tf, 5, r)) return out;
-
-   bool breakUpLive   = (r[0].high > r[1].high && r[0].close > r[1].high);
-   bool breakDownLive = (r[0].low  < r[1].low  && r[0].close < r[1].low);
-   bool fakeUp        = (r[0].high > r[1].high && r[0].close <= r[1].high);
-   bool fakeDown      = (r[0].low  < r[1].low  && r[0].close >= r[1].low);
-   bool inside        = (r[0].high <= r[1].high && r[0].low >= r[1].low);
-
-   if(fakeDown)
-   {
-      out.pattern="FAKEOUT_DOWN";
-      out.fakeout_state="RETURN_CONFIRMATION_PENDING";
-      out.fakeout_side="BUY";
-      out.wait="WAIT_M5_M1_CONFIRMATION/MED";
-      out.attempt=CountAttempts(tf, r[1].low, false);
-   }
-   else if(fakeUp)
-   {
-      out.pattern="FAKEOUT_UP";
-      out.fakeout_state="RETURN_CONFIRMATION_PENDING";
-      out.fakeout_side="SELL";
-      out.wait="WAIT_M5_M1_CONFIRMATION/MED";
-      out.attempt=CountAttempts(tf, r[1].high, true);
-   }
-   else if(breakDownLive)
-   {
-      out.pattern="BREAKOUT_DOWN_LIVE";
-      out.fakeout_state="WATCHING_FAKEOUT";
-      out.fakeout_side="NONE";
-      out.wait="WAIT_ACCEPTANCE_OR_RETEST/LOW";
-      out.attempt=CountAttempts(tf, r[1].low, false);
-   }
-   else if(breakUpLive)
-   {
-      out.pattern="BREAKOUT_UP_LIVE";
-      out.fakeout_state="WATCHING_FAKEOUT";
-      out.fakeout_side="NONE";
-      out.wait="WAIT_ACCEPTANCE_OR_RETEST/LOW";
-      out.attempt=CountAttempts(tf, r[1].high, true);
-   }
-   else if(inside)
-   {
-      out.pattern="INSIDE_OR_CONSOLIDATION";
-      out.wait="WAIT_CONFIRMATION/LOW";
-   }
-   else
-   {
-      out.pattern = IsBearish(r[0]) ? "BEARISH_CONTEXT" : (IsBullish(r[0]) ? "BULLISH_CONTEXT" : "DOJI_CONTEXT");
-      out.wait="WAIT_CONFIRMATION/LOW";
-   }
-   return out;
-}
-
-// -------------------------------------------------------------------
+//+------------------------------------------------------------------+
 void DeletePanelObjects()
 {
-   for(int i=ObjectsTotal(0)-1; i>=0; i--)
+   int total = ObjectsTotal(0, -1, -1);
+   for(int i=total-1; i>=0; i--)
    {
-      string name = ObjectName(0, i);
-      if(StringFind(name, PFX) == 0)
-         ObjectDelete(0, name);
+      string name = ObjectName(0, i, -1, -1);
+      if(StringFind(name, PREFIX) == 0) ObjectDelete(0, name);
    }
 }
 
-void ObjRect(const string name, const int x, const int y, const int w, const int h, const color bg, const color border)
+void AppendLine(string &lines[], color &cols[], int &n, const string text, const color c)
 {
-   string n=PFX+name;
-   if(ObjectFind(0,n)<0) ObjectCreate(0,n,OBJ_RECTANGLE_LABEL,0,0,0);
-   ObjectSetInteger(0,n,OBJPROP_CORNER,InpPanelCorner);
-   ObjectSetInteger(0,n,OBJPROP_XDISTANCE,x);
-   ObjectSetInteger(0,n,OBJPROP_YDISTANCE,y);
-   ObjectSetInteger(0,n,OBJPROP_XSIZE,w);
-   ObjectSetInteger(0,n,OBJPROP_YSIZE,h);
-   ObjectSetInteger(0,n,OBJPROP_BGCOLOR,bg);
-   ObjectSetInteger(0,n,OBJPROP_COLOR,border);
-   ObjectSetInteger(0,n,OBJPROP_BORDER_TYPE,BORDER_FLAT);
-   ObjectSetInteger(0,n,OBJPROP_BACK,false);
-   ObjectSetInteger(0,n,OBJPROP_SELECTABLE,false);
-   ObjectSetInteger(0,n,OBJPROP_HIDDEN,true);
-}
-
-void ObjText(const string name, const string text, const int x, const int y, const color c, const int size=0, const string font="")
-{
-   string n=PFX+name;
-   if(ObjectFind(0,n)<0) ObjectCreate(0,n,OBJ_LABEL,0,0,0);
-   ObjectSetInteger(0,n,OBJPROP_CORNER,InpPanelCorner);
-   ObjectSetInteger(0,n,OBJPROP_XDISTANCE,x);
-   ObjectSetInteger(0,n,OBJPROP_YDISTANCE,y);
-   ObjectSetInteger(0,n,OBJPROP_COLOR,c);
-   ObjectSetInteger(0,n,OBJPROP_FONTSIZE,(size>0?size:InpFontSize));
-   ObjectSetString(0,n,OBJPROP_FONT,(font==""?InpFontName:font));
-   ObjectSetString(0,n,OBJPROP_TEXT,text);
-   ObjectSetInteger(0,n,OBJPROP_SELECTABLE,false);
-   ObjectSetInteger(0,n,OBJPROP_HIDDEN,true);
+   ArrayResize(lines, n+1);
+   ArrayResize(cols, n+1);
+   lines[n] = text;
+   cols[n] = c;
+   n++;
 }
 
 color ActionColor(const string action)
@@ -452,152 +416,213 @@ color ActionColor(const string action)
    return clrWhite;
 }
 
-void AddLine(string &lines[], color &colors[], int &n, const string txt, const color c)
-{
-   ArrayResize(lines, n+1);
-   ArrayResize(colors, n+1);
-   lines[n]=txt;
-   colors[n]=c;
-   n++;
-}
-
-string YesNo(const bool v){ return v ? "YES" : "NO"; }
-
-// -------------------------------------------------------------------
-void RenderStatus(const string msg)
+void DrawPanel(string &lines[], color &cols[], const int n)
 {
    DeletePanelObjects();
-   ObjRect("BG", InpPanelX, InpPanelY, InpPanelWidth, 90, clrBlack, clrDimGray);
-   ObjText("TITLE", "TradingAgent Signal Panel", InpPanelX+12, InpPanelY+10, clrWhite, InpFontSize+2, "Consolas");
-   ObjText("MSG", msg, InpPanelX+12, InpPanelY+38, clrSilver, InpFontSize, "Consolas");
+   int lineH = InpFontSize + 5;
+   int height = 16 + n * lineH;
+   string bg = PREFIX + "BG";
+   ObjectCreate(0, bg, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, bg, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, bg, OBJPROP_XDISTANCE, InpPanelX);
+   ObjectSetInteger(0, bg, OBJPROP_YDISTANCE, InpPanelY);
+   ObjectSetInteger(0, bg, OBJPROP_XSIZE, InpPanelWidth);
+   ObjectSetInteger(0, bg, OBJPROP_YSIZE, height);
+   ObjectSetInteger(0, bg, OBJPROP_BGCOLOR, clrBlack);
+   ObjectSetInteger(0, bg, OBJPROP_COLOR, clrDimGray);
+   ObjectSetInteger(0, bg, OBJPROP_BACK, false);
+   ObjectSetInteger(0, bg, OBJPROP_SELECTABLE, false);
+
+   for(int i=0; i<n; i++)
+   {
+      string nm = PREFIX + "L" + IntegerToString(i);
+      ObjectCreate(0, nm, OBJ_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, nm, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, InpPanelX + 10);
+      ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, InpPanelY + 8 + i*lineH);
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, cols[i]);
+      ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, InpFontSize);
+      ObjectSetString(0, nm, OBJPROP_FONT, "Consolas");
+      ObjectSetString(0, nm, OBJPROP_TEXT, lines[i]);
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+   }
    ChartRedraw();
 }
 
-// -------------------------------------------------------------------
+//+------------------------------------------------------------------+
 void UpdatePanel()
 {
-   ApplyChartStyle();
+   if(g_symbol == "") g_symbol = _Symbol;
 
-   string m1SellD="", m1BuyD="", m5SellD="", m5BuyD="";
-   bool m1Sell = M1SellTrigger(m1SellD);
-   bool m1Buy  = M1BuyTrigger(m1BuyD);
-   bool m5Sell = M5SellPermission(m5SellD);
-   bool m5Buy  = M5BuyPermission(m5BuyD);
+   string pH1 = PatternState(PERIOD_H1);
+   string pM15 = PatternState(PERIOD_M15);
+   string pM5 = PatternState(PERIOD_M5);
+   string pM1 = PatternState(PERIOD_M1);
 
-   bool sellCore = InpUseSellCoreMA        && StrategySellMA(InpSellFast, InpSellMid, InpSellSlow);
-   bool buyCore  = InpUseBuyCoreMA         && StrategyBuyMA(InpBuyFast, InpBuyMid, InpBuySlow);
-   bool bothSell = InpUseBothGeneralMA     && StrategySellMA(InpBothFast, InpBothMid, InpBothSlow);
-   bool bothBuy  = InpUseBothGeneralMA     && StrategyBuyMA(InpBothFast, InpBothMid, InpBothSlow);
-   bool quadSell = InpUseQuadMA_5_10_20_80 && StrategyQuadSell();
-   bool quadBuy  = InpUseQuadMA_5_10_20_80 && StrategyQuadBuy();
+   int attM15 = CountAttempts(PERIOD_M15, (StringFind(pM15,"UP")>=0 ? "UP" : "DOWN"));
+   int attM5  = CountAttempts(PERIOD_M5,  (StringFind(pM5,"UP")>=0  ? "UP" : "DOWN"));
+   int attM1  = CountAttempts(PERIOD_M1,  (StringFind(pM1,"UP")>=0  ? "UP" : "DOWN"));
 
-   bool maSell = (sellCore || bothSell || quadSell);
-   bool maBuy  = (buyCore  || bothBuy  || quadBuy);
+   MAReplicaResult sellCore = EvaluateMAReplica("SELL_CORE", "SELL", InpSellFast, InpSellMid, InpSellSlow, InpSellStopATR, InpSellTargetATR, InpSellMaxHoldMin);
+   MAReplicaResult buyCore  = EvaluateMAReplica("BUY_CORE",  "BUY",  InpBuyFast,  InpBuyMid,  InpBuySlow,  InpBuyStopATR,  InpBuyTargetATR,  InpBuyMaxHoldMin);
+   MAReplicaResult bothSell = EvaluateMAReplica("BOTH_SELL", "SELL", InpBothFast, InpBothMid, InpBothSlow, InpBothStopATR, InpBothTargetATR, InpBothMaxHoldMin);
+   MAReplicaResult bothBuy  = EvaluateMAReplica("BOTH_BUY",  "BUY",  InpBothFast, InpBothMid, InpBothSlow, InpBothStopATR, InpBothTargetATR, InpBothMaxHoldMin);
 
-   TfRead h1  = ReadTF(PERIOD_H1);
-   TfRead m15 = ReadTF(PERIOD_M15);
-   TfRead m5  = ReadTF(PERIOD_M5);
-   TfRead m1  = ReadTF(PERIOD_M1);
+   string quadSellState="", quadBuyState="";
+   bool quadSell = (InpUseQuadMA_5_10_20_80 ? QuadContext("SELL", quadSellState) : false);
+   bool quadBuy  = (InpUseQuadMA_5_10_20_80 ? QuadContext("BUY", quadBuyState) : false);
 
-   string action="WAIT";
-   string reason="sem confluencia operacional";
+   string m5sd="", m5bd="", m1sd="", m1bd="";
+   bool m5Sell = M5PermissionSell(m5sd);
+   bool m5Buy  = M5PermissionBuy(m5bd);
+   bool m1Sell = M1SellTrigger(m1sd);
+   bool m1Buy  = M1BuyTrigger(m1bd);
 
-   if(maSell && (!InpRequireM5Permission || m5Sell) && (!InpRequireM1Trigger || m1Sell))
+   string maSide = "NONE";
+   string maState = "NO_SETUP";
+   string selectedPlan = "NONE";
+   double selectedStop = 0, selectedTarget = 0;
+   int selectedHold = 0;
+
+   if(InpUseSellCoreMA && sellCore.valid)
    {
-      action="SELL";
-      reason="MA sell + M5 permission + M1 sell trigger";
+      maSide="SELL"; maState="VALID"; selectedPlan="SELL_CORE"; selectedStop=sellCore.stop_atr; selectedTarget=sellCore.target_atr; selectedHold=sellCore.hold_min;
    }
-   else if(maBuy && (!InpRequireM5Permission || m5Buy) && (!InpRequireM1Trigger || m1Buy))
+   else if(InpUseBuyCoreMA && buyCore.valid)
    {
-      action="BUY";
-      reason="MA buy + M5 permission + M1 buy trigger";
+      maSide="BUY"; maState="VALID"; selectedPlan="BUY_CORE"; selectedStop=buyCore.stop_atr; selectedTarget=buyCore.target_atr; selectedHold=buyCore.hold_min;
    }
-   else if((maSell && InpRequireM5Permission && !m5Sell) || (maBuy && InpRequireM5Permission && !m5Buy))
+   else if(InpUseBothGeneralMA && bothSell.valid)
    {
-      action="WAIT_M5_CONFIRMATION";
-      reason="confluencia existe, mas M5 ainda nao permite";
+      maSide="SELL"; maState="VALID"; selectedPlan="BOTH_SELL"; selectedStop=bothSell.stop_atr; selectedTarget=bothSell.target_atr; selectedHold=bothSell.hold_min;
    }
-   else if((maSell && InpRequireM1Trigger && !m1Sell) || (maBuy && InpRequireM1Trigger && !m1Buy))
+   else if(InpUseBothGeneralMA && bothBuy.valid)
    {
-      action="WAIT_M1_TRIGGER";
-      reason="confluencia existe, mas M1 ainda nao deu gatilho";
+      maSide="BUY"; maState="VALID"; selectedPlan="BOTH_BUY"; selectedStop=bothBuy.stop_atr; selectedTarget=bothBuy.target_atr; selectedHold=bothBuy.hold_min;
    }
-   else if(m15.fakeout_side!="NONE" || m1.fakeout_side!="NONE")
+   else
+   {
+      if(sellCore.state=="WAIT_M5_CLOSED_ALL" || bothSell.state=="WAIT_M5_CLOSED_ALL") { maSide="SELL"; maState="WAIT_M5_CLOSED_ALL"; selectedPlan=(sellCore.state=="WAIT_M5_CLOSED_ALL" ? "SELL_CORE" : "BOTH_SELL"); }
+      else if(buyCore.state=="WAIT_M5_CLOSED_ALL" || bothBuy.state=="WAIT_M5_CLOSED_ALL") { maSide="BUY"; maState="WAIT_M5_CLOSED_ALL"; selectedPlan=(buyCore.state=="WAIT_M5_CLOSED_ALL" ? "BUY_CORE" : "BOTH_BUY"); }
+      else if(sellCore.state=="WAIT_M15" || bothSell.state=="WAIT_M15") { maSide="SELL"; maState="WAIT_M15"; selectedPlan=(sellCore.state=="WAIT_M15" ? "SELL_CORE" : "BOTH_SELL"); }
+      else if(buyCore.state=="WAIT_M15" || bothBuy.state=="WAIT_M15") { maSide="BUY"; maState="WAIT_M15"; selectedPlan=(buyCore.state=="WAIT_M15" ? "BUY_CORE" : "BOTH_BUY"); }
+   }
+
+   string activeEvent = "RANGE_INSIDE";
+   string activeSide = "NONE";
+   if(StringFind(pM5,"BREAKOUT_UP")>=0 || StringFind(pM1,"BREAKOUT_UP")>=0) { activeEvent="BREAKOUT_UP_WAIT_ACCEPTANCE"; activeSide="BUY"; }
+   if(StringFind(pM5,"BREAKOUT_DOWN")>=0 || StringFind(pM1,"BREAKOUT_DOWN")>=0) { activeEvent="BREAKOUT_DOWN_WAIT_ACCEPTANCE"; activeSide="SELL"; }
+   if(StringFind(pM5,"FAKEOUT_UP")>=0 || StringFind(pM1,"FAKEOUT_UP")>=0) { activeEvent="BREAKOUT_UP_FAILED_FAKEOUT"; activeSide="SELL"; }
+   if(StringFind(pM5,"FAKEOUT_DOWN")>=0 || StringFind(pM1,"FAKEOUT_DOWN")>=0) { activeEvent="BREAKOUT_DOWN_FAILED_FAKEOUT"; activeSide="BUY"; }
+
+   string action = "WAIT";
+   string reason = "sem setup MA valido";
+
+   if(maState == "VALID")
+   {
+      if(maSide == "SELL")
+      {
+         if(InpRequireM5Permission && !m5Sell) { action="WAIT_M5_CONFIRMATION"; reason="MA SELL valido, mas M5 nao permite venda"; }
+         else if(InpRequireM1Trigger && !m1Sell) { action="WAIT_M1_TRIGGER"; reason="MA SELL valido, aguardando gatilho M1"; }
+         else { action="SELL_SIGNAL"; reason="MA_RESEARCH valido + operacional SELL confirmado"; }
+      }
+      else if(maSide == "BUY")
+      {
+         if(InpRequireM5Permission && !m5Buy) { action="WAIT_M5_CONFIRMATION"; reason="MA BUY valido, mas M5 nao permite compra"; }
+         else if(InpRequireM1Trigger && !m1Buy) { action="WAIT_M1_TRIGGER"; reason="MA BUY valido, aguardando gatilho M1"; }
+         else { action="BUY_SIGNAL"; reason="MA_RESEARCH valido + operacional BUY confirmado"; }
+      }
+   }
+   else if(activeEvent=="BREAKOUT_UP_FAILED_FAKEOUT" || activeEvent=="BREAKOUT_DOWN_FAILED_FAKEOUT")
    {
       action="WAIT_FAKEOUT_CONFIRMATION";
-      reason="possivel retorno de fakeout; precisa M5/M1";
+      reason="fakeout em observacao; precisa M5/M1";
+   }
+   else if(maState=="WAIT_M5_CLOSED_ALL")
+   {
+      action="WAIT_M5_CLOSED_ALL";
+      reason="MA_RESEARCH precisa M5 closed_all";
+   }
+   else if(maState=="WAIT_M15")
+   {
+      action="WAIT_M15";
+      reason="MA_RESEARCH precisa M15 required";
    }
 
    string lines[];
-   color  colors[];
+   color cols[];
    int n=0;
 
-   AddLine(lines,colors,n,"TradingAgent Signal Panel  v2",clrWhite);
-   AddLine(lines,colors,n,StringFormat("%s | %s | bid %.2f ask %.2f", g_symbol, EnumToString((ENUM_TIMEFRAMES)_Period), Bid(), Ask()),clrSilver);
-   AddLine(lines,colors,n,"SIGNAL ONLY - no trades / no OrderSend",clrAqua);
-   AddLine(lines,colors,n,"",clrWhite);
+   AppendLine(lines, cols, n, "TradingAgent Signal Panel v3", clrWhite);
+   AppendLine(lines, cols, n, StringFormat("%s | TF=%s | bid %.2f ask %.2f", g_symbol, TFName(_Period), Bid(), Ask()), clrSilver);
+   AppendLine(lines, cols, n, "SIGNAL ONLY - no trades / no OrderSend", clrDodgerBlue);
+   AppendLine(lines, cols, n, "ACTION: " + action, ActionColor(action));
+   AppendLine(lines, cols, n, "reason: " + reason, clrSilver);
+   AppendLine(lines, cols, n, " ", clrWhite);
 
-   AddLine(lines,colors,n,"ACTION: " + action, ActionColor(action));
-   AddLine(lines,colors,n,"reason: " + reason, clrSilver);
-   AddLine(lines,colors,n,"",clrWhite);
+   AppendLine(lines, cols, n, "MA RESEARCH REPLICA", clrDeepSkyBlue);
+   if(InpUseSellCoreMA)
+      AppendLine(lines, cols, n, StringFormat(" SELL_CORE 8/20/63 : %s | %s | %.1f/%.1fATR | %dm", sellCore.state, sellCore.side, sellCore.stop_atr, sellCore.target_atr, sellCore.hold_min), sellCore.valid?clrLimeGreen:clrSilver);
+   if(InpUseBuyCoreMA)
+      AppendLine(lines, cols, n, StringFormat(" BUY_CORE 6/30/85  : %s | %s | %.1f/%.1fATR | %dm", buyCore.state, buyCore.side, buyCore.stop_atr, buyCore.target_atr, buyCore.hold_min), buyCore.valid?clrLimeGreen:clrSilver);
+   if(InpUseBothGeneralMA)
+   {
+      AppendLine(lines, cols, n, StringFormat(" BOTH_SELL 5/30/81 : %s | %.1f/%.1fATR | %dm", bothSell.state, bothSell.stop_atr, bothSell.target_atr, bothSell.hold_min), bothSell.valid?clrLimeGreen:clrSilver);
+      AppendLine(lines, cols, n, StringFormat(" BOTH_BUY  5/30/81 : %s | %.1f/%.1fATR | %dm", bothBuy.state, bothBuy.stop_atr, bothBuy.target_atr, bothBuy.hold_min), bothBuy.valid?clrLimeGreen:clrSilver);
+   }
+   if(InpUseQuadMA_5_10_20_80 && !InpCompactPanel)
+   {
+      AppendLine(lines, cols, n, " QUAD SELL 5/10/20/80: " + quadSellState, quadSell?clrLimeGreen:clrSilver);
+      AppendLine(lines, cols, n, " QUAD BUY  5/10/20/80: " + quadBuyState, quadBuy?clrLimeGreen:clrSilver);
+   }
+   AppendLine(lines, cols, n, " selected: " + selectedPlan + " | side=" + maSide + " | state=" + maState, clrGold);
+   AppendLine(lines, cols, n, " ", clrWhite);
 
-   AddLine(lines,colors,n,"patterns",clrDeepSkyBlue);
-   AddLine(lines,colors,n,StringFormat("  H1 : %-22s | att=%d | %s", h1.pattern,  h1.attempt,  h1.wait), clrWhite);
-   AddLine(lines,colors,n,StringFormat("  M15: %-22s | att=%d | %s", m15.pattern, m15.attempt, m15.wait),clrWhite);
-   AddLine(lines,colors,n,StringFormat("  M5 : %-22s | att=%d | %s", m5.pattern,  m5.attempt,  m5.wait), clrWhite);
-   AddLine(lines,colors,n,StringFormat("  M1 : %-22s | att=%d | %s", m1.pattern,  m1.attempt,  m1.wait), clrWhite);
-   AddLine(lines,colors,n,"",clrWhite);
+   AppendLine(lines, cols, n, "EVENT STATE", clrDeepSkyBlue);
+   AppendLine(lines, cols, n, " active_event: " + activeEvent, clrGold);
+   AppendLine(lines, cols, n, " active_side : " + activeSide, ActionColor(activeSide));
+   AppendLine(lines, cols, n, StringFormat(" H1:%s | M15:%s", pH1, pM15), clrSilver);
+   AppendLine(lines, cols, n, StringFormat(" M5:%s att=%d | M1:%s att=%d", pM5, attM5, pM1, attM1), clrSilver);
+   AppendLine(lines, cols, n, " ", clrWhite);
 
-   AddLine(lines,colors,n,"MA confluence",clrDeepSkyBlue);
-   AddLine(lines,colors,n,StringFormat("  SELL_CORE 8/20/63 : %s", YesNo(sellCore)), sellCore?clrTomato:clrSilver);
-   AddLine(lines,colors,n,StringFormat("  BUY_CORE  6/30/85 : %s", YesNo(buyCore)),  buyCore?clrLimeGreen:clrSilver);
-   AddLine(lines,colors,n,StringFormat("  BOTH SELL 5/30/81 : %s", YesNo(bothSell)), bothSell?clrTomato:clrSilver);
-   AddLine(lines,colors,n,StringFormat("  BOTH BUY  5/30/81 : %s", YesNo(bothBuy)),  bothBuy?clrLimeGreen:clrSilver);
-   AddLine(lines,colors,n,StringFormat("  QUAD SELL 5/10/20/80: %s", YesNo(quadSell)), quadSell?clrTomato:clrSilver);
-   AddLine(lines,colors,n,StringFormat("  QUAD BUY  5/10/20/80: %s", YesNo(quadBuy)),  quadBuy?clrLimeGreen:clrSilver);
-   AddLine(lines,colors,n,"",clrWhite);
-
-   AddLine(lines,colors,n,"edge / fakeout",clrDeepSkyBlue);
-   AddLine(lines,colors,n,StringFormat("  M15: %s | att=%d | AVOID_CHASE/%s", m15.pattern, m15.attempt, (m15.attempt<3?"HIGH_FAKEOUT_RISK":"WAIT_ACCEPTANCE")), clrGold);
-   AddLine(lines,colors,n,StringFormat("  M5 : %s | att=%d | AVOID_CHASE/%s", m5.pattern,  m5.attempt,  (m5.attempt<3?"HIGH_FAKEOUT_RISK":"WAIT_ACCEPTANCE")), clrGold);
-   AddLine(lines,colors,n,StringFormat("  M1 : %s | %s | side=%s", m1.pattern,  m1.fakeout_state,  m1.fakeout_side),  m1.fakeout_side=="BUY"?clrLimeGreen:(m1.fakeout_side=="SELL"?clrTomato:clrSilver));
-   AddLine(lines,colors,n,StringFormat("  M15: %s | side=%s", m15.fakeout_state, m15.fakeout_side), m15.fakeout_side=="BUY"?clrLimeGreen:(m15.fakeout_side=="SELL"?clrTomato:clrSilver));
-   AddLine(lines,colors,n,"",clrWhite);
-
-   AddLine(lines,colors,n,"triggers",clrDeepSkyBlue);
-   AddLine(lines,colors,n,"  M5 permission SELL: " + m5SellD, m5Sell?clrTomato:clrSilver);
-   AddLine(lines,colors,n,"  M5 permission BUY : " + m5BuyD,  m5Buy?clrLimeGreen:clrSilver);
-   AddLine(lines,colors,n,"  M1 trigger SELL   : " + m1SellD, m1Sell?clrTomato:clrSilver);
-   AddLine(lines,colors,n,"  M1 trigger BUY    : " + m1BuyD,  m1Buy?clrLimeGreen:clrSilver);
+   AppendLine(lines, cols, n, "OPERATIONAL FILTER", clrDeepSkyBlue);
+   if(maSide=="SELL" || activeSide=="SELL")
+   {
+      AppendLine(lines, cols, n, " relevant side: SELL", clrTomato);
+      AppendLine(lines, cols, n, " " + m5sd, m5Sell?clrLimeGreen:clrTomato);
+      AppendLine(lines, cols, n, " " + m1sd, m1Sell?clrLimeGreen:clrTomato);
+   }
+   else if(maSide=="BUY" || activeSide=="BUY")
+   {
+      AppendLine(lines, cols, n, " relevant side: BUY", clrLimeGreen);
+      AppendLine(lines, cols, n, " " + m5bd, m5Buy?clrLimeGreen:clrTomato);
+      AppendLine(lines, cols, n, " " + m1bd, m1Buy?clrLimeGreen:clrTomato);
+   }
+   else
+   {
+      AppendLine(lines, cols, n, " relevant side: NONE", clrSilver);
+   }
 
    if(InpShowDebugDetails)
    {
-      AddLine(lines,colors,n,"",clrWhite);
-      AddLine(lines,colors,n,"debug",clrDeepSkyBlue);
-      AddLine(lines,colors,n,"  InpSignalOnlyMode=true; no trading calls exist in EA",clrSilver);
-      AddLine(lines,colors,n,"  MA is checked on M15/M5 using closed candle when enabled",clrSilver);
+      AppendLine(lines, cols, n, " ", clrWhite);
+      AppendLine(lines, cols, n, "DEBUG MA DETAILS", clrSlateGray);
+      AppendLine(lines, cols, n, sellCore.detail, clrSlateGray);
+      AppendLine(lines, cols, n, buyCore.detail, clrSlateGray);
+      AppendLine(lines, cols, n, bothSell.detail, clrSlateGray);
+      AppendLine(lines, cols, n, bothBuy.detail, clrSlateGray);
+      AppendLine(lines, cols, n, m5bd, clrSlateGray);
+      AppendLine(lines, cols, n, m1bd, clrSlateGray);
    }
 
-   int panelH = 22 + (n * InpLineHeight) + 16;
-   ObjRect("BG", InpPanelX, InpPanelY, InpPanelWidth, panelH, clrBlack, clrDimGray);
+   DrawPanel(lines, cols, n);
 
-   for(int i=0; i<n; i++)
-      ObjText("L"+IntegerToString(i), lines[i], InpPanelX+12, InpPanelY+10+(i*InpLineHeight), colors[i], (i==0?InpFontSize+2:InpFontSize), InpFontName);
-
-   if(action != g_last_action)
+   if((InpEnableAlerts || InpEnablePush) && action != g_last_action)
    {
-      MqlRates r[];
-      GetRates(PERIOD_M1, 2, r);
-      datetime nowBar = (ArraySize(r)>0 ? r[0].time : TimeCurrent());
-      if(g_last_action != "" && g_last_alert_bar != nowBar)
-      {
-         string msg = StringFormat("TradingAgent %s | %s | %s", g_symbol, action, reason);
-         if(InpEnableAlerts) Alert(msg);
-         if(InpEnablePush)   SendNotification(msg);
-         g_last_alert_bar = nowBar;
-      }
+      string msg = "TradingAgent " + g_symbol + " -> " + action + " | " + reason;
+      if(InpEnableAlerts) Alert(msg);
+      if(InpEnablePush) SendNotification(msg);
       g_last_action = action;
    }
-
-   ChartRedraw();
 }
+//+------------------------------------------------------------------+
