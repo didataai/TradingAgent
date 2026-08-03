@@ -2,10 +2,10 @@
 //| TradingAgent_SignalPanel_EA.mq5                                  |
 //| Painel/alerta operacional baseado nas regras estudadas            |
 //|                                                                  |
-//| v5: painel maior, fonte global escalavel, SIGNAL ONLY.            |
+//| v6: candidate/selected em linhas separadas, painel legivel.       |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "5.00"
+#property version   "6.00"
 #property description "TradingAgent signal-only panel: MA research replica, event state, M5/M1 operational filter."
 
 // -------------------------------------------------------------------
@@ -24,22 +24,22 @@ input int                InpTimerSeconds              = 2;           // Atualiza
 // Visual
 input int                InpPanelX                    = 10;
 input int                InpPanelY                    = 28;
-input int                InpPanelWidth                = 760;         // Quadro maior
-input int                InpPanelHeight               = 700;         // Quadro maior
-input int                InpFontSize                  = 14;          // Fonte de TODAS as infos
-input int                InpTitleFontSize             = 18;          // Fonte do titulo
-input int                InpLineHeight                = 20;          // Espacamento vertical
+input int                InpPanelWidth                = 820;
+input int                InpPanelHeight               = 760;
+input int                InpFontSize                  = 15;
+input int                InpTitleFontSize             = 19;
+input int                InpLineHeight                = 22;
 input string             InpFontName                  = "Consolas";
-input bool               InpDimCandles                = false;       // Apagar visualmente candles
-input bool               InpHideCandles               = false;       // Esconder grafico
-input bool               InpShowBothSideTriggers      = false;       // Mostra BUY/SELL completos
-input bool               InpShowDebugDetails          = false;       // Detalhes longos
+input bool               InpDimCandles                = false;
+input bool               InpHideCandles               = false;
+input bool               InpShowBothSideTriggers      = false;
+input bool               InpShowDebugDetails          = false;
 
 // Medias
 input ENUM_MA_METHOD     InpMAMethod                  = MODE_EMA;
 input ENUM_APPLIED_PRICE InpMAPrice                   = PRICE_CLOSE;
 input bool               InpUseClosedCandleForMA      = true;
-input int                InpM5ClosedAllBars           = 3;           // Aproximacao do closed_all
+input int                InpM5ClosedAllBars           = 3;           // Aproximacao do closed_all do estudo
 
 // MA Research Replica - parametros do estudo
 input bool               InpMAResearchReplicaMode     = true;
@@ -86,6 +86,7 @@ struct SignalContext
    string event_state;
    string active_event;
    string active_side;
+
    string ma_selected;
    string ma_candidate;
    string ma_missing;
@@ -95,6 +96,7 @@ struct SignalContext
    string buy_core_state;
    string both_sell_state;
    string both_buy_state;
+
    string h1_pattern;
    string m15_pattern;
    string m5_pattern;
@@ -103,6 +105,7 @@ struct SignalContext
    int m15_attempt;
    int m5_attempt;
    int m1_attempt;
+
    bool m5_sell_ok;
    bool m5_buy_ok;
    bool m1_sell_ok;
@@ -123,7 +126,6 @@ int OnInit()
    return INIT_SUCCEEDED;
 }
 
-//+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
    EventKillTimer();
@@ -131,7 +133,6 @@ void OnDeinit(const int reason)
    Comment("");
 }
 
-//+------------------------------------------------------------------+
 void OnTick()  { UpdatePanel(); }
 void OnTimer() { UpdatePanel(); }
 
@@ -157,10 +158,8 @@ void ApplyChartVisuals()
          ChartSetInteger(0, CHART_COLOR_GRID, clrWhiteSmoke);
       }
    }
-   ChartRedraw();
 }
 
-//+------------------------------------------------------------------+
 void DeleteObjects()
 {
    int total = ObjectsTotal(0, 0, -1);
@@ -172,7 +171,6 @@ void DeleteObjects()
    }
 }
 
-//+------------------------------------------------------------------+
 bool GetRates(const ENUM_TIMEFRAMES tf, const int count, MqlRates &rates[])
 {
    ArraySetAsSeries(rates, true);
@@ -180,8 +178,19 @@ bool GetRates(const ENUM_TIMEFRAMES tf, const int count, MqlRates &rates[])
    return copied >= count;
 }
 
-double Bid(){ double v=0.0; SymbolInfoDouble(g_symbol, SYMBOL_BID, v); return v; }
-double Ask(){ double v=0.0; SymbolInfoDouble(g_symbol, SYMBOL_ASK, v); return v; }
+double Bid()
+{
+   double v = 0.0;
+   SymbolInfoDouble(g_symbol, SYMBOL_BID, v);
+   return v;
+}
+
+double Ask()
+{
+   double v = 0.0;
+   SymbolInfoDouble(g_symbol, SYMBOL_ASK, v);
+   return v;
+}
 
 string TFName(const ENUM_TIMEFRAMES tf)
 {
@@ -189,6 +198,7 @@ string TFName(const ENUM_TIMEFRAMES tf)
    if(tf == PERIOD_M5) return "M5";
    if(tf == PERIOD_M15) return "M15";
    if(tf == PERIOD_H1) return "H1";
+   if(tf == PERIOD_H4) return "H4";
    return EnumToString(tf);
 }
 
@@ -200,6 +210,7 @@ double GetATR(const ENUM_TIMEFRAMES tf, const int period=14, const int shift=1)
 {
    int handle = iATR(g_symbol, tf, period);
    if(handle == INVALID_HANDLE) return 0.0;
+
    double buffer[];
    ArraySetAsSeries(buffer, true);
    int copied = CopyBuffer(handle, 0, shift, 1, buffer);
@@ -208,11 +219,11 @@ double GetATR(const ENUM_TIMEFRAMES tf, const int period=14, const int shift=1)
    return buffer[0];
 }
 
-//+------------------------------------------------------------------+
 double GetMA(const ENUM_TIMEFRAMES tf, const int period, const int shift)
 {
    int handle = iMA(g_symbol, tf, period, 0, InpMAMethod, InpMAPrice);
    if(handle == INVALID_HANDLE) return 0.0;
+
    double buffer[];
    ArraySetAsSeries(buffer, true);
    int copied = CopyBuffer(handle, 0, shift, 1, buffer);
@@ -221,7 +232,6 @@ double GetMA(const ENUM_TIMEFRAMES tf, const int period, const int shift)
    return buffer[0];
 }
 
-//+------------------------------------------------------------------+
 bool MAAlignedTF(const ENUM_TIMEFRAMES tf, const int fast, const int mid, const int slow, const string side, const int shift, string &detail)
 {
    MqlRates r[];
@@ -247,7 +257,6 @@ bool MAAlignedTF(const ENUM_TIMEFRAMES tf, const int fast, const int mid, const 
    return ok;
 }
 
-//+------------------------------------------------------------------+
 bool M5ClosedAllAligned(const int fast, const int mid, const int slow, const string side, string &detail)
 {
    int bars = MathMax(1, InpM5ClosedAllBars);
@@ -267,11 +276,11 @@ bool M5ClosedAllAligned(const int fast, const int mid, const int slow, const str
    return true;
 }
 
-//+------------------------------------------------------------------+
 string MAReplicaState(const string name, const string side, const int fast, const int mid, const int slow, string &missing, string &debug)
 {
    int shift = (InpUseClosedCandleForMA ? 1 : 0);
-   string m15d="", m5d="";
+   string m15d = "";
+   string m5d = "";
    bool m15 = MAAlignedTF(PERIOD_M15, fast, mid, slow, side, shift, m15d);
    bool m5  = M5ClosedAllAligned(fast, mid, slow, side, m5d);
 
@@ -292,22 +301,24 @@ int CountAttempts(const ENUM_TIMEFRAMES tf, const bool upper)
    MqlRates r[];
    int need = MathMax(10, InpAttemptLookbackBars + 3);
    if(!GetRates(tf, need, r)) return 0;
+
    double atr = GetATR(tf, 14, 1);
    if(atr <= 0.0) atr = MathMax(_Point, MathAbs(r[1].high - r[1].low));
    double ref = (upper ? r[1].high : r[1].low);
    double tol = atr * InpAttemptToleranceATR;
    int attempts = 0;
+
    for(int i = 2; i < need; i++)
    {
       double v = (upper ? r[i].high : r[i].low);
       if(MathAbs(v - ref) <= tol) attempts++;
    }
-   attempts++; // tentativa atual
+
+   attempts++;
    if(attempts > 3) attempts = 3;
    return attempts;
 }
 
-//+------------------------------------------------------------------+
 string PatternTF(const ENUM_TIMEFRAMES tf, int &attempt)
 {
    MqlRates r[];
@@ -316,6 +327,7 @@ string PatternTF(const ENUM_TIMEFRAMES tf, int &attempt)
       attempt = 0;
       return "NO_DATA";
    }
+
    double price = (Bid() + Ask()) / 2.0;
    bool breakoutUp = price > r[1].high;
    bool breakoutDn = price < r[1].low;
@@ -328,15 +340,15 @@ string PatternTF(const ENUM_TIMEFRAMES tf, int &attempt)
    if(breakoutUp){ attempt = CountAttempts(tf, true); return "BREAKOUT_UP_LIVE"; }
    if(breakoutDn){ attempt = CountAttempts(tf, false); return "BREAKOUT_DOWN_LIVE"; }
    if(inside){ attempt = 1; return "INSIDE_OR_CONSOLIDATION"; }
+
    attempt = 1;
    return "RANGE_CONTEXT";
 }
 
-//+------------------------------------------------------------------+
 bool M5SellPermission(string &detail)
 {
    MqlRates r[];
-   if(!GetRates(PERIOD_M5, 3, r)){ detail="M5 sem dados"; return false; }
+   if(!GetRates(PERIOD_M5, 3, r)){ detail = "M5 sem dados"; return false; }
    double bid = Bid();
    bool blockedAbovePrevHigh = bid > r[1].high;
    bool ok = !blockedAbovePrevHigh;
@@ -347,7 +359,7 @@ bool M5SellPermission(string &detail)
 bool M5BuyPermission(string &detail)
 {
    MqlRates r[];
-   if(!GetRates(PERIOD_M5, 3, r)){ detail="M5 sem dados"; return false; }
+   if(!GetRates(PERIOD_M5, 3, r)){ detail = "M5 sem dados"; return false; }
    double ask = Ask();
    bool blockedBelowPrevLow = ask < r[1].low;
    bool ok = !blockedBelowPrevLow;
@@ -358,7 +370,7 @@ bool M5BuyPermission(string &detail)
 bool M1SellTrigger(string &detail)
 {
    MqlRates r[];
-   if(!GetRates(PERIOD_M1, 3, r)){ detail="M1 sem dados"; return false; }
+   if(!GetRates(PERIOD_M1, 3, r)){ detail = "M1 sem dados"; return false; }
    double bid = Bid();
    bool previousRed = IsBearish(r[1]);
    bool brokeLow = bid < r[1].low;
@@ -373,7 +385,7 @@ bool M1SellTrigger(string &detail)
 bool M1BuyTrigger(string &detail)
 {
    MqlRates r[];
-   if(!GetRates(PERIOD_M1, 3, r)){ detail="M1 sem dados"; return false; }
+   if(!GetRates(PERIOD_M1, 3, r)){ detail = "M1 sem dados"; return false; }
    double ask = Ask();
    bool previousGreen = IsBullish(r[1]);
    bool brokeHigh = ask > r[1].high;
@@ -386,6 +398,24 @@ bool M1BuyTrigger(string &detail)
 }
 
 //+------------------------------------------------------------------+
+void RegisterMAResult(SignalContext &ctx, const string state, const string label, const string side, const string missing)
+{
+   if(state == "VALID" && ctx.ma_selected == "NONE")
+   {
+      ctx.ma_selected = label;
+      ctx.ma_side = side;
+      ctx.ma_state = "VALID";
+      ctx.ma_missing = "";
+   }
+   else if(ctx.ma_selected == "NONE" && ctx.ma_candidate == "NONE" && state != "NO_SETUP" && state != "DISABLED")
+   {
+      ctx.ma_candidate = label;
+      ctx.ma_side = side;
+      ctx.ma_state = state;
+      ctx.ma_missing = missing;
+   }
+}
+
 void BuildContext(SignalContext &ctx)
 {
    ctx.action = "WAIT";
@@ -401,8 +431,8 @@ void BuildContext(SignalContext &ctx)
    ctx.m5_pattern  = PatternTF(PERIOD_M5,  ctx.m5_attempt);
    ctx.m1_pattern  = PatternTF(PERIOD_M1,  ctx.m1_attempt);
 
-   // MA Research Replica
-   string miss="", dbg="";
+   string miss = "";
+   string dbg = "";
    ctx.sell_core_state = "DISABLED";
    ctx.buy_core_state = "DISABLED";
    ctx.both_sell_state = "DISABLED";
@@ -411,88 +441,22 @@ void BuildContext(SignalContext &ctx)
    if(InpUseSellCoreMA)
    {
       ctx.sell_core_state = MAReplicaState("SELL_CORE", "SELL", InpSellFast, InpSellMid, InpSellSlow, miss, dbg);
-      if(ctx.sell_core_state == "VALID")
-      {
-         ctx.ma_selected = "SELL_CORE 8/20/63";
-         ctx.ma_side = "SELL";
-         ctx.ma_state = "VALID";
-      }
-      else if(ctx.ma_candidate == "NONE" && ctx.sell_core_state != "NO_SETUP")
-      {
-         ctx.ma_candidate = "SELL_CORE 8/20/63";
-         ctx.ma_side = "SELL";
-         ctx.ma_state = ctx.sell_core_state;
-         ctx.ma_missing = miss;
-      }
+      RegisterMAResult(ctx, ctx.sell_core_state, "SELL_CORE 8/20/63", "SELL", miss);
    }
-
-   if(ctx.ma_selected == "NONE" && InpUseBuyCoreMA)
+   if(InpUseBuyCoreMA)
    {
       ctx.buy_core_state = MAReplicaState("BUY_CORE", "BUY", InpBuyFast, InpBuyMid, InpBuySlow, miss, dbg);
-      if(ctx.buy_core_state == "VALID")
-      {
-         ctx.ma_selected = "BUY_CORE 6/30/85";
-         ctx.ma_side = "BUY";
-         ctx.ma_state = "VALID";
-      }
-      else if(ctx.ma_candidate == "NONE" && ctx.buy_core_state != "NO_SETUP")
-      {
-         ctx.ma_candidate = "BUY_CORE 6/30/85";
-         ctx.ma_side = "BUY";
-         ctx.ma_state = ctx.buy_core_state;
-         ctx.ma_missing = miss;
-      }
+      RegisterMAResult(ctx, ctx.buy_core_state, "BUY_CORE 6/30/85", "BUY", miss);
    }
-   else if(InpUseBuyCoreMA)
-   {
-      ctx.buy_core_state = MAReplicaState("BUY_CORE", "BUY", InpBuyFast, InpBuyMid, InpBuySlow, miss, dbg);
-   }
-
-   if(ctx.ma_selected == "NONE" && InpUseBothGeneralMA)
+   if(InpUseBothGeneralMA)
    {
       ctx.both_sell_state = MAReplicaState("BOTH_SELL", "SELL", InpBothFast, InpBothMid, InpBothSlow, miss, dbg);
-      if(ctx.both_sell_state == "VALID")
-      {
-         ctx.ma_selected = "BOTH_SELL 5/30/81";
-         ctx.ma_side = "SELL";
-         ctx.ma_state = "VALID";
-      }
-      else if(ctx.ma_candidate == "NONE" && ctx.both_sell_state != "NO_SETUP")
-      {
-         ctx.ma_candidate = "BOTH_SELL 5/30/81";
-         ctx.ma_side = "SELL";
-         ctx.ma_state = ctx.both_sell_state;
-         ctx.ma_missing = miss;
-      }
-   }
-   else if(InpUseBothGeneralMA)
-   {
-      ctx.both_sell_state = MAReplicaState("BOTH_SELL", "SELL", InpBothFast, InpBothMid, InpBothSlow, miss, dbg);
+      RegisterMAResult(ctx, ctx.both_sell_state, "BOTH_SELL 5/30/81", "SELL", miss);
+
+      ctx.both_buy_state = MAReplicaState("BOTH_BUY", "BUY", InpBothFast, InpBothMid, InpBothSlow, miss, dbg);
+      RegisterMAResult(ctx, ctx.both_buy_state, "BOTH_BUY 5/30/81", "BUY", miss);
    }
 
-   if(ctx.ma_selected == "NONE" && InpUseBothGeneralMA)
-   {
-      ctx.both_buy_state = MAReplicaState("BOTH_BUY", "BUY", InpBothFast, InpBothMid, InpBothSlow, miss, dbg);
-      if(ctx.both_buy_state == "VALID")
-      {
-         ctx.ma_selected = "BOTH_BUY 5/30/81";
-         ctx.ma_side = "BUY";
-         ctx.ma_state = "VALID";
-      }
-      else if(ctx.ma_candidate == "NONE" && ctx.both_buy_state != "NO_SETUP")
-      {
-         ctx.ma_candidate = "BOTH_BUY 5/30/81";
-         ctx.ma_side = "BUY";
-         ctx.ma_state = ctx.both_buy_state;
-         ctx.ma_missing = miss;
-      }
-   }
-   else if(InpUseBothGeneralMA)
-   {
-      ctx.both_buy_state = MAReplicaState("BOTH_BUY", "BUY", InpBothFast, InpBothMid, InpBothSlow, miss, dbg);
-   }
-
-   // Event state
    ctx.active_event = "RANGE_OR_TRANSITION";
    ctx.event_state = "WAIT_CONTEXT";
    ctx.active_side = "NONE";
@@ -527,12 +491,12 @@ void BuildContext(SignalContext &ctx)
    ctx.m1_sell_ok = M1SellTrigger(ctx.m1_sell_detail);
    ctx.m1_buy_ok  = M1BuyTrigger(ctx.m1_buy_detail);
 
-   // Decision
    if(ctx.ma_selected != "NONE")
    {
       string side = ctx.ma_side;
       bool m5ok = (side == "SELL" ? ctx.m5_sell_ok : ctx.m5_buy_ok);
       bool m1ok = (side == "SELL" ? ctx.m1_sell_ok : ctx.m1_buy_ok);
+
       if(InpRequireM5Permission && !m5ok)
       {
          ctx.action = "WAIT_M5_CONFIRMATION";
@@ -585,11 +549,12 @@ void BuildContext(SignalContext &ctx)
 }
 
 //+------------------------------------------------------------------+
-color ActionColor(const string action)
+color ActionColor(const string value)
 {
-   if(StringFind(action, "BUY") >= 0) return clrLime;
-   if(StringFind(action, "SELL") >= 0) return clrTomato;
-   if(StringFind(action, "WAIT") >= 0) return clrGold;
+   if(StringFind(value, "BUY") >= 0) return clrLime;
+   if(StringFind(value, "SELL") >= 0) return clrTomato;
+   if(StringFind(value, "WAIT") >= 0) return clrGold;
+   if(value == "VALID") return clrLime;
    return clrWhite;
 }
 
@@ -598,12 +563,13 @@ void AddLabel(const string id, const int x, const int y, const string text, cons
    string name = PREFIX + id;
    if(ObjectFind(0, name) < 0)
       ObjectCreate(0, name, OBJ_LABEL, 0, 0, 0);
+
    ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
    ObjectSetInteger(0, name, OBJPROP_XDISTANCE, x);
    ObjectSetInteger(0, name, OBJPROP_YDISTANCE, y);
    ObjectSetInteger(0, name, OBJPROP_COLOR, clr);
    ObjectSetInteger(0, name, OBJPROP_FONTSIZE, size);
-   ObjectSetString(0, name, OBJPROP_FONT, bold ? InpFontName + " Bold" : InpFontName);
+   ObjectSetString(0, name, OBJPROP_FONT, InpFontName);
    ObjectSetString(0, name, OBJPROP_TEXT, text);
    ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
@@ -614,6 +580,7 @@ void DrawBackground()
    string bg = PREFIX + "BG";
    if(ObjectFind(0, bg) < 0)
       ObjectCreate(0, bg, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+
    ObjectSetInteger(0, bg, OBJPROP_CORNER, CORNER_LEFT_UPPER);
    ObjectSetInteger(0, bg, OBJPROP_XDISTANCE, InpPanelX);
    ObjectSetInteger(0, bg, OBJPROP_YDISTANCE, InpPanelY);
@@ -632,6 +599,12 @@ void DrawPanel()
    DrawBackground();
 }
 
+void AddRow(string id, int &row, const int x, const int y, const int lh, const string text, const color clr, const bool bold=false)
+{
+   AddLabel(id, x, y + row * lh, text, clr, InpFontSize, bold);
+   row++;
+}
+
 //+------------------------------------------------------------------+
 void UpdatePanel()
 {
@@ -644,58 +617,68 @@ void UpdatePanel()
 
    int x = InpPanelX + 16;
    int y = InpPanelY + 14;
-   int lh = MathMax(InpFontSize + 4, InpLineHeight);
+   int lh = InpLineHeight;
+   if(lh < InpFontSize + 4) lh = InpFontSize + 4;
    int row = 0;
 
-   AddLabel("title", x, y + row*lh, "TradingAgent Signal Panel v5", clrWhite, InpTitleFontSize, true); row++;
-   AddLabel("sub", x, y + row*lh, StringFormat("%s | TF=%s | bid %.2f ask %.2f", g_symbol, TFName((ENUM_TIMEFRAMES)_Period), Bid(), Ask()), clrSilver, InpFontSize); row++;
-   AddLabel("mode", x, y + row*lh, "SIGNAL ONLY - no trades / no OrderSend", clrDeepSkyBlue, InpFontSize, true); row++;
-   AddLabel("action", x, y + row*lh, "ACTION: " + ctx.action, ActionColor(ctx.action), InpFontSize, true); row++;
-   AddLabel("reason", x, y + row*lh, "reason: " + ctx.reason, clrSilver, InpFontSize); row++;
+   AddLabel("title", x, y + row * lh, "TradingAgent Signal Panel v6", clrWhite, InpTitleFontSize, true); row++;
+   AddRow("sub", row, x, y, lh, StringFormat("%s | TF=%s | bid %.2f ask %.2f", g_symbol, TFName((ENUM_TIMEFRAMES)_Period), Bid(), Ask()), clrSilver);
+   AddRow("mode", row, x, y, lh, "SIGNAL ONLY - no trades / no OrderSend", clrDeepSkyBlue, true);
+   AddRow("action", row, x, y, lh, "ACTION: " + ctx.action, ActionColor(ctx.action), true);
+   AddRow("reason", row, x, y, lh, "reason: " + ctx.reason, clrSilver);
    row++;
 
-   AddLabel("ma_h", x, y + row*lh, "MA RESEARCH REPLICA", clrAqua, InpFontSize, true); row++;
-   AddLabel("ma1", x, y + row*lh, StringFormat("SELL_CORE 8/20/63 : %-8s | SELL | %.1f/%.1fATR | %dm", ctx.sell_core_state, InpSellStopATR, InpSellTargetATR, InpSellMaxHoldMin), ctx.sell_core_state=="VALID"?clrLime:clrSilver, InpFontSize); row++;
-   AddLabel("ma2", x, y + row*lh, StringFormat("BUY_CORE  6/30/85 : %-8s | BUY  | %.1f/%.1fATR | %dm", ctx.buy_core_state, InpBuyStopATR, InpBuyTargetATR, InpBuyMaxHoldMin), ctx.buy_core_state=="VALID"?clrLime:clrSilver, InpFontSize); row++;
-   AddLabel("ma3", x, y + row*lh, StringFormat("BOTH_SELL 5/30/81: %-8s | %.1f/%.1fATR | %dm", ctx.both_sell_state, InpBothStopATR, InpBothTargetATR, InpBothMaxHoldMin), ctx.both_sell_state=="VALID"?clrLime:clrSilver, InpFontSize); row++;
-   AddLabel("ma4", x, y + row*lh, StringFormat("BOTH_BUY  5/30/81: %-8s | %.1f/%.1fATR | %dm", ctx.both_buy_state, InpBothStopATR, InpBothTargetATR, InpBothMaxHoldMin), ctx.both_buy_state=="VALID"?clrLime:clrSilver, InpFontSize); row++;
+   AddRow("ma_h", row, x, y, lh, "MA RESEARCH REPLICA", clrAqua, true);
+   AddRow("ma1", row, x, y, lh, StringFormat("SELL_CORE 8/20/63 : %-8s | SELL | %.1f/%.1fATR | %dm", ctx.sell_core_state, InpSellStopATR, InpSellTargetATR, InpSellMaxHoldMin), ctx.sell_core_state == "VALID" ? clrLime : clrSilver);
+   AddRow("ma2", row, x, y, lh, StringFormat("BUY_CORE  6/30/85 : %-8s | BUY  | %.1f/%.1fATR | %dm", ctx.buy_core_state, InpBuyStopATR, InpBuyTargetATR, InpBuyMaxHoldMin), ctx.buy_core_state == "VALID" ? clrLime : clrSilver);
+   AddRow("ma3", row, x, y, lh, StringFormat("BOTH_SELL 5/30/81: %-8s | %.1f/%.1fATR | %dm", ctx.both_sell_state, InpBothStopATR, InpBothTargetATR, InpBothMaxHoldMin), ctx.both_sell_state == "VALID" ? clrLime : clrSilver);
+   AddRow("ma4", row, x, y, lh, StringFormat("BOTH_BUY  5/30/81: %-8s | %.1f/%.1fATR | %dm", ctx.both_buy_state, InpBothStopATR, InpBothTargetATR, InpBothMaxHoldMin), ctx.both_buy_state == "VALID" ? clrLime : clrSilver);
 
    if(ctx.ma_selected != "NONE")
-      AddLabel("ma_selected", x, y + row*lh, "selected : " + ctx.ma_selected + " | side=" + ctx.ma_side + " | state=VALID", clrLime, InpFontSize, true);
+   {
+      AddRow("ma_selected", row, x, y, lh, "selected : " + ctx.ma_selected + " | side=" + ctx.ma_side, clrLime, true);
+      AddRow("ma_selected_state", row, x, y, lh, "state    : VALID | candidate=NONE", clrLime, true);
+   }
    else if(ctx.ma_candidate != "NONE")
-      AddLabel("ma_selected", x, y + row*lh, "candidate: " + ctx.ma_candidate + " | side=" + ctx.ma_side + " | missing=" + ctx.ma_missing + " | selected=NONE", clrGold, InpFontSize, true);
+   {
+      AddRow("ma_candidate", row, x, y, lh, "candidate: " + ctx.ma_candidate + " | side=" + ctx.ma_side, clrGold, true);
+      AddRow("ma_missing", row, x, y, lh, "missing  : " + ctx.ma_missing + " | selected=NONE", clrGold, true);
+   }
    else
-      AddLabel("ma_selected", x, y + row*lh, "selected : NONE | candidate=NONE", clrSilver, InpFontSize, true);
-   row++;
+   {
+      AddRow("ma_none", row, x, y, lh, "selected : NONE", clrSilver, true);
+      AddRow("ma_none2", row, x, y, lh, "candidate: NONE", clrSilver, true);
+   }
    row++;
 
-   AddLabel("ev_h", x, y + row*lh, "EVENT STATE", clrAqua, InpFontSize, true); row++;
-   AddLabel("ev1", x, y + row*lh, "active_event: " + ctx.active_event, clrOrange, InpFontSize, true); row++;
-   AddLabel("ev2", x, y + row*lh, "active_side : " + ctx.active_side + " | state: " + ctx.event_state, ActionColor(ctx.active_side), InpFontSize, true); row++;
-   AddLabel("ev3", x, y + row*lh, StringFormat("H1:%s | M15:%s", ctx.h1_pattern, ctx.m15_pattern), clrSilver, InpFontSize); row++;
-   AddLabel("ev4", x, y + row*lh, StringFormat("M5:%s | M1:%s | att=%d", ctx.m5_pattern, ctx.m1_pattern, ctx.m1_attempt), clrSilver, InpFontSize); row++;
+   AddRow("ev_h", row, x, y, lh, "EVENT STATE", clrAqua, true);
+   AddRow("ev1", row, x, y, lh, "active_event: " + ctx.active_event, clrOrange, true);
+   AddRow("ev2", row, x, y, lh, "active_side : " + ctx.active_side + " | state: " + ctx.event_state, ActionColor(ctx.active_side), true);
+   AddRow("ev3", row, x, y, lh, StringFormat("H1:%s | M15:%s", ctx.h1_pattern, ctx.m15_pattern), clrSilver);
+   AddRow("ev4", row, x, y, lh, StringFormat("M5:%s | M1:%s | att=%d", ctx.m5_pattern, ctx.m1_pattern, ctx.m1_attempt), clrSilver);
    row++;
 
    string relevant = ctx.ma_side;
    if(relevant == "NONE") relevant = ctx.active_side;
-   AddLabel("op_h", x, y + row*lh, "OPERATIONAL FILTER", clrAqua, InpFontSize, true); row++;
-   AddLabel("rel", x, y + row*lh, "relevant side: " + relevant, ActionColor(relevant), InpFontSize, true); row++;
+
+   AddRow("op_h", row, x, y, lh, "OPERATIONAL FILTER", clrAqua, true);
+   AddRow("rel", row, x, y, lh, "relevant side: " + relevant, ActionColor(relevant), true);
 
    if(InpShowBothSideTriggers || relevant == "SELL" || relevant == "NONE")
    {
-      AddLabel("m5s", x, y + row*lh, ctx.m5_sell_detail, ctx.m5_sell_ok?clrLime:clrTomato, InpFontSize); row++;
-      AddLabel("m1s", x, y + row*lh, ctx.m1_sell_detail, ctx.m1_sell_ok?clrLime:clrTomato, InpFontSize); row++;
+      AddRow("m5s", row, x, y, lh, ctx.m5_sell_detail, ctx.m5_sell_ok ? clrLime : clrTomato);
+      AddRow("m1s", row, x, y, lh, ctx.m1_sell_detail, ctx.m1_sell_ok ? clrLime : clrTomato);
    }
    if(InpShowBothSideTriggers || relevant == "BUY" || relevant == "NONE")
    {
-      AddLabel("m5b", x, y + row*lh, ctx.m5_buy_detail, ctx.m5_buy_ok?clrLime:clrTomato, InpFontSize); row++;
-      AddLabel("m1b", x, y + row*lh, ctx.m1_buy_detail, ctx.m1_buy_ok?clrLime:clrTomato, InpFontSize); row++;
+      AddRow("m5b", row, x, y, lh, ctx.m5_buy_detail, ctx.m5_buy_ok ? clrLime : clrTomato);
+      AddRow("m1b", row, x, y, lh, ctx.m1_buy_detail, ctx.m1_buy_ok ? clrLime : clrTomato);
    }
 
    if(InpShowDebugDetails)
    {
       row++;
-      AddLabel("dbg", x, y + row*lh, "debug: M5 closed_all bars=" + IntegerToString(InpM5ClosedAllBars), clrDimGray, InpFontSize); row++;
+      AddRow("dbg", row, x, y, lh, "debug: M5 closed_all bars=" + IntegerToString(InpM5ClosedAllBars), clrDimGray);
    }
 
    if(ctx.action != g_last_action)
