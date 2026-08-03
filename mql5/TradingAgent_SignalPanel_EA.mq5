@@ -2,11 +2,11 @@
 //| TradingAgent_SignalPanel_EA.mq5                                  |
 //| Painel/alerta operacional baseado nas regras estudadas            |
 //|                                                                  |
-//| v6: candidate/selected em linhas separadas, painel legivel.       |
+//| v7: breakout power + entry check, SIGNAL ONLY.                    |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "6.00"
-#property description "TradingAgent signal-only panel: MA research replica, event state, M5/M1 operational filter."
+#property version   "7.00"
+#property description "TradingAgent signal-only panel: MA research replica, event state, breakout power, entry check."
 
 // -------------------------------------------------------------------
 // IMPORTANTE
@@ -14,18 +14,26 @@
 // Este EA e somente sinalizador/painel.
 // Nao usa CTrade, nao chama OrderSend, nao abre/fecha posicoes.
 // Pode ser usado em conta real como painel visual, mas valide sempre.
+//
+// Nota de alinhamento com o TradingAgent Python:
+// - No Python, Technical Patterns usa pattern_geometry, candidates, levels,
+//   breakout_attempt_context, fakeout edge e setup de retorno.
+// - Neste EA MQL5, o breakout atual e uma replica operacional simples:
+//   high/low do candle fechado anterior de cada TF.
+// - Portanto: BREAKOUT POWER aqui mede alinhamento de rompimento por candles,
+//   nao padroes graficos completos multi-toque.
 
-input string             InpSymbol                    = "";          // Vazio = simbolo do grafico
-input bool               InpSignalOnlyMode            = true;        // Sempre true: sem trades
-input bool               InpEnableAlerts              = true;        // Alerta popup quando acao muda
-input bool               InpEnablePush                = false;       // Push notification quando acao muda
-input int                InpTimerSeconds              = 2;           // Atualizacao do painel
+input string             InpSymbol                    = "";
+input bool               InpSignalOnlyMode            = true;
+input bool               InpEnableAlerts              = true;
+input bool               InpEnablePush                = false;
+input int                InpTimerSeconds              = 2;
 
 // Visual
 input int                InpPanelX                    = 10;
 input int                InpPanelY                    = 28;
-input int                InpPanelWidth                = 820;
-input int                InpPanelHeight               = 760;
+input int                InpPanelWidth                = 900;
+input int                InpPanelHeight               = 820;
 input int                InpFontSize                  = 15;
 input int                InpTitleFontSize             = 19;
 input int                InpLineHeight                = 22;
@@ -39,11 +47,11 @@ input bool               InpShowDebugDetails          = false;
 input ENUM_MA_METHOD     InpMAMethod                  = MODE_EMA;
 input ENUM_APPLIED_PRICE InpMAPrice                   = PRICE_CLOSE;
 input bool               InpUseClosedCandleForMA      = true;
-input int                InpM5ClosedAllBars           = 3;           // Aproximacao do closed_all do estudo
+input int                InpM5ClosedAllBars           = 3;
 
 // MA Research Replica - parametros do estudo
 input bool               InpMAResearchReplicaMode     = true;
-input bool               InpUseSellCoreMA             = true;        // SELL_CORE 8/20/63
+input bool               InpUseSellCoreMA             = true;
 input int                InpSellFast                  = 8;
 input int                InpSellMid                   = 20;
 input int                InpSellSlow                  = 63;
@@ -51,7 +59,7 @@ input double             InpSellStopATR               = 1.6;
 input double             InpSellTargetATR             = 1.3;
 input int                InpSellMaxHoldMin            = 20;
 
-input bool               InpUseBuyCoreMA              = true;        // BUY_CORE 6/30/85
+input bool               InpUseBuyCoreMA              = true;
 input int                InpBuyFast                   = 6;
 input int                InpBuyMid                    = 30;
 input int                InpBuySlow                   = 85;
@@ -59,7 +67,7 @@ input double             InpBuyStopATR                = 1.0;
 input double             InpBuyTargetATR              = 0.8;
 input int                InpBuyMaxHoldMin             = 10;
 
-input bool               InpUseBothGeneralMA          = true;        // BOTH_GENERAL 5/30/81
+input bool               InpUseBothGeneralMA          = true;
 input int                InpBothFast                  = 5;
 input int                InpBothMid                   = 30;
 input int                InpBothSlow                  = 81;
@@ -106,6 +114,10 @@ struct SignalContext
    int m5_attempt;
    int m1_attempt;
 
+   string breakout_power;
+   string breakout_power_detail;
+   string breakout_basis;
+
    bool m5_sell_ok;
    bool m5_buy_ok;
    bool m1_sell_ok;
@@ -114,6 +126,10 @@ struct SignalContext
    string m5_buy_detail;
    string m1_sell_detail;
    string m1_buy_detail;
+
+   string entry_check;
+   string entry_blocked_by;
+   string entry_next;
 };
 
 //+------------------------------------------------------------------+
@@ -345,6 +361,83 @@ string PatternTF(const ENUM_TIMEFRAMES tf, int &attempt)
    return "RANGE_CONTEXT";
 }
 
+bool PatternSupportsSide(const string pattern, const string side, const bool fakeout_mode)
+{
+   if(side == "BUY")
+   {
+      if(fakeout_mode) return pattern == "FAKEOUT_DOWN";
+      return pattern == "BREAKOUT_UP_LIVE";
+   }
+   if(side == "SELL")
+   {
+      if(fakeout_mode) return pattern == "FAKEOUT_UP";
+      return pattern == "BREAKOUT_DOWN_LIVE";
+   }
+   return false;
+}
+
+bool PatternOpposesSide(const string pattern, const string side, const bool fakeout_mode)
+{
+   if(side == "BUY")
+   {
+      if(fakeout_mode) return pattern == "FAKEOUT_UP";
+      return pattern == "BREAKOUT_DOWN_LIVE";
+   }
+   if(side == "SELL")
+   {
+      if(fakeout_mode) return pattern == "FAKEOUT_DOWN";
+      return pattern == "BREAKOUT_UP_LIVE";
+   }
+   return false;
+}
+
+void BuildBreakoutPower(SignalContext &ctx)
+{
+   string side = ctx.active_side;
+   if(side == "NONE")
+   {
+      ctx.breakout_power = "NONE";
+      ctx.breakout_power_detail = "side=NONE";
+      ctx.breakout_basis = "prev_closed_candle_HL_by_TF";
+      return;
+   }
+
+   bool fakeout_mode = (StringFind(ctx.active_event, "FAILED_FAKEOUT") >= 0);
+   int score = 0;
+   int opp = 0;
+   string tfs = "";
+
+   if(PatternSupportsSide(ctx.h1_pattern, side, fakeout_mode)){ score += 3; tfs += "H1/"; }
+   if(PatternSupportsSide(ctx.m15_pattern, side, fakeout_mode)){ score += 3; tfs += "M15/"; }
+   if(PatternSupportsSide(ctx.m5_pattern, side, fakeout_mode)){ score += 2; tfs += "M5/"; }
+   if(PatternSupportsSide(ctx.m1_pattern, side, fakeout_mode)){ score += 1; tfs += "M1/"; }
+
+   if(PatternOpposesSide(ctx.h1_pattern, side, fakeout_mode)) opp++;
+   if(PatternOpposesSide(ctx.m15_pattern, side, fakeout_mode)) opp++;
+   if(PatternOpposesSide(ctx.m5_pattern, side, fakeout_mode)) opp++;
+   if(PatternOpposesSide(ctx.m1_pattern, side, fakeout_mode)) opp++;
+
+   if(StringLen(tfs) > 0) tfs = StringSubstr(tfs, 0, StringLen(tfs)-1);
+   else tfs = "none";
+
+   if(score > 0 && opp > 0)
+      ctx.breakout_power = "MIXED";
+   else if(score >= 7)
+      ctx.breakout_power = "VERY_STRONG";
+   else if(score >= 5)
+      ctx.breakout_power = "STRONG";
+   else if(score >= 3)
+      ctx.breakout_power = "MEDIUM";
+   else if(score >= 1)
+      ctx.breakout_power = "WEAK";
+   else
+      ctx.breakout_power = "NONE";
+
+   string mode = fakeout_mode ? "fakeout_return" : "live_breakout";
+   ctx.breakout_power_detail = ctx.breakout_power + " | " + tfs + " | side=" + side + " | mode=" + mode;
+   ctx.breakout_basis = "basis: prev closed candle high/low per TF";
+}
+
 bool M5SellPermission(string &detail)
 {
    MqlRates r[];
@@ -414,6 +507,84 @@ void RegisterMAResult(SignalContext &ctx, const string state, const string label
       ctx.ma_state = state;
       ctx.ma_missing = missing;
    }
+}
+
+void BuildEntryCheck(SignalContext &ctx)
+{
+   string relevant = ctx.ma_side;
+   if(relevant == "NONE") relevant = ctx.active_side;
+
+   bool m5ok = true;
+   bool m1ok = true;
+   if(relevant == "SELL")
+   {
+      m5ok = ctx.m5_sell_ok;
+      m1ok = ctx.m1_sell_ok;
+   }
+   else if(relevant == "BUY")
+   {
+      m5ok = ctx.m5_buy_ok;
+      m1ok = ctx.m1_buy_ok;
+   }
+
+   ctx.entry_blocked_by = "NONE";
+   ctx.entry_next = "sem setup operacional ativo";
+
+   if(ctx.ma_selected == "NONE" && ctx.ma_candidate != "NONE")
+   {
+      ctx.entry_blocked_by = ctx.ma_missing;
+      ctx.entry_next = "aguardar MA_RESEARCH validar " + ctx.ma_missing;
+   }
+   else if(ctx.event_state == "WAIT_ACCEPTANCE_OR_RETEST")
+   {
+      ctx.entry_blocked_by = "WAIT_ACCEPTANCE_OR_RETEST";
+      ctx.entry_next = "aguardar candle fechado/reteste da regiao rompida";
+   }
+   else if(ctx.event_state == "WAIT_FAKEOUT_RETURN")
+   {
+      if(relevant == "NONE")
+      {
+         ctx.entry_blocked_by = "NO_RELEVANT_SIDE";
+         ctx.entry_next = "aguardar lado ativo";
+      }
+      else if(InpRequireM5Permission && !m5ok)
+      {
+         ctx.entry_blocked_by = "M5_PERMISSION";
+         ctx.entry_next = "aguardar M5 permitir " + relevant;
+      }
+      else if(InpRequireM1Trigger && !m1ok)
+      {
+         ctx.entry_blocked_by = "M1_TRIGGER";
+         ctx.entry_next = "aguardar gatilho M1 para " + relevant;
+      }
+      else
+      {
+         ctx.entry_blocked_by = "FAKEOUT_RETURN_NOT_CONFIRMED";
+         ctx.entry_next = "M5/M1 ok; ainda validar retorno/risco de chase";
+      }
+   }
+   else if(ctx.ma_selected != "NONE")
+   {
+      if(InpRequireM5Permission && !m5ok)
+      {
+         ctx.entry_blocked_by = "M5_PERMISSION";
+         ctx.entry_next = "aguardar M5 permitir " + relevant;
+      }
+      else if(InpRequireM1Trigger && !m1ok)
+      {
+         ctx.entry_blocked_by = "M1_TRIGGER";
+         ctx.entry_next = "aguardar gatilho M1 para " + relevant;
+      }
+      else
+      {
+         ctx.entry_blocked_by = "NONE";
+         ctx.entry_next = "entrada operacional liberada pelo painel";
+      }
+   }
+
+   string m5txt = m5ok ? "OK" : "NO";
+   string m1txt = m1ok ? "OK" : "NO";
+   ctx.entry_check = "side=" + relevant + " | M5=" + m5txt + " | M1=" + m1txt + " | blocked_by=" + ctx.entry_blocked_by;
 }
 
 void BuildContext(SignalContext &ctx)
@@ -486,6 +657,8 @@ void BuildContext(SignalContext &ctx)
       ctx.active_side = "BUY";
    }
 
+   BuildBreakoutPower(ctx);
+
    ctx.m5_sell_ok = M5SellPermission(ctx.m5_sell_detail);
    ctx.m5_buy_ok  = M5BuyPermission(ctx.m5_buy_detail);
    ctx.m1_sell_ok = M1SellTrigger(ctx.m1_sell_detail);
@@ -546,6 +719,8 @@ void BuildContext(SignalContext &ctx)
       ctx.action = "WAIT";
       ctx.reason = "sem setup valido";
    }
+
+   BuildEntryCheck(ctx);
 }
 
 //+------------------------------------------------------------------+
@@ -556,6 +731,15 @@ color ActionColor(const string value)
    if(StringFind(value, "WAIT") >= 0) return clrGold;
    if(value == "VALID") return clrLime;
    return clrWhite;
+}
+
+color PowerColor(const string value)
+{
+   if(value == "VERY_STRONG" || value == "STRONG") return clrLime;
+   if(value == "MEDIUM") return clrGold;
+   if(value == "WEAK") return clrSilver;
+   if(value == "MIXED") return clrOrange;
+   return clrDimGray;
 }
 
 void AddLabel(const string id, const int x, const int y, const string text, const color clr, const int size, const bool bold=false)
@@ -621,7 +805,7 @@ void UpdatePanel()
    if(lh < InpFontSize + 4) lh = InpFontSize + 4;
    int row = 0;
 
-   AddLabel("title", x, y + row * lh, "TradingAgent Signal Panel v6", clrWhite, InpTitleFontSize, true); row++;
+   AddLabel("title", x, y + row * lh, "TradingAgent Signal Panel v7", clrWhite, InpTitleFontSize, true); row++;
    AddRow("sub", row, x, y, lh, StringFormat("%s | TF=%s | bid %.2f ask %.2f", g_symbol, TFName((ENUM_TIMEFRAMES)_Period), Bid(), Ask()), clrSilver);
    AddRow("mode", row, x, y, lh, "SIGNAL ONLY - no trades / no OrderSend", clrDeepSkyBlue, true);
    AddRow("action", row, x, y, lh, "ACTION: " + ctx.action, ActionColor(ctx.action), true);
@@ -656,10 +840,17 @@ void UpdatePanel()
    AddRow("ev2", row, x, y, lh, "active_side : " + ctx.active_side + " | state: " + ctx.event_state, ActionColor(ctx.active_side), true);
    AddRow("ev3", row, x, y, lh, StringFormat("H1:%s | M15:%s", ctx.h1_pattern, ctx.m15_pattern), clrSilver);
    AddRow("ev4", row, x, y, lh, StringFormat("M5:%s | M1:%s | att=%d", ctx.m5_pattern, ctx.m1_pattern, ctx.m1_attempt), clrSilver);
+   AddRow("bp1", row, x, y, lh, "breakout_power: " + ctx.breakout_power_detail, PowerColor(ctx.breakout_power), true);
+   AddRow("bp2", row, x, y, lh, ctx.breakout_basis, clrDimGray);
    row++;
 
    string relevant = ctx.ma_side;
    if(relevant == "NONE") relevant = ctx.active_side;
+
+   AddRow("entry_h", row, x, y, lh, "ENTRY CHECK", clrAqua, true);
+   AddRow("entry1", row, x, y, lh, ctx.entry_check, ActionColor(relevant), true);
+   AddRow("entry2", row, x, y, lh, "next: " + ctx.entry_next, clrSilver);
+   row++;
 
    AddRow("op_h", row, x, y, lh, "OPERATIONAL FILTER", clrAqua, true);
    AddRow("rel", row, x, y, lh, "relevant side: " + relevant, ActionColor(relevant), true);
