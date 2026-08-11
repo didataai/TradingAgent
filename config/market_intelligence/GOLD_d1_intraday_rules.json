@@ -1,14 +1,17 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "symbol": "GOLD",
   "rule_family": "D1_POINT_IN_TIME_DIRECTIONAL_FILTER",
   "runtime_status": "WARNING_ONLY_RESEARCH",
   "generated_from_research_date": "2026-08-11",
   "daily_session_clock": {
     "mode": "BROKER_DAY",
-    "preferred_columns": ["time_broker", "time"],
+    "preferred_columns": [
+      "time_broker",
+      "time"
+    ],
     "timezone": "Etc/GMT-2",
-    "note": "D1 high/low/open must follow the MT5 broker day. BRT is used only for the operational trading window."
+    "note": "D1 high/low/open must follow the MT5 broker day. BRT is used for the operational window and intraday phase research."
   },
   "operational_window_brt": {
     "timezone": "America/Sao_Paulo",
@@ -20,48 +23,240 @@
     "lookahead_prohibited": true,
     "daily_position_formula": "(price - low_so_far) / (high_so_far - low_so_far)",
     "daily_direction": "BULLISH if price > broker_daily_open; BEARISH if price < broker_daily_open; NEUTRAL otherwise",
-    "higher_timeframe_availability": "Use only completed H1/M15 bars at each M5 decision timestamp in the research script.",
+    "higher_timeframe_availability": "Use only completed H1/M15 bars at each M5 decision timestamp in research.",
     "primary_research_horizon_minutes": 120,
+    "chronological_split": "60/20/20",
     "evaluation_priority": [
       "OOS_expectancy",
       "profit_factor",
+      "independent_broker_days",
       "win_rate",
       "sample_size",
       "MFE_MAE"
-    ]
+    ],
+    "important_caveat": "The exploratory TEST segment has now been inspected repeatedly while developing z-score, episode and clock hypotheses. New promotions require frozen forward shadow data or nested/walk-forward confirmation."
   },
   "research_evidence": {
-    "status": "FIRST_LAYER_PROVISIONAL_REVALIDATE_WITH_BROKER_DAY",
-    "reason": "The first exploratory pass supported asymmetric D1-position effects, but the definitive run must use broker-day D1 boundaries. Therefore all runtime effects remain soft/warning-only until the broker-day OOS study passes.",
-    "provisional_findings": {
-      "bullish_zone": {
-        "range": [0.7, 0.9],
-        "condition": "daily_direction == BULLISH",
-        "observed_edge": "BUY continuation favored in the exploratory sample",
-        "confidence": "PROVISIONAL"
+    "status": "BROKER_DAY_MTF_RESEARCH_CHECKPOINT_2026_08_11",
+    "runtime_policy": "WARNING_ONLY_AND_SHADOW_RESEARCH",
+    "confirmed_or_strong_findings": {
+      "bullish_continuation_070_090": {
+        "range": [
+          0.7,
+          0.9
+        ],
+        "condition": "daily_direction == BULLISH and H1/M15/M5 aligned BUY",
+        "test_120m": {
+          "n": 358,
+          "independent_days": 44,
+          "win_rate": 0.56704,
+          "mean_return": 4.14372,
+          "profit_factor": 1.65776
+        },
+        "interpretation": "Robust research evidence for BUY continuation in the upper D1 zone before the extreme-high chase region.",
+        "confidence": "STRONG_RESEARCH"
       },
-      "bearish_zone": {
-        "range": [0.1, 0.3],
-        "condition": "daily_direction == BEARISH",
-        "observed_edge": "SELL continuation favored, weaker than the bullish side",
-        "confidence": "PROVISIONAL"
+      "bearish_continuation_010_030": {
+        "range": [
+          0.1,
+          0.3
+        ],
+        "condition": "daily_direction == BEARISH and H1/M15/M5 aligned SELL",
+        "test_120m": {
+          "n": 208,
+          "independent_days": 41,
+          "win_rate": 0.49519,
+          "mean_return": -0.96303,
+          "profit_factor": 0.86639
+        },
+        "interpretation": "The lower-side continuation is not a mirror image of the bullish 0.70-0.90 edge. Remove the old SELL preference from runtime scoring.",
+        "confidence": "NOT_CONFIRMED"
       },
-      "extreme_high": {
-        "range": [0.9, 1.0],
-        "observed_edge": "Continuation edge degraded versus the 0.70-0.90 zone",
-        "interpretation": "Potential exhaustion / buy-side liquidity sweep; do not chase BUY solely because price is at the high."
+      "extreme_high_buy_chase": {
+        "range": [
+          0.9,
+          1.0
+        ],
+        "original_side": "BUY",
+        "test_120m": {
+          "n": 355,
+          "independent_days": 35,
+          "win_rate": 0.4169,
+          "mean_return": -3.94989,
+          "profit_factor": 0.63927
+        },
+        "interpretation": "Strong anti-edge for chasing BUY at the D1 extreme high. Keep AVOID_CHASE_BUY as the rule candidate. The inverse SELL looked strong in the recent TEST but failed historical train/validation stability, so it is not promoted as a SELL rule.",
+        "confidence": "STRONG_ANTI_EDGE_RULE_CANDIDATE"
       },
-      "extreme_low": {
-        "range": [0.0, 0.1],
-        "observed_edge": "SELL continuation degraded and reversal behavior increased",
-        "interpretation": "Potential exhaustion / sell-side liquidity sweep; do not chase SELL solely because price is at the low."
+      "extreme_low_sell_chase": {
+        "range": [
+          0.0,
+          0.1
+        ],
+        "original_side": "SELL",
+        "test_120m": {
+          "n": 256,
+          "independent_days": 32,
+          "win_rate": 0.41406,
+          "mean_return": -2.24473,
+          "profit_factor": 0.72683
+        },
+        "interpretation": "Chasing SELL at the D1 extreme low is an anti-edge. This supports avoiding SELL chase and motivates the separate mean-reversion family.",
+        "confidence": "STRONG_RESEARCH"
       },
-      "neutral_zone": {
-        "range": [0.3, 0.7],
-        "interpretation": "D1 position should not select direction; defer to H1/M15/M5."
+      "extreme_low_zscore_buy": {
+        "condition": "D1 EXTREME_LOW + H1 DOWN + M15 DOWN + M5 rolling z-score <= -2.0",
+        "zscore_window_m5": 20,
+        "primary_horizon_minutes": 120,
+        "train_120m": {
+          "n": 195,
+          "win_rate": 0.6564,
+          "mean_return": 4.05,
+          "profit_factor": 2.02
+        },
+        "validation_120m": {
+          "n": 69,
+          "win_rate": 0.6232,
+          "mean_return": 9.31,
+          "profit_factor": 2.21
+        },
+        "test_120m": {
+          "n": 100,
+          "independent_days": 29,
+          "win_rate": 0.72,
+          "mean_return": 7.07,
+          "profit_factor": 2.87
+        },
+        "zscore_sensitivity": {
+          "z_1_5_pf_train_validation_test": [
+            1.82,
+            1.17,
+            1.78
+          ],
+          "z_2_0_pf_train_validation_test": [
+            2.02,
+            2.21,
+            2.87
+          ],
+          "z_2_5_pf_train_validation_test": [
+            2.93,
+            1.49,
+            7.25
+          ]
+        },
+        "interpretation": "A stable lower-extreme mean-reversion family exists across multiple z thresholds. Z=-2.0 is the best current research balance between quality and sample, not the largest headline PF.",
+        "confidence": "STRONG_SHADOW_CANDIDATE"
+      },
+      "post09_second_stress_cycle_buy": {
+        "definition": "Episode count resets at 09:00 BRT. Enter episode when M5 z-score <= -2.0; episode resets only after z-score > -1.5. Select exact post-09 episode #2 when D1 EXTREME_LOW + H1 DOWN + M15 DOWN.",
+        "primary_horizon_minutes": 120,
+        "train_120m": {
+          "n": 14,
+          "independent_days": 14,
+          "win_rate": 0.7143,
+          "mean_return": 4.76,
+          "profit_factor": 2.14
+        },
+        "validation_120m": {
+          "n": 4,
+          "independent_days": 4,
+          "win_rate": 0.75,
+          "mean_return": 2.85,
+          "profit_factor": 1.48
+        },
+        "test_120m": {
+          "n": 13,
+          "independent_days": 13,
+          "win_rate": 0.6923,
+          "mean_return": 6.17,
+          "profit_factor": 3.32
+        },
+        "session_boundary_check": {
+          "09_00_reset_events": 31,
+          "08_00_reset_events": 4,
+          "broker_day_reset_events": 0,
+          "interpretation": "This is explicitly a post-09 session-cycle feature, not the second z-score episode of the full broker day."
+        },
+        "interpretation": "Episode #2 adds sequence information beyond simple D1 depth or z-score intensity, but the sample is small. Keep shadow-only until forward confirmation.",
+        "confidence": "PROMISING_SMALL_SAMPLE_SHADOW"
+      },
+      "market_clock_high_volatility": {
+        "zone_brt": {
+          "start": "09:05",
+          "end": "12:30"
+        },
+        "metric": "M5 bar range relative to trailing intraday median",
+        "day_cluster_bootstrap": {
+          "train": {
+            "days": 212,
+            "mean": 1.587,
+            "median": 1.53,
+            "ci95": [
+              1.542,
+              1.634
+            ],
+            "probability_above_1": 1.0
+          },
+          "validation": {
+            "days": 77,
+            "mean": 1.513,
+            "median": 1.426,
+            "ci95": [
+              1.425,
+              1.606
+            ],
+            "probability_above_1": 1.0
+          },
+          "test": {
+            "days": 76,
+            "mean": 1.546,
+            "median": 1.508,
+            "ci95": [
+              1.481,
+              1.613
+            ],
+            "probability_above_1": 1.0
+          }
+        },
+        "core_peaks_brt": [
+          "09:30",
+          "10:05",
+          "10:35-10:45",
+          "11:05-11:10",
+          "11:20-11:40"
+        ],
+        "interpretation": "This is the strongest clock discovery so far: a reproducible high-volatility phase. It is descriptive context, not a directional BUY/SELL rule.",
+        "confidence": "ROBUST_DESCRIPTIVE_PHASE"
       }
     },
-    "promotion_rule": "Promote WARNING_ONLY to HARD_FILTER only if the broker-day 60/20/20 OOS study improves test expectancy and profit factor, does not materially reduce sample size, and the direction is stable across train/validation/test."
+    "not_promoted_or_unstable_findings": {
+      "extreme_high_zscore_sell": "Recent TEST mean-reversion SELL is positive, but train/validation fail across z=1.5/2.0/2.5. Treat as regime-flip evidence, not a structural SELL rule.",
+      "rejection_variants": "Headline PF can be very large but sample collapses; keep experimental only.",
+      "first_event_per_day_low_zscore": "120m remains positive in TRAIN and TEST but fails VALIDATION, showing clustered intraday events carry information and first-touch alone is not enough.",
+      "night_20_continuation": "Bootstrap confidence is mixed across splits; not promoted.",
+      "night_22_continuation": "TRAIN is negative while later splits are mixed; rejected as stable continuation.",
+      "night_2335_continuation": "Promising later-period continuation, but TRAIN CI crosses zero; keep exploratory.",
+      "pre_morning_reversal_0620_0800": "TRAIN and VALIDATION lean reversal, but TEST mean is approximately neutral and bootstrap probability is 49.63%; not stable.",
+      "post_vol_reversal_1255_1345": "Median is negative in all splits, but bootstrap mean CI crosses zero and confidence falls to 52.40% in TEST; descriptive hypothesis only.",
+      "weekday_rule": "Tuesday/Wednesday/Thursday effects were not stable enough to become a standalone rule.",
+      "opening_echo_direction": "20:00-01:00 -> 08:00-09:00 direction match is not consistently above 50% in TEST. Echo magnitude and directional efficiency may still be useful state features."
+    },
+    "next_association_stage": {
+      "goal": "Associate statistically discovered intraday phases with real market opens, closes, overlaps, maintenance/reopen windows and DST-aware session calendars only after the statistical phase boundaries are frozen.",
+      "features_to_join_later": [
+        "D1Position",
+        "daily_direction",
+        "H1_direction",
+        "M15_direction",
+        "M5_zscore_20",
+        "Post09StressCycle",
+        "MinutesFromPhaseChange",
+        "IntradayVolatilityPhase",
+        "OpeningFlowState",
+        "DirectionalEfficiency"
+      ]
+    },
+    "promotion_rule": "No new hard runtime promotion from this checkpoint. Keep runtime WARNING_ONLY. Promote only after frozen forward shadow or nested/walk-forward confirmation, independent-day validation, costs/slippage review and no material sample collapse."
   },
   "daily_position_filter": {
     "enabled": true,
@@ -75,8 +270,12 @@
         "max": 0.1,
         "preferred_side": "NONE",
         "same_direction_chase_side": "SELL",
-        "action": "AVOID_CHASE",
-        "score_adjustment": {"BUY": 0, "SELL": -12},
+        "action": "AVOID_CHASE_SELL",
+        "score_adjustment": {
+          "BUY": 0,
+          "SELL": -12
+        },
+        "research_status": "ANTI_EDGE_SELL_CHASE_CONFIRMED",
         "hard_block_same_direction_chase_when_promoted": true
       },
       {
@@ -84,9 +283,13 @@
         "min": 0.1,
         "max": 0.3,
         "required_daily_direction": "BEARISH",
-        "preferred_side": "SELL",
-        "action": "FAVOR_SELL",
-        "score_adjustment": {"BUY": -8, "SELL": 10},
+        "preferred_side": "NONE",
+        "action": "NO_CONFIRMED_DIRECTIONAL_EDGE",
+        "score_adjustment": {
+          "BUY": 0,
+          "SELL": 0
+        },
+        "research_status": "SELL_CONTINUATION_NOT_CONFIRMED",
         "hard_block_opposite_side_when_promoted": false
       },
       {
@@ -95,7 +298,10 @@
         "max": 0.7,
         "preferred_side": "BOTH",
         "action": "NO_DIRECTIONAL_FILTER",
-        "score_adjustment": {"BUY": 0, "SELL": 0}
+        "score_adjustment": {
+          "BUY": 0,
+          "SELL": 0
+        }
       },
       {
         "name": "BULLISH_CONTINUATION",
@@ -104,7 +310,11 @@
         "required_daily_direction": "BULLISH",
         "preferred_side": "BUY",
         "action": "FAVOR_BUY",
-        "score_adjustment": {"BUY": 15, "SELL": -18},
+        "score_adjustment": {
+          "BUY": 15,
+          "SELL": -18
+        },
+        "research_status": "STRONG_RESEARCH_EDGE",
         "hard_block_opposite_side_when_promoted": true
       },
       {
@@ -113,8 +323,12 @@
         "max": 1.000001,
         "preferred_side": "NONE",
         "same_direction_chase_side": "BUY",
-        "action": "AVOID_CHASE",
-        "score_adjustment": {"BUY": -12, "SELL": 0},
+        "action": "AVOID_CHASE_BUY",
+        "score_adjustment": {
+          "BUY": -12,
+          "SELL": 0
+        },
+        "research_status": "STRONG_ANTI_EDGE_BUY_CHASE_RULE_CANDIDATE",
         "hard_block_same_direction_chase_when_promoted": true
       }
     ],
@@ -137,8 +351,53 @@
           "M15 == DOWN",
           "M5 trigger == confirmed DOWN"
         ],
-        "classification": "D1_MTF_ALIGNED_SELL"
+        "classification": "RESEARCH_ONLY_NOT_CONFIRMED"
       }
+    }
+  },
+  "research_only_setups": {
+    "EXTREME_LOW_ZSCORE_BUY": {
+      "runtime_enabled": false,
+      "side": "BUY",
+      "conditions": [
+        "zone == EXTREME_LOW",
+        "H1 == DOWN",
+        "M15 == DOWN",
+        "M5 zscore_20 <= -2.0"
+      ],
+      "primary_horizon_minutes": 120,
+      "status": "STRONG_SHADOW_CANDIDATE"
+    },
+    "POST09_EP2_EXTREME_LOW_BUY": {
+      "runtime_enabled": false,
+      "side": "BUY",
+      "episode_clock_brt": "09:00 reset",
+      "episode_entry_z": -2.0,
+      "episode_reset_z": -1.5,
+      "episode_number": 2,
+      "conditions_at_episode_start": [
+        "zone == EXTREME_LOW",
+        "H1 == DOWN",
+        "M15 == DOWN"
+      ],
+      "primary_horizon_minutes": 120,
+      "status": "PROMISING_SMALL_SAMPLE_SHADOW"
+    }
+  },
+  "market_clock_research": {
+    "runtime_enabled": false,
+    "timezone": "America/Sao_Paulo",
+    "high_volatility_phase": {
+      "start": "09:05",
+      "end": "12:30",
+      "status": "ROBUST_DESCRIPTIVE_PHASE"
+    },
+    "directional_phases": {
+      "night_20": "UNRESOLVED",
+      "night_22": "REJECTED_AS_STABLE_CONTINUATION",
+      "night_2335": "EXPLORATORY",
+      "pre_morning_0620_0800": "UNSTABLE_OOS",
+      "post_vol_1255_1345": "DESCRIPTIVE_ONLY_NOT_BOOTSTRAP_CONFIRMED"
     }
   }
 }
