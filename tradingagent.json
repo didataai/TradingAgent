@@ -544,7 +544,7 @@
         "symbols": [
           "GOLD"
         ],
-        "script": "market_intelligence.py",
+        "script": "market_intelligence_d1.py",
         "arguments": [
           "enrich",
           "--profile",
