@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.1",
+  "symbol": "GOLD",
+  "rule_family": "D1_POINT_IN_TIME_DIRECTIONAL_FILTER",
+  "runtime_status": "WARNING_ONLY_RESEARCH",
+  "generated_from_research_date": "2026-08-11",
+  "daily_session_clock": {
+    "mode": "BROKER_DAY",
+    "preferred_columns": ["time_broker", "time"],
+    "timezone": "Etc/GMT-2",
+    "note": "D1 high/low/open must follow the MT5 broker day. BRT is used only for the operational trading window."
+  },
+  "operational_window_brt": {
+    "timezone": "America/Sao_Paulo",
+    "start": "09:00",
+    "end": "18:00"
+  },
+  "methodology": {
+    "point_in_time_only": true,
+    "lookahead_prohibited": true,
+    "daily_position_formula": "(price - low_so_far) / (high_so_far - low_so_far)",
+    "daily_direction": "BULLISH if price > broker_daily_open; BEARISH if price < broker_daily_open; NEUTRAL otherwise",
+    "higher_timeframe_availability": "Use only completed H1/M15 bars at each M5 decision timestamp in the research script.",
+    "primary_research_horizon_minutes": 120,
+    "evaluation_priority": [
+      "OOS_expectancy",
+      "profit_factor",
+      "win_rate",
+      "sample_size",
+      "MFE_MAE"
+    ]
+  },
+  "research_evidence": {
+    "status": "FIRST_LAYER_PROVISIONAL_REVALIDATE_WITH_BROKER_DAY",
+    "reason": "The first exploratory pass supported asymmetric D1-position effects, but the definitive run must use broker-day D1 boundaries. Therefore all runtime effects remain soft/warning-only until the broker-day OOS study passes.",
+    "provisional_findings": {
+      "bullish_zone": {
+        "range": [0.7, 0.9],
+        "condition": "daily_direction == BULLISH",
+        "observed_edge": "BUY continuation favored in the exploratory sample",
+        "confidence": "PROVISIONAL"
+      },
+      "bearish_zone": {
+        "range": [0.1, 0.3],
+        "condition": "daily_direction == BEARISH",
+        "observed_edge": "SELL continuation favored, weaker than the bullish side",
+        "confidence": "PROVISIONAL"
+      },
+      "extreme_high": {
+        "range": [0.9, 1.0],
+        "observed_edge": "Continuation edge degraded versus the 0.70-0.90 zone",
+        "interpretation": "Potential exhaustion / buy-side liquidity sweep; do not chase BUY solely because price is at the high."
+      },
+      "extreme_low": {
+        "range": [0.0, 0.1],
+        "observed_edge": "SELL continuation degraded and reversal behavior increased",
+        "interpretation": "Potential exhaustion / sell-side liquidity sweep; do not chase SELL solely because price is at the low."
+      },
+      "neutral_zone": {
+        "range": [0.3, 0.7],
+        "interpretation": "D1 position should not select direction; defer to H1/M15/M5."
+      }
+    },
+    "promotion_rule": "Promote WARNING_ONLY to HARD_FILTER only if the broker-day 60/20/20 OOS study improves test expectancy and profit factor, does not materially reduce sample size, and the direction is stable across train/validation/test."
+  },
+  "daily_position_filter": {
+    "enabled": true,
+    "apply_only_in_operational_window": true,
+    "enforcement_mode": "WARNING_ONLY",
+    "score_mode": "SOFT_SCORE",
+    "zones": [
+      {
+        "name": "EXTREME_LOW",
+        "min": 0.0,
+        "max": 0.1,
+        "preferred_side": "NONE",
+        "same_direction_chase_side": "SELL",
+        "action": "AVOID_CHASE",
+        "score_adjustment": {"BUY": 0, "SELL": -12},
+        "hard_block_same_direction_chase_when_promoted": true
+      },
+      {
+        "name": "BEARISH_CONTINUATION",
+        "min": 0.1,
+        "max": 0.3,
+        "required_daily_direction": "BEARISH",
+        "preferred_side": "SELL",
+        "action": "FAVOR_SELL",
+        "score_adjustment": {"BUY": -8, "SELL": 10},
+        "hard_block_opposite_side_when_promoted": false
+      },
+      {
+        "name": "NEUTRAL",
+        "min": 0.3,
+        "max": 0.7,
+        "preferred_side": "BOTH",
+        "action": "NO_DIRECTIONAL_FILTER",
+        "score_adjustment": {"BUY": 0, "SELL": 0}
+      },
+      {
+        "name": "BULLISH_CONTINUATION",
+        "min": 0.7,
+        "max": 0.9,
+        "required_daily_direction": "BULLISH",
+        "preferred_side": "BUY",
+        "action": "FAVOR_BUY",
+        "score_adjustment": {"BUY": 15, "SELL": -18},
+        "hard_block_opposite_side_when_promoted": true
+      },
+      {
+        "name": "EXTREME_HIGH",
+        "min": 0.9,
+        "max": 1.000001,
+        "preferred_side": "NONE",
+        "same_direction_chase_side": "BUY",
+        "action": "AVOID_CHASE",
+        "score_adjustment": {"BUY": -12, "SELL": 0},
+        "hard_block_same_direction_chase_when_promoted": true
+      }
+    ],
+    "mtf_confirmation": {
+      "buy_a_plus_candidate": {
+        "required": [
+          "zone == BULLISH_CONTINUATION",
+          "daily_direction == BULLISH",
+          "H1 == UP",
+          "M15 == UP",
+          "M5 trigger == confirmed UP"
+        ],
+        "classification": "D1_MTF_ALIGNED_BUY"
+      },
+      "sell_a_plus_candidate": {
+        "required": [
+          "zone == BEARISH_CONTINUATION",
+          "daily_direction == BEARISH",
+          "H1 == DOWN",
+          "M15 == DOWN",
+          "M5 trigger == confirmed DOWN"
+        ],
+        "classification": "D1_MTF_ALIGNED_SELL"
+      }
+    }
+  }
+}
