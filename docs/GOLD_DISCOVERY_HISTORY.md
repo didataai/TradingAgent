@@ -2,46 +2,29 @@
 
 > Documento vivo de pesquisa. Objetivo: registrar **o que já foi testado, por que foi testado, como foi testado, o que funcionou, o que falhou e o que não deve ser repetido sem uma nova justificativa**.
 >
-> Este arquivo deve ser atualizado nas próximas rodadas de pesquisa, preservando o histórico antigo. Achados superados **não devem ser apagados**; devem ser marcados como `REJECTED`, `SUPERSEDED`, `REGIME_DEPENDENT`, `SHADOW_ONLY` ou `CONFIRMED_RESEARCH`.
+> Este arquivo deve ser atualizado nas próximas rodadas de pesquisa, preservando o histórico. Achados superados não devem ser apagados; devem ser marcados como `REJECTED`, `SUPERSEDED`, `REGIME_DEPENDENT`, `SHADOW_ONLY`, `PROMISING_STATE` ou `CONFIRMED_RESEARCH`.
 
 ---
 
-# 0. Por que este arquivo existe
+# 0. Regras de manutenção
 
-Ao longo da pesquisa do GOLD foram criados diversos testes rápidos em memória, muitos executados diretamente no PowerShell e colados no chat. Eles foram úteis porque permitiram testar hipóteses em segundos sem transformar cada hipótese em um novo script permanente.
-
-O risco desse método é perder o raciocínio histórico: repetir testes, esquecer por que determinada hipótese foi rejeitada, reintroduzir thresholds antigos ou confundir uma descoberta exploratória com uma regra validada.
-
-Este documento resolve esse problema.
-
-## Regras de manutenção deste histórico
-
-1. **Não apagar histórico.**
-2. Quando uma hipótese for refutada, manter os números e marcar como rejeitada.
-3. Quando uma hipótese evoluir, manter a definição antiga e registrar a nova.
-4. Thresholds já inspecionados em TEST devem ser tratados como exploratórios, não como novo holdout puro.
-5. Novas promoções exigem forward shadow congelado ou nested/walk-forward.
-6. Custos, spread e slippage ainda não foram incorporados à maior parte destes estudos.
-7. O objetivo é construir **estado de mercado**, não empilhar filtros sem entender causalidade ou dependência.
-8. O arquivo de pesquisa principal continua sendo `tools/study_d1_mtf_filter_v2.py`; evitar criar versões v3/v4 sem necessidade.
+1. Não apagar histórico.
+2. Hipóteses refutadas permanecem registradas.
+3. Quando uma hipótese evoluir, preservar a definição anterior e registrar a nova.
+4. Thresholds inspecionados em TEST são exploratórios; o TEST atual não é mais holdout puro.
+5. Promoções futuras exigem forward shadow congelado, nested/walk-forward ou novo período temporal.
+6. Custos, spread e slippage ainda não foram incorporados à maior parte dos estudos.
+7. O objetivo é construir um **Market State Model**, não empilhar filtros.
+8. O estudo principal continua em `tools/study_d1_mtf_filter_v2.py`; evitar v3/v4 sem necessidade.
+9. Pesquisas rápidas podem continuar em memória/PowerShell; o raciocínio e resultados relevantes entram neste arquivo.
 
 ---
 
-# 1. Ambiente e base de dados
+# 1. Base de dados e metodologia
 
-## Símbolo
+Símbolo: `GOLD`.
 
-`GOLD`
-
-## Timeframes utilizados
-
-- M5
-- M15
-- H1
-
-## Research dataset ampliado
-
-Coleta realizada com:
+Research dataset aproximado:
 
 ```text
 M5  ~100.000 candles
@@ -49,7 +32,7 @@ M15 ~50.000 candles
 H1  ~20.000 candles
 ```
 
-Arquivos:
+Arquivos principais:
 
 ```text
 data/market_chronos/candle_base/timeframes/GOLD_M5_candle_research.parquet
@@ -57,34 +40,19 @@ data/market_chronos/candle_base/timeframes/GOLD_M15_candle_research.parquet
 data/market_chronos/candle_base/timeframes/GOLD_H1_candle_research.parquet
 ```
 
-Cobertura M5 aproximada:
+Metodologia:
 
-```text
-2025-03-13 -> 2026-08-11
-```
-
-## Metodologia base
-
-- D1 reconstruído **point-in-time**.
-- D1 usa **broker-day MT5**.
-- `D1Position = (Price - LowSoFar) / (HighSoFar - LowSoFar)`.
-- Não usa High/Low final do dia.
-- H1 e M15 somente ficam disponíveis após o fechamento do candle pai.
-- Split cronológico 60/20/20.
-- Métricas principais:
-  - expectancy / mean return;
-  - profit factor;
-  - independent broker days;
-  - win rate;
-  - sample size;
-  - MFE/MAE.
-- Horizonte principal que emergiu nos estudos de mean reversion: **120 minutos**.
+- D1 reconstruído point-in-time pelo broker-day MT5;
+- `D1Position = (Price - LowSoFar)/(HighSoFar - LowSoFar)`;
+- sem High/Low final do dia;
+- H1/M15 somente disponíveis após fechamento do candle pai;
+- split cronológico 60/20/20;
+- prioridade: expectancy, PF, dias independentes, WR, sample, MFE/MAE;
+- horizonte principal emergente para mean reversion: 120m.
 
 ---
 
 # 2. Baseline MTF
-
-Baseline original:
 
 ```text
 H1 == M15 == M5
@@ -100,10 +68,6 @@ Mean=-0.4116
 PF=0.945
 ```
 
-Conclusão:
-
-`BASELINE_MTF` sozinho não apresentava edge positivo no período de teste. Isto abriu espaço para estudar contexto D1, anti-edge, extremos, z-score e estado intradiário.
-
 Status: `REFERENCE_BASELINE`.
 
 ---
@@ -112,15 +76,13 @@ Status: `REFERENCE_BASELINE`.
 
 ## 3.1 D1 0.70-0.90 bullish + BUY alinhado
 
-Hipótese:
-
 ```text
 D1Position 0.70-0.90
 + daily_direction BULLISH
 + H1/M15/M5 BUY alinhados
 ```
 
-OOS TEST 120m:
+TEST 120m:
 
 ```text
 n=358
@@ -130,24 +92,13 @@ Mean=+4.1437
 PF=1.6578
 ```
 
-Interpretação:
-
-A parte superior do candle diário, **antes do extremo >=0.90**, preserva continuation BUY quando o contexto diário e MTF estão alinhados.
+Conclusão: upper D1 antes do extremo >=0.90 preserva continuation BUY.
 
 Status: `CONFIRMED_RESEARCH / STRONG_DIRECTIONAL_CONTEXT`.
 
-Uso atual:
-
-- manter soft preference BUY;
-- ainda não transformar em hard filter sem novo forward holdout.
-
----
-
 ## 3.2 D1 0.10-0.30 bearish + SELL alinhado
 
-Hipótese inicial: seria o espelho inferior da zona bullish.
-
-OOS TEST 120m:
+TEST 120m:
 
 ```text
 n=208
@@ -157,37 +108,17 @@ Mean=-0.9630
 PF=0.8664
 ```
 
-Conclusão:
-
-A simetria não existe.
-
-```text
-Bullish upper continuation != bearish lower continuation
-```
-
-A antiga preferência SELL nessa zona foi removida do runtime scoring.
+Conclusão: não existe simetria com o lado bullish. A antiga preferência SELL foi removida do scoring.
 
 Status: `REJECTED_AS_DIRECTIONAL_SELL_EDGE`.
 
-Não repetir:
-
-- não assumir que D1 0.10-0.30 é espelho de 0.70-0.90;
-- não reintroduzir bônus SELL sem uma nova amostra independente.
-
 ---
 
-# 4. D1 extremes: anti-edge e inversão
+# 4. D1 extremes / anti-edge
 
-## 4.1 EXTREME HIGH >= 0.90 — BUY chase
+## 4.1 EXTREME HIGH >=0.90 — BUY chase
 
-Hipótese testada:
-
-```text
-D1 EXTREME_HIGH
-+ BUY continuation/chase
-```
-
-OOS TEST 120m:
+TEST 120m:
 
 ```text
 n=355
@@ -197,8 +128,6 @@ Mean=-3.9499
 PF=0.6393
 ```
 
-Este foi um dos achados mais claros da pesquisa.
-
 Conclusão correta:
 
 ```text
@@ -206,34 +135,13 @@ D1 >= 0.90
 -> AVOID BUY CHASE
 ```
 
-Importante:
+Evitar BUY não implica SELL automático. O inverse SELL recente não foi estável em Train/Validation.
 
-**Evitar BUY não significa automaticamente abrir SELL.**
+Status BUY chase: `STRONG_ANTI_EDGE_RULE_CANDIDATE`.
 
-A inversão exata dos timestamps para SELL ficou forte no TEST recente, porém não apresentou estabilidade histórica suficiente em TRAIN/VALIDATION.
+## 4.2 EXTREME LOW <=0.10 — SELL chase
 
-Status:
-
-- BUY chase: `STRONG_ANTI_EDGE_RULE_CANDIDATE`.
-- inverse SELL: `REGIME_DEPENDENT / NOT_STRUCTURAL`.
-
-Não repetir:
-
-- não transformar `EXTREME_HIGH` automaticamente em SELL;
-- manter a interpretação como anti-edge do BUY até nova confirmação.
-
----
-
-## 4.2 EXTREME LOW <= 0.10 — SELL chase
-
-Hipótese:
-
-```text
-D1 EXTREME_LOW
-+ SELL continuation/chase
-```
-
-OOS TEST 120m:
+TEST 120m:
 
 ```text
 n=256
@@ -250,19 +158,15 @@ D1 <= 0.10
 -> AVOID SELL CHASE
 ```
 
-Esta descoberta motivou o estudo separado de mean reversion no extremo inferior.
-
 Status: `STRONG_ANTI_EDGE_RESEARCH`.
 
 ---
 
 # 5. Anti-edge -> inverse-edge
 
-Foi levantada a pergunta:
+Inverter BUY/SELL nos mesmos timestamps é ferramenta de descoberta, não prova automática de edge.
 
-> Se uma condição é consistentemente ruim para BUY, o SELL nos mesmos timestamps seria bom?
-
-Matematicamente, sem custos e em horizonte fixo:
+Sem custos em horizonte fixo:
 
 ```text
 mean_inverse ~= -mean_original
@@ -270,31 +174,23 @@ PF_inverse ~= 1/PF_original
 WR_inverse ~= 1-WR_original
 ```
 
-Mas isto **não prova** edge estrutural porque:
+Resultado:
 
-- custos quebram a simetria;
-- regime pode mudar;
-- TEST positivo pode ser recente e não histórico.
+- extreme-high inverse SELL: positivo no TEST recente, instável historicamente;
+- extreme-low inverse BUY: mais consistente, levando ao estudo Z-score.
 
-Resultado prático:
-
-- extreme high inverse SELL: bom no TEST, falhou estabilidade histórica;
-- extreme low inverse BUY: mostrou comportamento mais consistente e levou ao estudo do z-score.
-
-Status do conceito: `USEFUL_DISCOVERY_TOOL`, não regra por si só.
+Status: `USEFUL_DISCOVERY_TOOL`.
 
 ---
 
-# 6. M5 Z-score no extremo inferior
+# 6. Lower-extreme M5 Z-score mean reversion
 
-## Definição
+Definição:
 
 ```text
-window = 20 candles M5
-z = (close - rolling_mean) / rolling_std_population
+window=20 candles M5 (~100m)
+z=(close-rolling_mean)/rolling_std_population
 ```
-
-20 candles M5 ~= 100 minutos.
 
 Hipótese:
 
@@ -302,33 +198,16 @@ Hipótese:
 D1 EXTREME_LOW
 + H1 DOWN
 + M15 DOWN
-+ M5 z <= -2
++ Z20 <= -2
 -> BUY mean reversion
 ```
-
-## Resultado Z=-2.0
 
 120m:
 
 ```text
-TRAIN
-n=195
-WR=65.64%
-Mean=+4.05
-PF=2.02
-
-VALIDATION
-n=69
-WR=62.32%
-Mean=+9.31
-PF=2.21
-
-TEST
-n=100
-dias=29
-WR=72.00%
-Mean=+7.07
-PF=2.87
+TRAIN      n=195 WR=65.64% Mean=+4.05 PF=2.02
+VALIDATION n=69  WR=62.32% Mean=+9.31 PF=2.21
+TEST       n=100 WR=72.00% Mean=+7.07 PF=2.87, 29 dias
 ```
 
 Status: `STRONG_SHADOW_CANDIDATE`.
@@ -337,100 +216,45 @@ Status: `STRONG_SHADOW_CANDIDATE`.
 
 # 7. Z-score sensitivity
 
-Foram testados vários thresholds para verificar se o resultado era apenas otimização em `-2.0`.
-
-## Z=1.5
-
 ```text
-LOW BUY
-TRAIN PF=1.82
-VALIDATION PF=1.17
-TEST PF=1.78
+Z=-1.5 PF train/val/test = 1.82 / 1.17 / 1.78
+Z=-2.0 PF train/val/test = 2.02 / 2.21 / 2.87
+Z=-2.5 PF train/val/test = 2.93 / 1.49 / 7.25
 ```
 
-## Z=2.0
+Z=-3 teve sample pequeno.
 
-```text
-LOW BUY
-TRAIN PF=2.02
-VALIDATION PF=2.21
-TEST PF=2.87
-```
+Conclusão: existe uma família de overextension/mean reversion; `-2.0` é o melhor equilíbrio atual de qualidade/amostra, não um threshold mágico.
 
-## Z=2.5
-
-```text
-LOW BUY
-TRAIN PF=2.93
-VALIDATION PF=1.49
-TEST PF=7.25
-```
-
-## Z=3.0
-
-Amostra muito pequena; não usar para conclusão.
-
-Conclusão:
-
-O fenômeno é melhor interpretado como uma **família de overextension / mean reversion**, não um threshold mágico em -2.0.
-
-`-2.0` foi congelado como melhor equilíbrio atual entre qualidade e tamanho da amostra.
-
-Não repetir:
-
-- não continuar otimizando Z depois de inspecionar o mesmo TEST;
-- próximos thresholds só devem ser explorados em nested/walk-forward ou forward shadow.
+Não continuar otimizando Z no mesmo TEST.
 
 ---
 
 # 8. High-side Z-score SELL
 
-Foi testado o espelho superior:
-
 ```text
-D1 EXTREME_HIGH
-+ H1 UP
-+ M15 UP
-+ z >= threshold
--> SELL mean reversion
+D1 EXTREME_HIGH + H1 UP + M15 UP + z alto -> SELL
 ```
 
-Apesar do TEST recente parecer forte, a estabilidade histórica falhou.
-
-Resumo de PF 120m:
+PF 120m aproximado:
 
 ```text
-Z=1.5 HIGH SELL  train~0.84 / val~0.33 / test~1.97
-Z=2.0 HIGH SELL  train~0.95 / val~0.27 / test~1.79
-Z=2.5 HIGH SELL  train~0.83 / val~0.20 / test~1.34
+Z=1.5 train .84 / val .33 / test 1.97
+Z=2.0 train .95 / val .27 / test 1.79
+Z=2.5 train .83 / val .20 / test 1.34
 ```
 
-Conclusão:
-
-É provável que exista **regime flip recente**, não uma regra estrutural.
+Conclusão: provável regime flip recente, não edge estrutural.
 
 Status: `NOT_PROMOTED / REGIME_FLIP_EVIDENCE`.
 
 ---
 
-# 9. Rejection variants
+# 9. Candle rejection variants
 
-Foram adicionadas rejeições de candle:
+Rejection high/low produziu alguns PFs enormes com sample muito pequeno.
 
-```text
-high rejection:
-false_breakout_up OR bearish candle with upper_wick >= body
-
-low rejection:
-false_breakout_down OR bullish candle with lower_wick >= body
-```
-
-Alguns resultados apresentaram PFs gigantes, por exemplo lower rejection em determinados subsets, porém com `n` muito pequeno.
-
-Conclusão:
-
-- headline PF não é confiável com sample collapse;
-- rejeição deve permanecer como feature experimental, não filtro obrigatório.
+Conclusão: não usar como filtro obrigatório.
 
 Status: `EXPERIMENTAL_SMALL_SAMPLE`.
 
@@ -438,11 +262,7 @@ Status: `EXPERIMENTAL_SMALL_SAMPLE`.
 
 # 10. First event per day
 
-Pergunta:
-
-> O edge acontece apenas no primeiro toque extremo do dia?
-
-Resultado para LOW Z=-2, 120m:
+LOW Z=-2, 120m:
 
 ```text
 TRAIN first/day PF=1.29
@@ -450,11 +270,7 @@ VALIDATION first/day PF=0.82
 TEST first/day PF=2.40
 ```
 
-Conclusão:
-
-Primeiro toque por dia **não explica** o edge completo.
-
-Isso mostrou que eventos repetidos no mesmo dia carregam informação.
+Conclusão: primeiro toque não explica o edge completo. Eventos repetidos no dia carregam informação.
 
 Status: `FIRST_TOUCH_ONLY_REJECTED`.
 
@@ -462,33 +278,15 @@ Status: `FIRST_TOUCH_ONLY_REJECTED`.
 
 # 11. Event order / persistence
 
-Foi contado o número ordinal de eventos extremos no mesmo dia.
+Persistência parecia melhorar, porém candles consecutivos podiam ser o mesmo evento.
 
 Exemplos 120m:
 
 ```text
-TRAIN
-1st  PF~1.29
-2nd  PF~1.30
-3rd  PF~1.72
-4th+ PF~7.16
-
-VALIDATION
-1st  PF~0.82
-2nd  PF~1.01
-3rd  PF~1.03
-4th+ PF~10.66
-
-TEST
-1st  PF~2.40
-2nd  PF~5.06
-3rd  PF~6.66
-4th+ PF~2.19
+TRAIN 1st 1.29 / 2nd 1.30 / 3rd 1.72 / 4th+ 7.16
+VAL   1st .82  / 2nd 1.01 / 3rd 1.03 / 4th+ 10.66
+TEST  1st 2.40 / 2nd 5.06 / 3rd 6.66 / 4th+ 2.19
 ```
-
-A persistência parecia melhorar o resultado, mas havia um problema metodológico:
-
-**candles consecutivos podiam pertencer ao mesmo evento/episódio**, causando pseudo-repetição.
 
 Status: `SUPERSEDED_BY_HYSTERESIS_EPISODES`.
 
@@ -496,13 +294,7 @@ Status: `SUPERSEDED_BY_HYSTERESIS_EPISODES`.
 
 # 12. Episode model sem histerese
 
-Foi criada definição de episódio usando condição false -> true.
-
-Resultados sugeriram que episódio #2 poderia ser interessante, porém threshold chatter e mudanças de filtros poderiam criar falsas reentradas.
-
-Conclusão:
-
-A definição simples de episódio era insuficiente.
+False->true simples sofria threshold chatter e reentrada por mudança de filtros.
 
 Status: `SUPERSEDED`.
 
@@ -513,231 +305,109 @@ Status: `SUPERSEDED`.
 Definição congelada:
 
 ```text
-ENTER episode: z <= -2.0
-STAY inside: enquanto z <= -1.5
+ENTER: z <= -2.0
 RESET only: z > -1.5
 ```
 
-Objetivo:
-
-Separar **episódios reais de stress** de múltiplos candles consecutivos na mesma extensão.
+Objetivo: separar episódios reais de stress de múltiplos candles consecutivos.
 
 ---
 
-# 14. Second hysteresis episode + D1 extreme low
+# 14. Second hysteresis episode + lower extreme
 
-Hipótese:
-
-```text
-pure Z episode #2
-+ D1 EXTREME_LOW
-+ H1 DOWN
-+ M15 DOWN
--> BUY mean reversion
-```
-
-Resultados 120m com contagem pós-09:
+Com contagem pós-09:
 
 ```text
-TRAIN
-n=14
-dias=14
-WR=71.43%
-Mean=+4.76
-PF=2.14
-
-VALIDATION
-n=4
-dias=4
-WR=75.00%
-Mean=+2.85
-PF=1.48
-
-TEST
-n=13
-dias=13
-WR=69.23%
-Mean=+6.17
-PF=3.32
+TRAIN      n=14 WR=71.43% Mean=+4.76 PF=2.14
+VALIDATION n=4  WR=75.00% Mean=+2.85 PF=1.48
+TEST       n=13 WR=69.23% Mean=+6.17 PF=3.32
 ```
 
 Status: `PROMISING_SMALL_SAMPLE_SHADOW`.
 
 ---
 
-# 15. Horizon study of second episode
-
-For second hysteresis episode:
+# 15. Horizon do second episode
 
 ```text
-TRAIN
-30m  PF~0.97
-60m  PF~1.14
-90m  PF~1.82
-120m PF~2.14
-150m PF~3.12
-180m PF~5.04
-
-VALIDATION
-120m PF~1.48
-
-TEST
-90m  PF~1.81
-120m PF~3.32
-150m PF~2.32
-180m PF~2.24
+TRAIN 30=.97 / 60=1.14 / 90=1.82 / 120=2.14 / 150=3.12 / 180=5.04
+TEST  90=1.81 / 120=3.32 / 150=2.32 / 180=2.24
 ```
 
-Conclusão:
-
-120m foi mantido como melhor horizonte de pesquisa porque:
-
-- Train positivo;
-- Validation positivo;
-- Test positivo;
-- Test não confirma crescimento monotônico até 180m.
-
-Não selecionar 150/180 somente porque TRAIN apresentou PF maior.
+120m mantido porque Train/Validation/Test permanecem positivos e Test não confirma crescimento monotônico até 180m.
 
 ---
 
-# 16. Episode reset boundary test
-
-Pergunta crítica:
-
-> O episódio #2 é o segundo episódio do dia inteiro ou de uma fase específica?
-
-Comparação:
+# 16. Episode reset boundary
 
 ```text
 OP_09       31 eventos
 OPEN_08      4 eventos
 BROKER_DAY   0 eventos
+Jaccard OP09 vs OPEN08 ~2.94%
 ```
 
-Overlap:
-
-```text
-OP_09 vs OPEN_08
-Jaccard ~2.94%
-```
-
-Conclusão:
-
-O fenômeno **não é** o segundo episódio do broker-day.
-
-Ele é explicitamente:
-
-```text
-POST-09 STRESS CYCLE
-```
+Conclusão: não é o segundo episódio do dia; é um **POST-09 STRESS CYCLE**.
 
 Status: `IMPORTANT_SESSION_RELATIVE_DISCOVERY`.
 
-Feature futura sugerida:
-
-`Post09StressCycle`.
+Feature: `Post09StressCycle`.
 
 ---
 
-# 17. Ordinal episode validation
+# 17. EP1/EP2/EP3/EP4+
 
-Comparação EP1/EP2/EP3/EP4+ no contexto D1 extreme low + H1/M15 down.
-
-## TRAIN 120m
+TRAIN 120m:
 
 ```text
-EP1   n=6   PF=0.88   Mean=-1.09   D1med=.012   Zmed=-2.45
-EP2   n=14  PF=2.14   Mean=+4.76   D1med=.043   Zmed=-2.22
-EP3   n=12  PF=0.86   Mean=-0.61
-EP4+  n=15  PF=5.72   Mean=+6.56
+EP1 n=6  PF=.88 Mean=-1.09 D1med=.012 Zmed=-2.45
+EP2 n=14 PF=2.14 Mean=+4.76 D1med=.043 Zmed=-2.22
+EP3 n=12 PF=.86 Mean=-.61
+EP4+ n=15 PF=5.72 Mean=+6.56
 ```
 
-## VALIDATION
+TEST:
 
 ```text
-EP1  PF=1.98
-EP2  PF=1.48
-EP3  PF=2.66
-EP4+ PF=3.49
-```
-
-## TEST
-
-```text
-EP1  PF=0.49
-EP2  PF=3.32
-EP3  PF=28.89 (n=5, frágil)
+EP1 PF=.49
+EP2 PF=3.32
+EP3 PF=28.89 n=5 frágil
 EP4+ PF=1.50
 ```
 
-Ponto importante:
-
-No TRAIN, EP1 era **mais profundo em D1 e mais extremo em Z** que EP2 e mesmo assim teve resultado pior.
-
-Isso sugere que o ordinal do ciclo carrega informação além de D1 depth e Z magnitude.
+EP1 foi mais profundo em D1/Z no Train, mas pior que EP2. Logo ordinal/sequência carrega informação além da profundidade.
 
 Status EP2: `PROMISING_SEQUENCE_INFORMATION`.
 
 ---
 
-# 18. Time-of-day exploration around EP2
+# 18. Time-of-day around EP2
 
-EP2 mostrou concentração interessante em horários da manhã, especialmente 10:00-11:30 em alguns splits.
-
-Porém validation não tinha amostra suficiente para transformar o horário em filtro.
-
-Conclusão:
-
-- horário pode ser feature;
-- não usar `10:00-11:30` como regra obrigatória.
+10:00-11:30 apareceu interessante em Train/Test, mas Validation não tinha sample suficiente.
 
 Status: `FEATURE_CANDIDATE_ONLY`.
 
 ---
 
-# 19. Opening-flow hypothesis 08:00-09:00 -> 10:00-11:30
+# 19. Opening-flow 08-09 -> 10-11:30
 
-Hipótese observacional inicial:
+Primeira hipótese simples usando HIGH/NOT_HIGH por range e weekdays não foi estável.
 
-- 08-09 tende a seguir fluxo anterior / abertura;
-- 10-11:30 poderia devolver quando volatilidade não fosse forte;
-- com volatilidade forte poderia continuar;
-- possível efeito maior Tue/Wed/Thu.
-
-Primeiro teste usando `HIGH / NOT_HIGH` por range da abertura mostrou comportamento instável entre splits.
-
-Exemplo TUE_THU | NOT_HIGH:
+Exemplo Tue-Thu NOT_HIGH SignedMean:
 
 ```text
-TRAIN SignedMean  -0.34
-VAL   SignedMean  -2.68
-TEST  SignedMean  +3.34
+TRAIN -0.34
+VAL   -2.68
+TEST  +3.34
 ```
-
-Conclusão:
-
-Dia da semana + range bruto não explica sozinho o fenômeno.
 
 Status: `SIMPLE_RULE_REJECTED`.
 
 ---
 
-# 20. Weekday hypothesis
+# 20. Weekday
 
-Tuesday / Wednesday / Thursday foram testados separadamente.
-
-O comportamento mudou de split para split e entre os próprios dias.
-
-Conclusão:
-
-`weekday` pode permanecer como feature futura, porém:
-
-```text
-Tue/Wed/Thu standalone rule
-```
-
-não foi confirmado.
+Tue/Wed/Thu não foi estável como regra standalone.
 
 Status: `NOT_A_STANDALONE_RULE`.
 
@@ -745,145 +415,83 @@ Status: `NOT_A_STANDALONE_RULE`.
 
 # 21. 20:00-01:00 -> 08:00-09:00 opening echo
 
-Hipótese:
-
-```text
-20:00-01:00 flow
--> 08:00-09:00 repeats direction
-```
-
 Direction SAME:
 
 ```text
-TRAIN       54.72%
-VALIDATION  61.84%
-TEST        48.68%
+TRAIN 54.72%
+VAL   61.84%
+TEST  48.68%
 ```
 
-Signed echo magnitude:
+Signed magnitude:
 
 ```text
-TRAIN       +0.41
-VALIDATION  +2.72
-TEST        +0.46
+TRAIN +0.41
+VAL   +2.72
+TEST  +0.46
 ```
 
-Conclusão:
+Conclusão: binary echo não confirmado; força/eficiência pode carregar informação.
 
-A direção binária não é estruturalmente estável acima de 50%, mas a magnitude assinada ficou positiva.
-
-Possível interpretação:
-
-A informação pode estar em **força/eficiência do fluxo**, não apenas em direção igual/diferente.
-
-Status:
-
-- binary echo rule: `NOT_CONFIRMED`;
-- opening flow state: `FEATURE_CANDIDATE`.
+Status: `FEATURE_CANDIDATE`.
 
 ---
 
-# 22. Directional impulse 08:00-09:00
+# 22. Directional impulse 08-09
 
-Foi criado conceito:
+`STRONG IMPULSE = high range percentile + high directional efficiency percentile`.
 
-```text
-STRONG IMPULSE
-= high range percentile
-+ high directional efficiency percentile
-```
-
-Thresholds exploratórios inicialmente 67% / 67%, point-in-time.
-
-Resultado ECHO + STRONG para resposta 10-11:30:
+ECHO+STRONG para 10-11:30:
 
 ```text
-TRAIN       CONT 57.14%, median +0.54
-VALIDATION  CONT 58.33%, median +5.95, mean negativa por tails
-TEST        CONT 66.67%, median +7.05
+TRAIN CONT 57.14%, median +0.54
+VAL   CONT 58.33%, median +5.95, mean negativa por tails
+TEST  CONT 66.67%, median +7.05
 ```
 
-Interessante, porém amostra pequena.
-
-ECHO + NON_STRONG mostrou reversão em Validation/Test, mas não Train.
-
-Conclusão:
-
-- range sozinho é insuficiente;
-- `DirectionalEfficiency` é feature importante;
-- potencial tail risk em dias de reversão violenta;
-- ainda não promover.
+Interessante, mas sample pequeno.
 
 Status: `PROMISING_STATE_FEATURE / SMALL_SAMPLE`.
 
 ---
 
-# 23. 09:00-10:00 transition/rest phase
+# 23. 09-10 transition/rest
 
-Foi testada a ideia de que após 08-09 ocorre descanso antes da resolução 10-11:30.
-
-Movimentos foram normalizados pelo range 08-09.
-
-ECHO + STRONG, mediana 09-10:
+ECHO+STRONG mediana 09-10:
 
 ```text
-TRAIN       -0.35
-VALIDATION  -0.04
-TEST        -0.20
+TRAIN -0.35
+VAL   -0.04
+TEST  -0.20
 ```
 
-Depois 10-11:30 mediana:
+10-11:30 mediana:
 
 ```text
-TRAIN       +0.03
-VALIDATION  +0.19
-TEST        +0.22
+TRAIN +0.03
+VAL   +0.19
+TEST  +0.22
 ```
 
-Interpretação possível:
-
-```text
-strong opening echo
--> partial rest/pullback 09-10
--> later continuation/resolution
-```
-
-Porém não foi transformado em regra, pois horários ainda eram escolhidos manualmente.
+Possível estrutura: pullback/rest -> later continuation. Não promovido porque horários ainda eram manuais.
 
 Status: `DESCRIPTIVE_TRANSITION_HYPOTHESIS`.
 
 ---
 
-# 24. Mudança metodológica: descobrir horários pelos dados
+# 24. Mudança metodológica — relógio descoberto pelos dados
 
-A pesquisa deixou de impor janelas como 08-09, 09-10 e 10-11:30 e passou a varrer as 288 posições M5 das 24h.
+Foram varridos 288 slots M5 das 24h usando volatilidade relativa, efficiency, continuation 60/120m e probability continuation.
 
-Medidas por horário:
+Primeiro detector revelou gaps/feed como falsos change points e warnings `Mean of empty slice`.
 
-- volatilidade relativa;
-- directional efficiency;
-- continuation 60m;
-- continuation 120m;
-- probability of continuation.
-
-Change points foram descobertos **somente no TRAIN**; Validation e Test serviram para alignment.
-
-Primeiro detector também revelou um problema:
-
-- gaps de feed / fechamento-reabertura podem gerar change points artificiais;
-- warnings `Mean of empty slice` ocorreram em horários sem cobertura.
-
-Por isso a etapa seguinte incluiu filtro de cobertura e zonas contínuas.
-
-Status do detector inicial: `SUPERSEDED_BY_COVERAGE_AWARE_ZONE_DISCOVERY`.
+Status inicial: `SUPERSEDED_BY_COVERAGE_AWARE_ZONE_DISCOVERY`.
 
 ---
 
-# 25. Data-driven Market Clock — primeiras descobertas
+# 25. Data-driven Market Clock
 
-## Volatility clock
-
-Picos estáveis encontrados:
+Volatility peaks:
 
 ```text
 09:30
@@ -893,25 +501,20 @@ Picos estáveis encontrados:
 11:20-11:40
 ```
 
-O núcleo mais forte apareceu em torno de 10:35-10:45.
+Núcleo mais forte: ~10:35-10:45.
 
-## Continuation candidate
+Candidatos pontuais iniciais:
 
-~20:50 apresentou sinal positivo nos três splits no estudo pontual inicial.
+- ~20:50 continuation;
+- ~13:30 reversal.
 
-## Reversal candidate
-
-~13:30 apresentou cont120 negativo nos três splits no estudo pontual inicial.
-
-Estes horários foram posteriormente avaliados como zonas e por bootstrap de broker-day.
+Posteriormente avaliados como zonas + bootstrap por dia.
 
 ---
 
 # 26. Stable intraday zones
 
-Após filtro de cobertura e agrupamento de slots M5 consecutivos:
-
-## High-volatility zones
+High-volatility zones:
 
 ```text
 04:05-04:15
@@ -921,21 +524,14 @@ Após filtro de cobertura e agrupamento de slots M5 consecutivos:
 22:35-22:45
 ```
 
-A zona principal foi claramente:
+Principal:
 
 ```text
 09:05-12:30 BRT
+TRAIN ~1.47 / VAL ~1.42 / TEST ~1.41
 ```
 
-Perfil mediano:
-
-```text
-TRAIN ~1.47
-VAL   ~1.42
-TEST  ~1.41
-```
-
-## Continuation zones 120m
+Continuation candidates 120m:
 
 ```text
 00:00-00:10
@@ -944,9 +540,7 @@ TEST  ~1.41
 23:35-24:00
 ```
 
-## Reversal zones 120m
-
-Entre outras:
+Reversal candidates 120m:
 
 ```text
 06:20-07:15
@@ -954,43 +548,31 @@ Entre outras:
 12:55-13:45
 ```
 
-Essas zonas foram então levadas ao bootstrap de dia independente.
-
 ---
 
 # 27. Day-cluster bootstrap das zonas
 
-Cada broker-day contribuiu com **uma observação por zona**.
-
-10.000 bootstrap reps.
+Cada broker-day = uma observação; 10.000 reps.
 
 ## NIGHT_20
 
 ```text
-TRAIN days=212 Mean=+0.110 Med=-0.031 CI95[-0.053,+0.272] P(>0)=91.10%
-VAL   days=76  Mean=+0.025 Med=+0.043 CI95[-0.196,+0.238] P(>0)=58.81%
-TEST  days=76  Mean=+0.252 Med=+0.118 CI95[-0.140,+0.649] P(>0)=89.55%
+TRAIN Mean +.110 Med -.031 CI[-.053,.272] P>0 91.10%
+VAL   Mean +.025 Med +.043 CI[-.196,.238] P>0 58.81%
+TEST  Mean +.252 Med +.118 CI[-.140,.649] P>0 89.55%
 ```
 
 Status: `MIXED / NOT_PROMOTED`.
 
 ## NIGHT_22
 
-```text
-TRAIN Mean=-0.145 CI95[-0.293,-0.006] P(>0)=2.04%
-VAL   mixed
-TEST  mixed
-```
+Train mean=-.145, CI inteiro negativo, P(>0)=2.04%.
 
 Status: `REJECTED_AS_STABLE_CONTINUATION`.
 
 ## NIGHT_2335
 
-```text
-TRAIN CI crosses zero
-VAL   CI positive
-TEST  near-positive but CI crosses zero slightly
-```
+Train CI cruza zero; Validation positiva; Test quase positivo.
 
 Status: `PROMISING_LATER_REGIME / EXPLORATORY`.
 
@@ -1004,469 +586,179 @@ TEST  P(<0)=49.63%
 
 Status: `FAILED_OOS_STABILITY`.
 
-Important lesson: do not trust a visually strong Train/Validation pattern when TEST becomes neutral.
-
 ## HIGH_VOL_MAIN 09:05-12:30
 
 ```text
-TRAIN
-days=212
-Mean=1.587
-Med=1.530
-CI95[1.542,1.634]
-P(>1)=100%
-
-VALIDATION
-days=77
-Mean=1.513
-Med=1.426
-CI95[1.425,1.606]
-P(>1)=100%
-
-TEST
-days=76
-Mean=1.546
-Med=1.508
-CI95[1.481,1.613]
-P(>1)=100%
+TRAIN days=212 Mean=1.587 Med=1.530 CI[1.542,1.634] P(>1)=100%
+VAL   days=77  Mean=1.513 Med=1.426 CI[1.425,1.606] P(>1)=100%
+TEST  days=76  Mean=1.546 Med=1.508 CI[1.481,1.613] P(>1)=100%
 ```
-
-Este é o achado de relógio mais robusto até agora.
 
 Conclusão:
 
 ```text
-09:05-12:30 BRT = STRUCTURAL HIGH-VOLATILITY PHASE
+09:05-12:30 = STRUCTURAL HIGH-VOLATILITY PHASE
 ```
-
-Não é directional edge. É um **estado de mercado**.
 
 Status: `ROBUST_DESCRIPTIVE_PHASE`.
 
 ## POST_VOL_REV 12:55-13:45
 
 ```text
-TRAIN Mean=-0.017 Med=-0.113 P(<0)=65.70%
-VAL   Mean=-0.024 Med=-0.106 P(<0)=62.68%
-TEST  Mean=-0.007 Med=-0.085 P(<0)=52.40%
+TRAIN Mean=-.017 Med=-.113 P<0=65.70%
+VAL   Mean=-.024 Med=-.106 P<0=62.68%
+TEST  Mean=-.007 Med=-.085 P<0=52.40%
 ```
-
-A mediana negativa é curiosa, mas a média/bootstrap não confirma edge.
 
 Status: `DESCRIPTIVE_HYPOTHESIS_ONLY`.
 
 ---
 
-# 28. Decomposição da HIGH_VOL_MAIN — latest study
+# 28. Decomposição da HIGH_VOL_MAIN
 
-Objetivo:
+Objetivo: entender por que 09:05-12:30 produz continuation em alguns dias e reversal em outros.
 
-Descobrir por que `09:05-12:30` produz continuação em alguns dias e reversão em outros.
-
-A fase foi caracterizada por:
-
-- `impulse`;
-- `efficiency`;
-- `terminal_extreme`;
-- composites `STRONG_DIRECTIONAL` e `EXTREME_FINISH`.
-
-Thresholds foram definidos **somente no TRAIN**.
-
-## Train-only thresholds
+Train-only thresholds:
 
 ```text
-impulse          Q33=0.326  Q67=0.783
-efficiency       Q33=0.338  Q67=0.614
-terminal_extreme Q33=0.669  Q67=0.850
+impulse          Q33=.326 Q67=.783
+efficiency       Q33=.338 Q67=.614
+terminal_extreme Q33=.669 Q67=.850
 ```
 
----
-
-## 28.1 Baseline da fase
-
-### TRAIN
+## Baseline da fase 120m
 
 ```text
-n=210
-120m continuation=50.0%
-Mean=+0.028
-Median~0
+TRAIN n=210 CONT=50.0% Mean=.028 Med~0
+VAL   n=77  CONT=50.6% Mean~0 Med=.003
+TEST  n=73  CONT=42.5% REV=57.5% Mean=-.073 Med=-.041
 ```
-
-### VALIDATION
-
-```text
-n=77
-120m continuation=50.6%
-Mean~0
-Median=+0.003
-```
-
-### TEST
-
-```text
-n=73
-120m continuation=42.5%
-reversal=57.5%
-Mean=-0.073
-Median=-0.041
-```
-
-Interpretação:
-
-A fase como um todo está ficando mais reversiva no período recente, mas não é uma regra estrutural de reversão em todo histórico.
 
 Status: `POSSIBLE_REGIME_DRIFT`.
 
----
-
-## 28.2 IMPULSE HIGH
-
-120m:
+## IMPULSE HIGH
 
 ```text
-TRAIN
-n=64
-CONT=43.8%
-REV=56.2%
-Mean=-0.004
-Med=-0.040
-
-VALIDATION
-n=24
-CONT=54.2%
-REV=45.8%
-Mean=+0.071
-Med=+0.009
-
-TEST
-n=14
-CONT=28.6%
-REV=71.4%
-Mean=-0.093
-Med=-0.143
+TRAIN n=64 REV=56.2% Mean=-.004 Med=-.040
+VAL   n=24 REV=45.8% Mean=+.071 Med=+.009
+TEST  n=14 REV=71.4% Mean=-.093 Med=-.143
 ```
-
-Conclusão:
-
-High impulse sozinho **não é estável**. Validation contradiz Train/Test.
 
 Status: `NOT_STRUCTURAL_ALONE`.
 
----
-
-## 28.3 EFFICIENCY HIGH
-
-120m:
+## EFFICIENCY HIGH
 
 ```text
-TRAIN
-CONT=52.1%
-REV=47.9%
-Mean=+0.049
-Med=+0.020
-
-VALIDATION
-CONT=33.3%
-REV=66.7%
-Mean=-0.156
-Med=-0.033
-
-TEST
-CONT=35.3%
-REV=64.7%
-Mean=-0.083
-Med=-0.077
+TRAIN REV=47.9% Mean=+.049 Med=+.020
+VAL   REV=66.7% Mean=-.156 Med=-.033
+TEST  REV=64.7% Mean=-.083 Med=-.077
 ```
-
-Interpretação:
-
-Há uma mudança de regime: movimentos eficientes passaram a apresentar mais reversão depois da fase em Validation/Test, mas Train não confirma.
 
 Status: `REGIME_DEPENDENT`.
 
----
-
-## 28.4 TERMINAL HIGH / EXTREME_FINISH
-
-Esta é a decomposição mais interessante do estudo atual.
-
-`terminal_extreme >= Q67`, ou seja, a fase termina muito perto do extremo de sua própria direção.
-
-120m:
+## TERMINAL HIGH / EXTREME_FINISH
 
 ```text
-TRAIN
-n=71
-CONT=45.1%
-REV=54.9%
-Mean=+0.015
-Med=-0.026
-
-VALIDATION
-n=22
-CONT=40.9%
-REV=59.1%
-Mean=-0.025
-Med=-0.023
-
-TEST
-n=21
-CONT=33.3%
-REV=66.7%
-Mean=-0.090
-Med=-0.089
+TRAIN n=71 REV=54.9% Mean=+.015 Med=-.026
+VAL   n=22 REV=59.1% Mean=-.025 Med=-.023
+TEST  n=21 REV=66.7% Mean=-.090 Med=-.089
 ```
 
-Pontos importantes:
+Status antes do bootstrap dedicado: `PROMISING_EXHAUSTION_STATE`.
 
-1. reversal rate >50% nos três splits;
-2. mediana negativa nos três splits;
-3. intensidade de reversão aumenta no período recente;
-4. TRAIN mean ainda levemente positiva, indicando tails de continuação grandes.
+## STRONG_DIRECTIONAL
 
-Hipótese emergente:
+`impulse>=.783 AND efficiency>=.614`
 
 ```text
-HIGH_VOL_MAIN
-+ finish near directional extreme
--> exhaustion risk in following 120m
+TRAIN n=48 REV=52.1% Mean=.001 Med=-.005
+VAL   n=15 REV=60.0% Mean=-.059 Med=-.014
+TEST  n=10 REV=70.0% Mean=-.096 Med=-.135
 ```
-
-Status atual: `PROMISING_EXHAUSTION_STATE / NEEDS_DAY_BOOTSTRAP`.
-
-Não promover ainda.
-
----
-
-## 28.5 STRONG_DIRECTIONAL
-
-Definição:
-
-```text
-impulse HIGH
-AND efficiency HIGH
-```
-
-120m:
-
-```text
-TRAIN
-n=48
-CONT=47.9%
-REV=52.1%
-Mean=+0.001
-Med=-0.005
-
-VALIDATION
-n=15
-CONT=40.0%
-REV=60.0%
-Mean=-0.059
-Med=-0.014
-
-TEST
-n=10
-CONT=30.0%
-REV=70.0%
-Mean=-0.096
-Med=-0.135
-```
-
-A hipótese original era que movimento forte + eficiente pudesse continuar.
-
-O resultado atual sugere o oposto no regime recente:
-
-```text
-strong directional high-vol phase
--> possible exhaustion / later reversal
-```
-
-Mas TRAIN é praticamente neutro.
 
 Status: `PROMISING_RECENT_EXHAUSTION / NOT_STRUCTURAL_YET`.
 
 ---
 
-## 28.6 STRONG_DIRECTIONAL UP vs DOWN
+# 29. Interpretação da HIGH_VOL_MAIN
 
-### TRAIN
+A hipótese inicial `high volatility + efficiency -> continuation` não foi confirmada estruturalmente.
 
-```text
-UP   n=31 REV=51.61% Mean~0
-DOWN n=17 REV=52.94% Mean~0
-```
-
-### VALIDATION
-
-```text
-UP   n=9 REV=55.56%
-DOWN n=6 REV=66.67%
-```
-
-### TEST
-
-```text
-UP   n=7 REV=85.71% Mean=-0.112 Med=-0.181
-DOWN n=3 CONT=66.67% Mean=-0.060 Med=+0.105
-```
-
-Conclusão:
-
-O subset UP no TEST chama atenção, mas `n=7` é pequeno e houve inspeção repetida do TEST.
-
-Não usar como regra.
-
-Status: `SMALL_SAMPLE_REGIME_SIGNAL`.
-
----
-
-# 29. O que o latest study mudou na interpretação
-
-A hipótese inicial era:
-
-```text
-high volatility + directional efficiency
--> continuation
-```
-
-O resultado **não confirmou isso estruturalmente**.
-
-A nova hipótese mais plausível é:
+Nova hipótese:
 
 ```text
 HIGH_VOL_MAIN 09:05-12:30
         |
-        +-- se termina muito próximo do extremo da própria direção
-        |      -> possível exhaustion / reversal risk
+        +-- finish muito perto do extremo
+        |      -> exhaustion/reversal propensity
         |
         +-- strong directional
-               -> também apresenta reversal crescente no regime recente
-```
-
-Portanto o próximo passo não é criar regra de continuação.
-
-O candidato mais interessante do estudo atual é `TERMINAL_HIGH / EXTREME_FINISH`, seguido por `STRONG_DIRECTIONAL` como hipótese de exaustão recente.
-
----
-
-# 30. Achados atuais por nível de confiança
-
-## A. Fortes / usar como contexto de pesquisa
-
-### A1. D1 bullish continuation 0.70-0.90
-
-```text
-BULLISH D1 + aligned BUY
--> continuation context
-```
-
-### A2. D1 EXTREME_HIGH
-
-```text
-avoid BUY chase
-```
-
-### A3. D1 EXTREME_LOW
-
-```text
-avoid SELL chase
-```
-
-### A4. LOW extreme Z-score family
-
-```text
-D1 EXTREME_LOW
-+ H1 DOWN
-+ M15 DOWN
-+ Z20 <= -2
--> BUY mean-reversion shadow candidate
-```
-
-### A5. HIGH_VOL_MAIN
-
-```text
-09:05-12:30 BRT
--> structurally elevated volatility
+               -> reversal crescente no regime recente
 ```
 
 ---
 
-## B. Promissores, mas ainda shadow/small sample
+# 30. Achados por confiança
 
-### B1. Post09StressCycle #2
+## Fortes
 
-```text
-09:00 reset
-EP1 z<=-2
-recover >-1.5
-EP2 z<=-2
-+ D1 low/H1 down/M15 down
-```
+- D1 0.70-0.90 bullish aligned BUY continuation context.
+- D1 EXTREME_HIGH -> avoid BUY chase.
+- D1 EXTREME_LOW -> avoid SELL chase.
+- D1 EXTREME_LOW + H1/M15 down + Z20<=-2 -> BUY mean-reversion shadow.
+- HIGH_VOL_MAIN 09:05-12:30 -> structural high-volatility state.
 
-### B2. HIGH_VOL terminal extreme exhaustion
+## Promissores / shadow
 
-```text
-09:05-12:30 phase
-+ terminal_extreme HIGH
--> reversal risk after phase
-```
+- Post09StressCycle #2.
+- HIGH_VOL terminal-extreme exhaustion propensity.
+- StrongDirectional exhaustion no regime recente.
 
-### B3. Strong directional exhaustion
+## Features sem regra
 
-Mais forte no período recente, não estável em Train.
+- OpeningFlowState
+- DirectionalEfficiency
+- ImpulseState
+- TerminalExtreme
+- MinutesFromPhaseChange
+- weekday
+- Post09StressCycle
+- IntradayVolatilityPhase
 
----
-
-## C. Features úteis, ainda sem regra
-
-- `OpeningFlowState`
-- `DirectionalEfficiency`
-- `ImpulseState`
-- `TerminalExtreme`
-- `MinutesFromPhaseChange`
-- `weekday`
-- `Post09StressCycle`
-- `IntradayVolatilityPhase`
-
----
-
-## D. Rejeitados / não repetir sem nova hipótese
+## Rejeitados / não repetir sem nova hipótese
 
 - bearish D1 0.10-0.30 como espelho SELL;
-- high-side z-score SELL como regra estrutural;
-- rejection candle como filtro obrigatório;
-- first extreme event/day como explicação suficiente;
+- high-side zscore SELL estrutural;
+- rejection obrigatório;
+- first-event/day como explicação suficiente;
 - episódio sem histerese;
-- segundo episódio contado desde 08:00 ou broker-day;
-- Tue/Wed/Thu como regra standalone;
-- opening echo binário 20-01 -> 08-09 como regra;
+- second episode desde 08:00 ou broker-day;
+- Tue/Wed/Thu standalone;
+- binary opening echo standalone;
 - NIGHT_22 continuation;
-- PRE_MORNING_REV 06:20-08:00 como regra estrutural;
-- POST_VOL_REV 12:55-13:45 como regra standalone;
-- `high impulse = continuation` como regra simples;
-- `high efficiency = continuation` como regra simples.
+- PRE_MORNING_REV como regra estrutural;
+- POST_VOL_REV standalone;
+- high impulse = continuation;
+- high efficiency = continuation.
 
 ---
 
 # 31. Anti-repeat checklist
-
-Antes de criar um novo teste, conferir se ele já foi realizado:
 
 ```text
 [ ] D1 upper bullish continuation?
 [ ] D1 lower bearish continuation?
 [ ] EXTREME_HIGH BUY chase?
 [ ] EXTREME_LOW SELL chase?
-[ ] exact side inversion?
-[ ] Z sensitivity 1.5 / 2.0 / 2.5?
+[ ] exact inverse?
+[ ] Z sensitivity 1.5/2.0/2.5?
 [ ] candle rejection?
-[ ] first event per day?
+[ ] first event/day?
 [ ] event ordinal?
 [ ] raw episodes?
 [ ] hysteresis episodes?
 [ ] 09:00 vs 08:00 vs broker-day reset?
-[ ] EP1 / EP2 / EP3 / EP4+?
+[ ] EP1/EP2/EP3/EP4+?
 [ ] 08-09 opening flow?
 [ ] Tue/Wed/Thu?
 [ ] 20-01 -> 08-09 echo?
@@ -1476,42 +768,26 @@ Antes de criar um novo teste, conferir se ele já foi realizado:
 [ ] stable volatility/continuation/reversal zones?
 [ ] broker-day bootstrap of clock zones?
 [ ] HIGH_VOL phase impulse/efficiency/terminal decomposition?
+[ ] EXTREME_FINISH dedicated bootstrap?
+[ ] STRONG_DIRECTIONAL dedicated bootstrap?
 ```
 
 ---
 
-# 32. Statistical caveat — very important
+# 32. Statistical caveat
 
-O antigo TEST foi consultado repetidamente durante:
-
-- z-score threshold sensitivity;
-- event order;
-- episode definitions;
-- session reset boundary;
-- opening-flow hypotheses;
-- Market Clock;
-- high-vol phase decomposition.
-
-Portanto:
+O TEST atual foi consultado repetidamente durante z sensitivity, event order, episodes, reset boundary, opening-flow, Market Clock e high-vol decomposition.
 
 ```text
 TEST atual = exploratory OOS
 NOT pristine final holdout
 ```
 
-Qualquer futura promoção deve usar pelo menos um dos seguintes:
-
-1. forward shadow congelado;
-2. nested walk-forward;
-3. novo período temporal ainda não usado;
-4. bootstrap/cluster robusto em broker-day;
-5. custos/slippage antes de qualquer conclusão operacional.
+Promoções futuras requerem forward shadow/nested walk-forward/novo período + custos/slippage.
 
 ---
 
-# 33. Arquitetura conceitual que está emergindo
-
-A pesquisa está deixando de ser uma coleção de filtros e começando a formar um **Market State Model**.
+# 33. Arquitetura emergente
 
 ```text
 D1Position
@@ -1535,118 +811,45 @@ MinutesFromPhaseChange
 MARKET STATE
 ```
 
-Depois desse estado estatístico estar congelado, associar externamente:
-
-```text
-market open
-market close
-overlap
-maintenance/reopen
-London / New York / futures sessions
-DST-aware clocks
-```
-
-A associação econômica deve vir **depois** da descoberta estatística para evitar impor horários ao modelo.
+Somente depois congelar estado estatístico, associar aberturas/fechamentos/overlaps/maintenance/reopen e DST-aware sessions.
 
 ---
 
-# 34. Próximas perguntas congeladas
+# 34. Perguntas congeladas
 
-## Próxima pergunta 1 — terminal extreme bootstrap
-
-Validar `TERMINAL_HIGH / EXTREME_FINISH` por broker-day, com thresholds já definidos no TRAIN:
-
-```text
-terminal_extreme Q67 = 0.850
-```
-
-Perguntas:
-
-- mediana negativa é estrutural?
-- média negativa aparece após controle de outliers?
-- bootstrap P(response<0) é alto nos três splits?
-- qual diferença versus baseline HIGH_VOL_MAIN?
-
-## Próxima pergunta 2 — strong directional exhaustion
-
-Bootstrap independente para:
-
-```text
-impulse >= 0.783
-AND efficiency >= 0.614
-```
-
-Sem recalibrar thresholds.
-
-## Próxima pergunta 3 — associação com D1
-
-Somente se os estados acima sobreviverem:
-
-```text
-HIGH_VOL terminal extreme
-x D1Position
-```
-
-Pergunta:
-
-- extremo de fase + D1 extremo gera exaustão maior?
-- terminal high em D1 0.70-0.90 comporta-se diferente de D1 >=0.90?
-
-## Próxima pergunta 4 — associação com Post09StressCycle
-
-Pergunta:
-
-```text
-HIGH_VOL phase state
-+ Post09StressCycle #2
-```
-
-A sequência EP2 pode ser o marcador técnico de amadurecimento da fase intradiária?
-
-## Próxima pergunta 5 — market-session association
-
-Somente após congelar as fases estatísticas:
-
-- mapear aberturas/fechamentos reais;
-- timezone-aware;
-- DST-aware;
-- verificar coincidência temporal sem redefinir as fases.
+1. Bootstrap EXTREME_FINISH com threshold `.850`.
+2. Bootstrap STRONG_DIRECTIONAL com `.783/.614`.
+3. Se sobreviverem, cruzar HIGH_VOL state x D1Position.
+4. Depois cruzar com Post09StressCycle.
+5. Corrigir directional Market Clock para multiple testing/data snooping.
+6. Só depois associar sessões econômicas reais.
 
 ---
 
-# 35. Histórico de decisões do projeto
+# 35. Decisões do projeto
 
-## Mantido
+Mantido:
 
-- `tools/study_d1_mtf_filter_v2.py` como estudo principal.
-- Runtime permanece `WARNING_ONLY_RESEARCH`.
-- D1 upper bullish BUY soft score permanece.
-- EXTREME_HIGH BUY chase permanece penalizado.
-- EXTREME_LOW SELL chase permanece penalizado.
+- `tools/study_d1_mtf_filter_v2.py` como estudo principal;
+- runtime `WARNING_ONLY_RESEARCH`;
+- upper bullish BUY soft score;
+- EXTREME_HIGH BUY chase penalizado;
+- EXTREME_LOW SELL chase penalizado.
 
-## Corrigido
+Corrigido:
 
-- antiga preferência bearish SELL 0.10-0.30 removida.
-
-## Não promovido
-
-- high-side inverse SELL;
-- lower rejection high-PF small sample;
-- weekdays;
-- clock directional zones fracas;
-- second episode como hard rule;
-- high-vol terminal exhaustion até bootstrap dedicado.
+- bearish SELL 0.10-0.30 removido.
 
 ---
 
-# 36. Guideline para futuras atualizações deste arquivo
+# 36. Formato das próximas atualizações
 
-Cada nova rodada deve adicionar uma seção no final com:
+Cada rodada deve registrar:
 
 ```text
 DATE / RUN
 QUESTION
-WHY WE ASKED IT
+WHY
 FROZEN DEFINITION
 DATA / SPLIT
 RESULTS
@@ -1657,34 +860,235 @@ WHAT NOT TO REPEAT
 NEXT QUESTION
 ```
 
-Não editar números históricos antigos para fazê-los combinar com hipóteses novas.
+---
 
-Se houver erro metodológico, registrar:
+# 37. Checkpoint anterior — 2026-08-11
 
-```text
-METHODOLOGY BUG
-old result
-why invalid
-corrected result
-impact on conclusion
-```
+Resumo:
+
+> GOLD apresenta assimetria D1, anti-edge claro nos extremos, família consistente de lower-extreme Z-score mean reversion, informação sequencial no second post-09 stress cycle e fase estrutural HIGH_VOL_MAIN 09:05-12:30. A decomposição sugeriu que terminar essa fase perto do extremo pode carregar exhaustion/reversal propensity.
 
 ---
 
-# 37. Current research snapshot
+# 38. 2026-08-11 — Dedicated bootstrap: EXTREME_FINISH e STRONG_DIRECTIONAL
 
-Data do checkpoint:
+## QUESTION
+
+A tendência de reversão após a HIGH_VOL_MAIN é realmente condicionada pelo estado interno da fase, principalmente `EXTREME_FINISH`, ou é apenas ruído da amostra?
+
+## WHY
+
+O agregado `POST_VOL_REV` tinha medianas negativas, mas mean/bootstrap fracos. A hipótese evoluiu para: o pós-fase mistura dias diferentes. Precisávamos testar se `terminal_extreme` separa uma distribuição mais reversiva.
+
+## FROZEN DEFINITIONS
 
 ```text
-2026-08-11
+HIGH_VOL_MAIN = 09:05-12:30 BRT
+horizon = 120m
+EXTREME_FINISH = terminal_extreme >= 0.850
+STRONG_DIRECTIONAL = impulse >= 0.783 AND efficiency >= 0.614
+bootstrap = 10.000 reps
+1 day = 1 phase observation
 ```
 
-Resumo em uma linha:
+Thresholds não foram recalibrados.
 
-> GOLD apresenta forte assimetria D1, anti-edge claro nos extremos, uma família consistente de mean reversion no extremo inferior com Z-score, informação sequencial no segundo stress pós-09, e uma fase estrutural de alta volatilidade entre 09:05-12:30; a decomposição mais recente sugere que terminar essa fase muito próximo do extremo pode carregar risco de exaustão/reversão, mas ainda requer bootstrap específico antes de qualquer promoção.
+## RESULTS — EXTREME_FINISH
+
+### TRAIN
+
+```text
+n=71
+REV=54.93%
+Mean=+0.015
+Median=-0.026
+Trimmed=+0.008
+Mean CI95 [-0.046,+0.078], P(mean<0)=31.30%
+Median CI95 [-0.092,+0.077], P(median<0)=79.67%
+REV CI95 [43.66%,66.20%], P(REV>50)=79.67%
+```
+
+Contrast vs complement:
+
+```text
+P(state mean lower)=65.93%
+P(state median lower)=81.77%
+P(state more REV)=85.03%
+```
+
+### VALIDATION
+
+```text
+n=22
+REV=59.09%
+Mean=-0.025
+Median=-0.023
+Trimmed=-0.079
+Mean CI95 [-0.228,+0.224], P(mean<0)=61.29%
+Median CI95 [-0.218,+0.037], P(median<0)=76.16%
+REV CI95 [40.91%,77.27%], P(REV>50)=74.36%
+```
+
+Contrast vs complement:
+
+```text
+P(state mean lower)=63.16%
+P(state median lower)=82.55%
+P(state more REV)=85.34%
+```
+
+### TEST
+
+```text
+n=21
+REV=66.67%
+Mean=-0.090
+Median=-0.089
+Trimmed=-0.074
+Mean CI95 [-0.202,+0.016], P(mean<0)=95.02%
+Median CI95 [-0.236,+0.071], P(median<0)=94.51%
+REV CI95 [47.62%,85.71%], P(REV>50)=94.51%
+```
+
+Contrast vs complement:
+
+```text
+P(state mean lower)=62.26%
+P(state median lower)=83.17%
+P(state more REV)=84.67%
+```
+
+## INTERPRETATION — EXTREME_FINISH
+
+O resultado **não confirma um expectancy edge estrutural** porque os CIs da média cruzam zero e o contraste de mean é fraco.
+
+Porém existe um padrão distribucional muito consistente:
+
+```text
+P(state more reversal vs complement)
+TRAIN 85.03%
+VAL   85.34%
+TEST  84.67%
+```
+
+Também:
+
+```text
+REV rate 54.9% -> 59.1% -> 66.7%
+median < 0 nos 3 splits
+```
+
+Isto sugere que `EXTREME_FINISH` é melhor interpretado como **reversal propensity / exhaustion state**, não como regra SELL/BUY ou expectancy edge isolado.
+
+Status atualizado:
+
+`PROMISING_DISTRIBUTIONAL_EXHAUSTION_STATE`.
+
+Não promover como directional rule.
+
+## EXTREME_FINISH — UP vs DOWN descriptive
+
+```text
+TRAIN: UP n=53 REV=54.72%, DOWN n=18 REV=55.56%
+VAL:   UP n=12 REV=50.00%, DOWN n=10 REV=70.00%
+TEST:  UP n=12 REV=66.67%, DOWN n=9 REV=66.67%
+```
+
+A condição não parece depender exclusivamente do lado. TEST apresentou exatamente 66.67% reversal em ambos os lados, mas samples ainda são pequenos.
+
+Isto fortalece a interpretação de `terminal_extreme` como propriedade do **estado da fase**, e não simplesmente direção UP/DOWN.
+
+## RESULTS — STRONG_DIRECTIONAL
+
+### TRAIN
+
+```text
+n=48 REV=52.08%
+Mean=+0.001 Median=-0.005 Trimmed=+0.002
+P(mean<0)=48.70%
+P(median<0)=57.53%
+P(REV>50)=56.32%
+P(state more REV)=62.42%
+```
+
+### VALIDATION
+
+```text
+n=15 REV=60.00%
+Mean=-0.059 Median=-0.014 Trimmed=-0.057
+P(mean<0)=83.96%
+P(median<0)=78.62%
+P(REV>50)=78.62%
+P(state more REV)=82.17%
+```
+
+### TEST
+
+```text
+n=10 REV=70.00%
+Mean=-0.096 Median=-0.135 Trimmed=-0.092
+P(mean<0)=89.71%
+P(median<0)=86.28%
+P(REV>50)=84.83%
+P(state more REV)=80.98%
+```
+
+## INTERPRETATION — STRONG_DIRECTIONAL
+
+Train continua praticamente neutro. Validation/Test ficam mais reversivos, mas sample cai para 15/10.
+
+Status permanece:
+
+`REGIME_DEPENDENT_RECENT_EXHAUSTION_SIGNAL`.
+
+Não utilizar como regra estrutural.
+
+## WHAT CHANGED
+
+Antes do bootstrap:
+
+```text
+EXTREME_FINISH -> possible exhaustion
+```
+
+Depois do bootstrap:
+
+```text
+EXTREME_FINISH -> consistent distributional reversal propensity
+                  but NOT confirmed negative-expectancy edge
+```
+
+A nuance é importante: a feature parece deslocar a probabilidade/mediana para reversão, mas tails de continuation ainda impedem tratar isso como regra direcional simples.
+
+## WHAT NOT TO REPEAT
+
+- não recalibrar `terminal_extreme=0.850` no mesmo TEST;
+- não transformar `EXTREME_FINISH` diretamente em SELL/BUY;
+- não usar STRONG_DIRECTIONAL como regra estrutural com n=10 no TEST;
+- não concluir pelo headline reversal rate sem olhar mean/median/contrast.
+
+## NEXT QUESTION — FROZEN
+
+Agora faz sentido cruzar o estado mais promissor com D1Position, porque já existe uma hipótese independente e prévia no D1:
+
+```text
+HIGH_VOL_MAIN + EXTREME_FINISH
+x
+D1 0.70-0.90 bullish continuation
+versus
+D1 >=0.90 anti-BUY-chase
+versus
+D1 <=0.10 anti-SELL-chase / lower mean-reversion family
+```
+
+Pergunta central:
+
+> `terminal_extreme` é apenas uma propensão genérica de reversão, ou se torna muito mais informativo quando o D1 também está em um extremo?
+
+Depois disso, cruzar com `Post09StressCycle` e só então voltar ao Market Clock directional com correção de multiple testing.
 
 ---
 
 # END OF CURRENT CHECKPOINT
 
-Próximas rodadas devem ser adicionadas **abaixo deste ponto**, mantendo todo o histórico acima.
+Próximas rodadas devem ser adicionadas abaixo deste ponto, mantendo o histórico acima.
