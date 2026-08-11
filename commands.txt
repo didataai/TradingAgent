@@ -80,9 +80,18 @@ py .\pipeline\intraday_pipeline_web.py ` --symbol GOLD ` --symbol EURUSD ` --web
 
 ## Market intelligence.
 
-py .\market_intelligence.py build --symbol GOLD --input-dir .\data --output .\data\market_intelligence\GOLD.json
+py .\market_intelligence.py build  --symbol GOLD  --input-dir .\data --output .\data\intelligence\GOLD.json
 
  Get-Content .\data\intelligence\GOLD.json 
+
+## D1 point-in-time + H1/M15/M5 research (broker day / 09:00-18:00 BRT)
+py .\tools\study_d1_mtf_filter.py `
+  --input-dir .\data `
+  --symbol GOLD `
+  --rules .\config\market_intelligence\GOLD_d1_intraday_rules.json `
+  --output .\data\research\GOLD_d1_mtf_filter_report.json
+
+Get-Content .\data\research\GOLD_d1_mtf_filter_report.json
 
 ## Full process - 15 days interval 
 
