@@ -3174,7 +3174,7 @@ Validation mantém a ordenação ampla, embora o bucket .40-.60 seja fraco:
 .20-.40  41.67% n=12
 .40-.60  33.33% n=27
 .60-.80  68.89% n=45
-+.80-1   72.28% n=101
+.80-1    72.28% n=101
 ```
 
 TEST está fortemente concentrado no topo; buckets baixos são pequenos. Nos buckets com amostra útil:
@@ -3627,5 +3627,313 @@ STRUCTURAL STATE
 The next test will not add indicators. It will ask whether the calibration drift itself is causally trackable with expanding prequential recalibration.
 
 No runtime promotion. Current TEST remains repeatedly inspected exploratory OOS; fresh forward/nested validation remains mandatory before operational use.
+
+---
+
+# 67. 2026-08-12 — Track D Experiment 12: prequential calibration drift / adaptive corridor model
+
+## QUESTION
+
+O drift observado na calibração de `CorridorPosition -> P(ADVANCE)` é um processo temporal lento que pode ser acompanhado causalmente por recalibração expanding, sem novas features?
+
+## WHY
+
+Exp10 preservou discriminação OOS da geometria, mas deixou residual negativo no TEST. Exp11 mostrou que `AcceptancePressure15` não explica esse residual. Antes de procurar uma nova variável estrutural, foi necessário testar a explicação mais simples: a relação pode ser a mesma, mas sua calibração pode se mover lentamente no tempo.
+
+## FROZEN DEFINITION
+
+```text
+STATIC_TRAIN
+    intercept e slope congelados no TRAIN original
+
+ADAPTIVE_INTERCEPT
+    slope original congelada
+    intercept reestimado expanding
+
+ADAPTIVE_FULL
+    intercept e slope reestimados expanding
+
+causal availability:
+    para prever qualquer BRT day D,
+    usar somente labels cuja transition_time ocorreu antes de 00:00 de D
+
+same-day outcomes never train same-day predictions
+no rolling windows
+no new features
+primary evaluation = Validation + TEST
+```
+
+## DATA / AUDIT
+
+```text
+corridor states = 1,014
+non-censored TRAIN = 592
+prequential evaluation states = 407
+evaluation days = 151
+
+TRAIN states resolving after Split A = 0
+pre-Split-B states resolving after Split B = 0
+```
+
+O audit confirma que não havia label-crossing nos boundaries dos splits e que a implementação adaptive respeitou availability por `transition_time`.
+
+Static TRAIN coefficients:
+
+```text
+intercept = -.112307
+slope     = +.388604
+```
+
+## PRIMARY — VALIDATION
+
+```text
+STATIC
+AUC=.6652 Brier=.217867 LogLoss=.627491 Residual=+.68pp
+
+ADAPTIVE_INTERCEPT
+AUC=.6650 Brier=.218161 LogLoss=.628163 Residual=+.71pp
+Delta Brier vs STATIC=+.000294
+Delta LogLoss vs STATIC=+.000673
+
+ADAPTIVE_FULL
+AUC=.6638 Brier=.218388 LogLoss=.628588 Residual=+.80pp
+Delta Brier vs STATIC=+.000520
+Delta LogLoss vs STATIC=+.001098
+```
+
+Na Validation, ambos os modelos adaptativos pioram o STATIC em todas as métricas principais.
+
+## PRIMARY — TEST
+
+```text
+STATIC
+AUC=.6459 Brier=.219689 LogLoss=.631903 Residual=-4.62pp
+
+ADAPTIVE_INTERCEPT
+AUC=.6447 Brier=.219589 LogLoss=.631772 Residual=-4.33pp
+Delta Brier vs STATIC=-.000100
+Delta LogLoss vs STATIC=-.000132
+
+ADAPTIVE_FULL
+AUC=.6428 Brier=.219281 LogLoss=.630804 Residual=-3.90pp
+Delta Brier vs STATIC=-.000408
+Delta LogLoss vs STATIC=-.001100
+```
+
+No TEST existe pequena melhora event-weighted de Brier/LogLoss, mas AUC cai e o ganho é pequeno diante do drift restante.
+
+Observed vs predicted:
+
+```text
+VALIDATION
+Observed 61.62%
+STATIC   60.93%
+ADAPT_INT 60.91%
+ADAPT_FULL 60.82%
+
+TEST
+Observed 64.59%
+STATIC   69.22%
+ADAPT_INT 68.93%
+ADAPT_FULL 68.49%
+```
+
+A recalibração expanding reduz pouco a sobreprevisão recente.
+
+## COEFFICIENT TRAJECTORY
+
+```text
+Adaptive intercept fixed-slope:
+first -.1123
+last  -.1493
+min   -.1515
+max   -.0881
+median -.1183
+
+Adaptive full intercept:
+first -.1123
+last  -.0980
+median -.0942
+
+Adaptive full slope:
+first +.3886
+last  +.3551
+min   +.3471
+max   +.4021
+median +.3753
+```
+
+Há movimento gradual, mas de pequena magnitude. A slope cai modestamente; isso não é suficiente para explicar o drift TEST.
+
+## DAY-CLUSTER SCORE GAIN vs STATIC
+
+Positive means adaptive better.
+
+Validation:
+
+```text
+ADAPT_INTERCEPT
+BrierGain Mean=-.000327 CI95 [-.000604,-.000076] P(gain>0)=.48%
+LogLossGain Mean=-.000756 CI95 [-.001419,-.000171] P(gain>0)=.37%
+
+ADAPT_FULL
+BrierGain Mean=-.000680 CI95 [-.001087,-.000293] P(gain>0)=.04%
+LogLossGain Mean=-.001536 CI95 [-.002492,-.000593] P(gain>0)=.07%
+```
+
+A evidência day-cluster em Validation é clara: expanding adaptation piora o modelo.
+
+TEST:
+
+```text
+ADAPT_INTERCEPT
+BrierGain Mean=+.000395 CI95 [-.000245,+.001081] P(gain>0)=87.79%
+LogLossGain Mean=+.000791 CI95 [-.000707,+.002344] P(gain>0)=84.09%
+
+ADAPT_FULL
+BrierGain Mean=+.000535 CI95 [-.000868,+.002075] P(gain>0)=75.81%
+LogLossGain Mean=+.001705 CI95 [-.002428,+.006293] P(gain>0)=77.60%
+```
+
+No TEST os gains ficam positivos, mas todos os CIs cruzam zero. Portanto não existe melhora prequential robusta fora de sample.
+
+## DAY-CLUSTER CALIBRATION RESIDUAL
+
+```text
+VALIDATION
+STATIC          +2.18pp CI [-5.38,+9.45]
+ADAPT_INTERCEPT +2.20pp CI [-5.22,+9.60]
+ADAPT_FULL      +2.28pp CI [-5.23,+9.60]
+
+TEST
+STATIC          -8.00pp CI [-15.82,-.43]
+ADAPT_INTERCEPT -7.71pp CI [-15.58,-.19]
+ADAPT_FULL      -7.32pp CI [-15.11,+.21]
+```
+
+O adaptive full aproxima o CI de zero no TEST, porém quase não altera a média residual e simultaneamente piora Validation.
+
+## FULL vs INTERCEPT
+
+```text
+VALIDATION
+MeanGain FULL-over-INTERCEPT=-.000353
+CI95 [-.000737,+.000040]
+P(FULL better)=4.00%
+
+TEST
+MeanGain FULL-over-INTERCEPT=+.000140
+CI95 [-.001022,+.001386]
+P(FULL better)=58.01%
+```
+
+Não existe evidência de que permitir drift da slope seja superior ao intercept-only de forma generalizável.
+
+## INTERPRETATION
+
+O drift recente **não é resolvido por simples recalibração expanding**. Se fosse um base-rate/calibration-in-the-large lentamente aprendível, `ADAPTIVE_INTERCEPT` deveria melhorar STATIC em Validation e TEST. Ocorre o contrário em Validation e apenas uma melhora minúscula/incerta no TEST.
+
+Permitir que slope e intercept mudem também não resolve: `ADAPTIVE_FULL` piora Validation e só melhora modestamente TEST, com day-cluster CIs cruzando zero. Logo não há justificativa para procurar rolling windows de 20/40/60/120 dias após o resultado.
+
+A evidência mais consistente continua sendo:
+
+```text
+CorridorPosition
+    -> stable ranking/discrimination of next transition
+    -> probability mapping not fully stationary
+    -> remaining calibration error likely conditions on an omitted structural state
+```
+
+Isso preserva a geometria como backbone probabilístico, mas desloca a próxima pergunta para **qual propriedade causal do próprio nível/corredor muda a hazard de ADVANCE vs RECAPTURE**.
+
+## STATUS
+
+```text
+EXPANDING_PREQUENTIAL_RECALIBRATION = REJECTED_AS_GENERAL_SOLUTION
+CALIBRATION_IN_THE_LARGE_DRIFT = NOT_SUFFICIENT
+GEOMETRY_SENSITIVITY_DRIFT = NOT_CONFIRMED
+ADAPTIVE_INTERCEPT = NOT_PROMOTED
+ADAPTIVE_FULL = NOT_PROMOTED
+STATIC_GEOMETRY_MODEL = PRESERVED_AS_RESEARCH_REFERENCE
+TEST_CALIBRATION_DRIFT = PERSISTS
+ROLLING_WINDOW_SEARCH = PROHIBITED_AFTER_RESULT
+OMITTED_STRUCTURAL_STATE_HYPOTHESIS = STRENGTHENED
+RUNTIME_PROMOTION = NONE
+```
+
+## WHAT NOT TO REPEAT
+
+- não testar expanding variants adicionais;
+- não otimizar rolling windows 20/40/60/120 dias;
+- não usar forget factors/decay depois de ver TEST;
+- não escolher ADAPTIVE_FULL apenas porque ficou levemente melhor no TEST;
+- não misturar D1/Clock/Z/Fib para resgatar calibração;
+- não abandonar CorridorPosition: a discriminação OOS permanece a evidência forte desta subárvore.
+
+## NEXT QUESTION — FROZEN
+
+`TRACK D — EXPERIMENT 13: L2 STRUCTURAL PROVENANCE / MTF LEVEL MULTIPLICITY`.
+
+Motivação: o algoritmo de nearest target escolhe L2 como `M15` em 100% dos estados, mas isso não significa que o **mesmo preço estrutural** seja exclusivamente M15. Um swing M15 pode coincidir causalmente com um swing confirmado H1 e/ou H4. Essa provenance de timeframe pode representar força/importância do boundary sem usar thresholds de distância.
+
+Definição causal congelada no `state_time`:
+
+```text
+L2TFMultiplicity =
+    número de timeframes distintos em {M15,H1,H4}
+    que possuem swing confirmado do mesmo KIND
+    no mesmo preço exato de L2
+    com confirm_time <= state_time
+
+HigherTFConfluenceCount = L2TFMultiplicity - 1
+range esperado = 0..2
+```
+
+Preço será normalizado somente para chave exata com `round(6)`; não haverá tolerância de distância em ATR/pontos.
+
+Comparação primária:
+
+```text
+BASE:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+
+EXTENDED:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+                 + b2*HigherTFConfluenceCount
+```
+
+Fit somente TRAIN. Validation/Test avaliam AUC, Brier, LogLoss, day-cluster score gain e residual. `has_H1` e `has_H4` serão apenas diagnostics de coverage; não escolher o melhor timeframe após inspeção.
+
+Interpretação congelada:
+
+```text
+if EXTENDED improves BASE in both Validation and TEST:
+    higher-timeframe structural provenance is incremental state information
+
+if sample multiplicity>1 is too small:
+    mark UNDERPOWERED, do not create price tolerances after result
+
+if EXTENDED fails:
+    exact MTF provenance is closed as simple explanation;
+    next omitted-state candidate becomes prior interaction memory of L2
+```
+
+---
+
+# 68. Current checkpoint — 2026-08-12 19:45 BRT
+
+Track D now has a narrower and more coherent core:
+
+```text
+CorridorPosition = strong transition-ranking feature
+Raw identity geometry = miscalibrated
+AcceptancePressure15 = rejected incremental feature
+Expanding prequential recalibration = rejected general solution
+Remaining TEST drift = not explained by slow intercept/slope adaptation
+```
+
+The next test stays entirely inside lower-timeframe structural information and asks whether the M15-selected L2 has hidden H1/H4 provenance at the exact same confirmed price.
+
+No runtime promotion. The current TEST is repeatedly inspected exploratory OOS; any future candidate still requires fresh forward/nested validation.
 
 # END OF CURRENT CHECKPOINT
