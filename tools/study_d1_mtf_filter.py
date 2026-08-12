@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
-TF_MINUTES = {"M5": 5, "M15": 15, "H1": 60}
+TF_MINUTES = {"M5": 5, "M15": 15, "H1": 60, "H4": 240}
 HORIZONS_MIN = (30, 60, 120)
 
 
