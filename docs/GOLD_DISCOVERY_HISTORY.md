@@ -1384,7 +1384,7 @@ NegativeFraction median:
                  MIDWEEK   MON_FRI
 TRAIN               .500      .722
 VAL                 .417      .917
-TEST                .597      .861
+TEST                 .597      .861
 ```
 
 ## WITHIN-GROUP CONTROL
@@ -3174,7 +3174,7 @@ Validation mantém a ordenação ampla, embora o bucket .40-.60 seja fraco:
 .20-.40  41.67% n=12
 .40-.60  33.33% n=27
 .60-.80  68.89% n=45
-.80-1    72.28% n=101
++.80-1   72.28% n=101
 ```
 
 TEST está fortemente concentrado no topo; buckets baixos são pequenos. Nos buckets com amostra útil:
@@ -3332,5 +3332,300 @@ CORRIDOR GEOMETRY + LOCAL ACCEPTANCE PRESSURE
 ```
 
 No runtime promotion. Fresh forward / nested validation continua obrigatório antes de qualquer uso operacional.
+
+---
+
+# 65. 2026-08-12 — Track D Experiment 11: corridor geometry + local acceptance pressure
+
+## QUESTION
+
+Depois de controlar `CorridorPosition`, a eficiência/direção do caminho causal nos 15 minutos entre o primeiro contato com L1 e o estado `OUTSIDE_15` adiciona informação sobre a próxima transição estrutural?
+
+## WHY
+
+O Exp10 encontrou discriminação probabilística robusta de `CorridorPosition`, mas deixou drift negativo de calibração no TEST. Antes de introduzir estados de outras trilhas, foi congelada uma única feature local de path para verificar se a forma como o preço chegou ao corredor explicava parte desse residual.
+
+## FROZEN DEFINITION
+
+```text
+AcceptancePressure15 =
+    oriented net close displacement from contact_close to state_close
+    /
+    sum(abs(M5 close-to-close moves)) over exactly 15m
+
+BASE:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+
+EXTENDED:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+                 + b2*AcceptancePressure15
+
+fit = TRAIN only
+Validation/Test = evaluation only
+```
+
+Target e estrutura permanecem os mesmos do Exp10:
+
+```text
+ADVANCE_BOS = 1
+RECAPTURE_L1 = 0
+fractal = 2-left / 2-right
+first-contact window = 120m
+acceptance confirmation = exactly +15m
+transition window = 120m
+no D1, Clock, Z, Fib, weekday or EXTREME_FINISH
+```
+
+## DATA / COVERAGE
+
+```text
+true FULL events = 5,209
+L1 eligible = 4,786
+raw first interactions = 2,588
+unique first interactions = 2,310
+OUTSIDE_15 = 1,091
+valid corridor states = 1,014
+L2 source = M15 in 1,014 / 1,014
+```
+
+AcceptancePressure15 distribution:
+
+```text
+mean = +.4675
+median = +.5023
+Q25 = +.1627
+Q75 = +.9240
+```
+
+The transition incidence is unchanged from Exp10:
+
+```text
+                 TRAIN      VALIDATION    TEST
+ADVANCE_BOS      60.37%       59.80%      63.68%
+RECAPTURE_L1     38.63%       37.25%      34.91%
+CENSORED          1.00%        2.94%       1.42%
+```
+
+## TRAIN-ONLY COEFFICIENTS
+
+```text
+BASE
+intercept = -.112307
+geometry  = +.388604
+
+EXTENDED
+intercept = -.191876
+geometry  = +.373503
+pressure  = +.218588
+```
+
+O coeficiente TRAIN de pressure é positivo, porém seu tamanho isolado não é evidência de generalização.
+
+## PRIMARY MODEL COMPARISON
+
+```text
+TRAIN
+AUC      .6970 -> .6991   Delta +.0021
+Brier    .209354 -> .208891   Delta -.000464
+LogLoss  .607483 -> .606512   Delta -.000970
+
+VALIDATION
+AUC      .6652 -> .6746   Delta +.0094
+Brier    .217867 -> .216961   Delta -.000907
+LogLoss  .627491 -> .626138   Delta -.001353
+
+TEST
+AUC      .6459 -> .6450   Delta -.0009
+Brier    .219689 -> .220326   Delta +.000638
+LogLoss  .631903 -> .633555   Delta +.001652
+```
+
+A feature melhora levemente o event-weighted TRAIN/Validation, mas piora todas as métricas primárias de probabilidade no TEST.
+
+## DAY-CLUSTER BRIER GAIN
+
+Positive means EXTENDED better than BASE.
+
+```text
+TRAIN
+MeanGain +.000560
+CI95 [-.001420,+.002480]
+P(extended better)=72.43%
+
+VALIDATION
+MeanGain -.000638
+CI95 [-.003871,+.002614]
+P(extended better)=34.82%
+
+TEST
+MeanGain -.000214
+CI95 [-.003670,+.003079]
+P(extended better)=45.19%
+```
+
+A diferença entre o pequeno ganho event-weighted em Validation e o ganho day-weighted negativo mostra que o aparente incremento é dependente da multiplicidade de eventos por dia e não é robusto como informação independente.
+
+## PRESSURE x BASE RESIDUAL
+
+```text
+Spearman AcceptancePressure15 x base residual
+TRAIN      -.0091
+VALIDATION -.0096
+TEST       -.1406
+```
+
+Não há relação incremental estável que corresponda ao coeficiente positivo estimado no TRAIN. Train/Validation são essencialmente zero e o TEST fica mais negativo.
+
+## EXTENDED MODEL RESIDUAL
+
+Day-cluster residual after extended model:
+
+```text
+TRAIN MeanResidual +.86 pp CI95 [-3.74,+5.44]
+VAL   MeanResidual +2.46 pp CI95 [-5.16,+9.92]
+TEST  MeanResidual -7.39 pp CI95 [-15.17,+.14]
+```
+
+O novo predictor não resolve materialmente o drift. No TEST o residual continua grande e negativo; o CI apenas toca zero pela borda superior.
+
+## SOURCE PATH DIAGNOSTIC
+
+```text
+TRAIN
+BREAK_HOLD Obs61.94% Base62.38%
+REBREAK    Obs58.95% Base58.02%
+
+VALIDATION
+BREAK_HOLD Obs64.49% Base61.61%
+REBREAK    Obs55.00% Base59.39%
+
+TEST
+BREAK_HOLD Obs65.22% Base69.92%
+REBREAK    Obs63.38% Base67.84%
+```
+
+Não existe justificativa para selecionar BREAK_HOLD ou REBREAK após inspeção.
+
+## INTERPRETATION
+
+`AcceptancePressure15` é uma feature causal bem definida, mas **não adiciona informação probabilística generalizável além da geometria do corredor** nesta definição congelada.
+
+A leve melhora no TRAIN e no event-level Validation não sobrevive ao TEST nem ao day-cluster Validation/Test. Portanto não há justificativa para alterar o path window ou procurar thresholds de pressure.
+
+O achado reforça que:
+
+```text
+WHERE AM I? = CorridorPosition
+```
+
+continua mais informativo que a métrica simples de:
+
+```text
+HOW STRAIGHT DID I GET HERE? = AcceptancePressure15
+```
+
+O residual recente do modelo geométrico parece ser principalmente um problema de **calibration/concept drift** ou de um estado causal de ordem superior ainda não representado, e não de eficiência local dos 15 minutos pós-contato.
+
+## STATUS
+
+```text
+ACCEPTANCE_PRESSURE15_INCREMENTAL_INFORMATION = REJECTED
+GEOMETRY_BASE_TRANSITION_MODEL = PRESERVED_STRONG_RESEARCH_FEATURE
+LOCAL_15M_PATH_EFFICIENCY = NO_GENERAL_INCREMENTAL_SIGNAL
+EXTENDED_GEOMETRY_PRESSURE_MODEL = NOT_PROMOTED
+TEST_CALIBRATION_DRIFT = PERSISTS
+BREAK_HOLD_REBREAK_SOURCE_PATH = DIAGNOSTIC_ONLY
+L2_SOURCE = M15_ONLY
+RUNTIME_PROMOTION = NONE
+```
+
+## WHAT NOT TO REPEAT
+
+- não criar thresholds de AcceptancePressure15;
+- não mudar o path para 5/10/20/30m para tentar salvar a feature;
+- não testar transformações polinomiais/nonlinear de pressure neste mesmo TEST;
+- não selecionar BREAK_HOLD ou REBREAK;
+- não adicionar D1/Clock/Z/Fib para resgatar o Exp11;
+- não confundir pequena melhora event-weighted de Validation com ganho independente day-level.
+
+## NEXT QUESTION — FROZEN
+
+`TRACK D — EXPERIMENT 12: PREQUENTIAL CALIBRATION DRIFT / ADAPTIVE CORRIDOR MODEL`.
+
+Pergunta: o drift observado no TEST é um processo de calibração temporal lenta que pode ser acompanhado causalmente usando somente resultados anteriores, sem introduzir novas features?
+
+Modelos congelados:
+
+```text
+STATIC_TRAIN
+    intercept + geometry slope congelados no TRAIN original
+
+ADAPTIVE_INTERCEPT
+    geometry slope congelada no TRAIN original
+    intercept reestimado com todos os estados realizados até o BRT day anterior
+
+ADAPTIVE_FULL
+    intercept e geometry slope reestimados com todos os estados realizados até o BRT day anterior
+```
+
+Regras:
+
+```text
+prediction for a BRT day may use outcomes only through previous BRT day
+same-day outcomes never enter model for that day
+expanding history only; no rolling-window optimization
+minimum historical sample = original TRAIN already available before Validation
+primary evaluation = Validation and TEST
+metrics = Brier, LogLoss, AUC, day-cluster scoring gain and residual
+```
+
+Interpretação congelada:
+
+```text
+if adaptive models improve STATIC in both VAL and TEST:
+    calibration drift is at least partly slow/learnable
+
+if intercept-only is enough:
+    drift is mainly calibration-in-the-large/base-rate
+
+if full adaptive is materially better than intercept-only:
+    geometry sensitivity itself drifts
+
+if neither improves reliably:
+    remaining error points to omitted structural state rather than simple online recalibration
+```
+
+Nenhuma janela temporal será escolhida depois do resultado.
+
+---
+
+# 66. Current checkpoint — 2026-08-12 19:25 BRT
+
+Track D status after Exp11:
+
+```text
+Static alignment/direction features      -> rejected
+Static swing target topology             -> rejected
+Single-touch behavior                    -> rejected
+15m acceptance alone                     -> regime-dependent
+Sequential next-boundary incidence       -> stable descriptive process
+CorridorPosition                         -> strong OOS transition discrimination
+Raw geometry probability                 -> overconfident / rejected
+TRAIN logistic calibration               -> useful OOS but drifting
+AcceptancePressure15 incremental          -> rejected
+```
+
+The research problem is now explicit:
+
+```text
+STRUCTURAL STATE
+    + CORRIDOR POSITION
+        -> stable ranking of next transition
+        -> imperfect and drifting probability calibration
+```
+
+The next test will not add indicators. It will ask whether the calibration drift itself is causally trackable with expanding prequential recalibration.
+
+No runtime promotion. Current TEST remains repeatedly inspected exploratory OOS; fresh forward/nested validation remains mandatory before operational use.
 
 # END OF CURRENT CHECKPOINT
