@@ -136,3 +136,4 @@ python .\tools\personal_risk_guard_builder.py `
 # Use variável intermediária:
 # rho_age_touch = accepted["l2_age_hours"].corr(accepted["prior_touch_episodes"], method="spearman")
 # print(f"rho(age,touch_count)={rho_age_touch:+.4f}")
+# Para execução por prompt direto/PowerShell here-string, sempre reenviar o bloco Exp14 completo já corrigido; não depender de substituição manual.
