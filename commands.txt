@@ -137,3 +137,14 @@ python .\tools\personal_risk_guard_builder.py `
 # rho_age_touch = accepted["l2_age_hours"].corr(accepted["prior_touch_episodes"], method="spearman")
 # print(f"rho(age,touch_count)={rho_age_touch:+.4f}")
 # Para execução por prompt direto/PowerShell here-string, sempre reenviar o bloco Exp14 completo já corrigido; não depender de substituição manual.
+
+## Research — Exp14 checkpoint / Exp15 frozen
+# Exp14: earliest exact-price lineage age and prior-touch memory do NOT add stable incremental probability beyond CorridorPosition.
+# Strong confounding: Spearman(age, prior touch episodes)=+0.8501.
+# Major covariate shift: TEST median lineage age ~3378.5h vs ~222.5h TRAIN / ~212.7h VALIDATION; touch median 35 vs 11 / 11.
+# AGE_BASE improves TEST slightly but worsens/does not improve VALIDATION; MEMORY_EXTENDED is mixed and fails the frozen BOTH-splits criterion.
+# Status: EXACT_PRICE_LINEAGE_AGE = NOT_CONFIRMED; PRIOR_L2_TOUCH_MEMORY = REJECTED_INCREMENTAL; TEST_CALIBRATION_DRIFT = PERSISTS.
+# Exp15 frozen: CURRENT L2 CONFIRMATION RECENCY / STRUCTURAL REFRESH.
+# Define latest exact same KIND/price confirm_time <= state_time and CurrentL2AgeHours = state_time - latest_confirm_time.
+# Primary: GEOMETRY vs GEOMETRY + log1p(CurrentL2AgeHours), TRAIN-only fit; must improve both VALIDATION and TEST, especially day-cluster Brier/LogLoss.
+# No thresholds, no rolling windows, no touch buckets, no D1/Clock/Z/Fib.
