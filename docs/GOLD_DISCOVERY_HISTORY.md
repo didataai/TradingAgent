@@ -2360,6 +2360,528 @@ primary horizon = 120m
 
 ---
 
-# END OF CURRENT CHECKPOINT
+# 56. 2026-08-12 — Track D Experiment 4: true FULL formation path / last aligner
 
-Próximas rodadas devem ser adicionadas abaixo deste ponto, preservando tudo acima.
+## QUESTION
+
+Quando nasce um verdadeiro FULL H4/H1/M15, importa qual timeframe foi o último a entrar em acordo?
+
+## FROZEN DEFINITION
+
+```text
+true FULL onset
+M15_LAST
+H1_LAST
+H4_LAST
+MULTI_PARENT
+primary horizon = 120m
+no Clock, D1, Z, Fib, weekday or EXTREME_FINISH
+```
+
+## DATA
+
+```text
+true formation events = 5,209
+M15_LAST    = 3,687
+H1_LAST     =   705
+MULTI_PARENT=   675
+H4_LAST     =   142
+```
+
+## RESULTS — 120m
+
+```text
+                 TRAIN Med/CONT      VAL Med/CONT        TEST Med/CONT
+M15_LAST         +.0896 / 51.02%    -.1758 / 46.10%    -.0897 / 48.68%
+H1_LAST          +.0557 / 51.00%    -.1376 / 49.21%    -.0461 / 48.53%
+H4_LAST          -.3049 / 49.40%    -.1453 / 50.00%    +.1576 / 55.88%
+MULTI_PARENT     -.0545 / 49.06%    +.1926 / 53.28%    -.2859 / 45.07%
+```
+
+A decomposição UP/DOWN reforçou forte regime flip. Exemplo `M15_LAST`:
+
+```text
+FULL_UP CONT:   TRAIN 54.80% / VAL 49.39% / TEST 40.91%
+FULL_DOWN CONT: TRAIN 46.41% / VAL 42.34% / TEST 54.50%
+```
+
+A estrutura imediatamente anterior também não foi estável:
+
+```text
+PRE_MAJORITY_SAME Med120:
+TRAIN +.0698 / VAL -.1758 / TEST -.0758
+
+PRE_MAJORITY_OPPOSITE Med120:
+TRAIN -.1704 / VAL +.2057 / TEST -.2619
+```
+
+## INTERPRETATION
+
+A hierarquia de formação baseada apenas em qual parent mudou por último não carrega uma assinatura direcional generalizável. `M15_LAST` domina naturalmente a frequência de eventos; `H4_LAST` é raro e não deve receber peso especial por resultados isolados.
+
+## STATUS
+
+```text
+LAST_ALIGNER_GENERAL_EDGE = REJECTED
+PREVIOUS_MAJORITY_PATH = NOT_STABLE
+UP_DOWN_ASYMMETRY = STRONGLY_REGIME_DEPENDENT
+```
+
+## WHAT NOT TO REPEAT
+
+- não otimizar combinações last-aligner x horário/Z/Fib;
+- não escolher H4_LAST por sample pequeno;
+- não espelhar FULL_UP/FULL_DOWN.
+
+## NEXT QUESTION
+
+Trocar direção binária por qualidade estrutural dos candles pais, ainda isoladamente.
+
+---
+
+# 57. 2026-08-12 — Track D Experiment 5: MTF structural quality
+
+## QUESTION
+
+A qualidade dos candles H4/H1/M15 que formam o FULL contém informação que a direção close-open não contém?
+
+## FROZEN DEFINITION
+
+```text
+BodyEfficiency = abs(close-open)/(high-low)
+DirectionalClosePosition = close dentro do range orientado à direção do FULL
+ParentQuality = BodyEfficiency * DirectionalClosePosition
+MTFStructuralQuality = mean(H4,H1,M15)
+TRAIN-only Q33/Q67
+primary horizon = 120m
+```
+
+Thresholds congelados do TRAIN:
+
+```text
+Q33 = .285715
+Q67 = .434484
+```
+
+## RESULTS — QUALITY BUCKETS 120m
+
+```text
+TRAIN
+LOW  Med +.0439 CONT 50.85%
+MID  Med +.0784 CONT 51.35%
+HIGH Med -.0020 CONT 49.95%
+
+VALIDATION
+LOW  Med +.0608 CONT 51.79%
+MID  Med -.4425 CONT 42.94%
+HIGH Med -.1709 CONT 47.39%
+
+TEST
+LOW  Med -.0085 CONT 49.69%
+MID  Med -.0856 CONT 48.20%
+HIGH Med -.2652 CONT 47.45%
+```
+
+## CONTINUOUS RELATION
+
+```text
+Spearman MTFStructuralQuality x Response120
+TRAIN      -.0163
+VALIDATION -.0379
+TEST       -.0212
+```
+
+Range expansion e quality dispersion também ficaram próximos de zero.
+
+Matched-day HIGH-LOW:
+
+```text
+TRAIN      Mean -.0742 CI95 [-.5243,+.3922]
+VALIDATION Mean -.0369 CI95 [-.6937,+.6540]
+TEST       Mean +.0112 CI95 [-.7000,+.7216]
+```
+
+## INTERPRETATION
+
+A aparência/qualidade do candle não adiciona informação geral estável. A mediana HIGH ficou pior que LOW nos três splits, mas o contraste same-day desaparece e não sustenta uma hipótese de exhaustion estrutural.
+
+## STATUS
+
+```text
+MTF_STRUCTURAL_QUALITY_CONTINUATION = REJECTED
+MTF_STRUCTURAL_QUALITY_EXHAUSTION = WEAK_DESCRIPTIVE_HINT_NOT_CONFIRMED
+MTF_RANGE_EXPANSION_ALONE = NO_EDGE
+MTF_QUALITY_DISPERSION_ALONE = NO_EDGE
+CANDLE_DIRECTION_CONFLUENCE_BRANCH = CLOSED_AS_GENERAL_PREDICTOR
+```
+
+## NEXT QUESTION
+
+Migrar de aparência dos candles para localização/topologia estrutural usando swings confirmados causalmente.
+
+---
+
+# 58. 2026-08-12 — Track D Experiment 6: confirmed swing target topology
+
+## QUESTION
+
+No nascimento verdadeiro do FULL, quantos dos últimos swing targets confirmados H4/H1/M15 ainda estão à frente do preço e isso altera a distribuição futura?
+
+## FROZEN DEFINITION
+
+```text
+fractal = 2-left / 2-right
+swing só existe após fechamento dos 2 candles à direita
+FULL_UP target = último swing high confirmado
+FULL_DOWN target = último swing low confirmado
+TargetsAheadCount = 0/1/2/3
+primary horizon = 120m
+```
+
+## DATA
+
+```text
+true FULL events = 5,209
+all-3-target coverage = 100%
+M15 confirmed highs/lows = 6,670 / 6,677
+H1  confirmed highs/lows = 2,639 / 2,687
+H4  confirmed highs/lows = 1,364 / 1,403
+```
+
+## RESULTS — 120m MEDIAN / CONT
+
+```text
+TRAIN
+AHEAD0 +.4459 / 53.41%
+AHEAD1 +.1658 / 52.47%
+AHEAD2 -.1976 / 46.77%
+AHEAD3 +.1473 / 52.03%
+
+VALIDATION
+AHEAD0 +.6153 / 57.32%
+AHEAD1 -.0917 / 46.60%
+AHEAD2 -.1215 / 47.27%
+AHEAD3 -.3050 / 46.30%
+
+TEST
+AHEAD0 -.1913 / 44.12%
+AHEAD1 -.0732 / 48.91%
+AHEAD2 -.1358 / 48.25%
+AHEAD3 -.0524 / 48.93%
+```
+
+Ordinal Spearman:
+
+```text
+TRAIN +.0055
+VAL   -.0605
+TEST  -.0040
+```
+
+Matched-day AHEAD3-AHEAD0:
+
+```text
+TRAIN      Mean +.4425 CI95 [-.4718,+1.3569]
+VALIDATION Mean -.4069 CI95 [-1.7496,+.8250]
+TEST       Mean +.5208 CI95 [-1.4357,+2.6037]
+```
+
+## INTERPRETATION
+
+Não existe progressão 0->1->2->3 e nem relação contínua de distância aos targets. O nível estático/quantidade de targets não descreve o DNA isoladamente.
+
+## STATUS
+
+```text
+STATIC_SWING_TARGET_TOPOLOGY = REJECTED
+TARGETS_AHEAD_COUNT = NO_GENERAL_EDGE
+STATIC_DISTANCE_TO_SWING_TARGET = NO_GENERAL_EDGE
+```
+
+## WHAT NOT TO REPEAT
+
+- não procurar fractal 3/3,4/4,5/5 depois do resultado;
+- não selecionar AHEAD bucket por split;
+- não selecionar timeframe isolado após inspeção.
+
+## NEXT QUESTION
+
+Testar a dinâmica da primeira interação com o target, e não apenas sua presença/localização.
+
+---
+
+# 59. 2026-08-12 — Track D Experiment 7: first structural target interaction
+
+## QUESTION
+
+O primeiro contato com o target estrutural mais próximo diferencia `BREAK_CLOSE` de `SWEEP_REJECT` de forma generalizável?
+
+## FROZEN DEFINITION
+
+```text
+nearest confirmed target ahead frozen at true FULL onset
+contact window = 120m
+onset candle excluded
+BREAK_CLOSE = touch + close além do target na direção do FULL
+SWEEP_REJECT = touch/overshoot + close de volta do lado anterior
+outcome = 120m após interaction close
+```
+
+## DATA
+
+```text
+true FULL events = 5,209
+target ahead eligible = 4,786 (91.88%)
+touched within 120m = 2,588 (54.07%)
+interaction rows = 2,588
+unique interaction keys = 2,326
+duplicate fraction = 10.12%
+```
+
+## RESULTS — EVENT LEVEL
+
+```text
+TRAIN
+BREAK Med -.0295 CONT 49.37%
+SWEEP Med -.0730 CONT 49.22%
+
+VALIDATION
+BREAK Med -.0744 CONT 48.91%
+SWEEP Med -.4356 CONT 41.56%
+
+TEST
+BREAK Med -.5128 CONT 43.18%
+SWEEP Med +.3551 CONT 52.40%
+```
+
+## MATCHED-DAY BREAK-SWEEP
+
+```text
+TRAIN      Mean -.1522 CI95 [-.6888,+.3932] P(BREAK>SWEEP)=29.36%
+VALIDATION Mean +.7433 CI95 [-.0491,+1.5894] P(BREAK>SWEEP)=96.72%
+TEST       Mean -.7981 CI95 [-1.6233,+.1133] P(BREAK>SWEEP)=4.10%
+```
+
+## INTERPRETATION
+
+A assinatura troca de lado entre splits. Primeiro toque sozinho não é edge: `breakout=continuation` e `sweep=reversal` não são regras válidas. Cerca de 10% das linhas convergiram para a mesma interação estrutural; isso motivou deduplicação explícita no experimento seguinte.
+
+## STATUS
+
+```text
+FIRST_TOUCH_BREAK_VS_SWEEP = REJECTED_AS_GENERAL_EDGE
+BREAK_CLOSE = NOT_STANDALONE_CONTINUATION_STATE
+SWEEP_REJECT = NOT_STANDALONE_REVERSAL_STATE
+```
+
+## NEXT QUESTION
+
+Deduplicar interações reais e testar aceitação/recaptura 15m depois do primeiro contato.
+
+---
+
+# 60. 2026-08-12 — Track D Experiment 8: structural interaction acceptance / failure
+
+## QUESTION
+
+A sequência `first touch -> estado 15m depois` carrega informação que o primeiro toque sozinho não carregava?
+
+## FROZEN DEFINITION
+
+```text
+T0 = primeiro contato deduplicado
+confirmation = exatamente T0 + 15m
+OUTSIDE_15 = close confirmado além do target na direção original do FULL
+INSIDE_15 = close confirmado de volta do lado anterior
+sequence states = BREAK_HOLD / FAILED_BREAK / SWEEP_HOLD / REBREAK
+primary outcome = 120m após confirmation close
+15m congelado antes do resultado
+```
+
+## DATA / COVERAGE
+
+```text
+true FULL events = 5,209
+target-ahead eligible = 4,786 (91.88%)
+raw interactions = 2,588
+unique interactions = 2,310
+removed duplicates = 278 (10.74%)
+exact 15m confirmation = 2,281 / 2,310 (98.74%)
+```
+
+## PRIMARY — OUTSIDE_15 vs INSIDE_15
+
+```text
+TRAIN
+OUTSIDE n=606 Mean +.2423 Med +.1534 CONT 52.48%
+INSIDE  n=647 Mean +.2700 Med +.0646 CONT 50.23%
+
+VALIDATION
+OUTSIDE n=206 Mean +.2331 Med +.0844 CONT 50.49%
+INSIDE  n=250 Mean -.3861 Med -.4978 CONT 44.80%
+
+TEST
+OUTSIDE n=199 Mean +.3955 Med +.1342 CONT 51.26%
+INSIDE  n=248 Mean -.3511 Med -.6346 CONT 44.76%
+```
+
+A nível bruto, Validation/Test sugerem que permanecer fora do nível é melhor que retornar para dentro. Porém o contraste day-level não confirma estabilidade temporal.
+
+## DAY-LEVEL
+
+```text
+TRAIN
+OUTSIDE days=210 Mean +.0118 Med +.0151 POS 50.48%
+INSIDE  days=215 Mean +.3330 Med -.0556 POS 49.77%
+
+VALIDATION
+OUTSIDE days=80 Mean +.0967 Med +.0646 POS 50.00%
+INSIDE  days=78 Mean -.3411 Med -.1911 POS 39.74%
+
+TEST
+OUTSIDE days=71 Mean +.0732 Med -.2324 POS 46.48%
+INSIDE  days=76 Mean -.5560 Med -.4745 POS 44.74%
+```
+
+## MATCHED-DAY OUTSIDE - INSIDE
+
+```text
+TRAIN
+matched_days=187
+Mean=-.4084
+Median=-.4272
+CI95 [-.8623,+.0416]
+P(OUTSIDE>INSIDE)=3.92%
+
+VALIDATION
+matched_days=71
+Mean=+.4000
+Median=+.2113
+CI95 [-.3434,+1.1853]
+P(OUTSIDE>INSIDE)=85.09%
+
+TEST
+matched_days=62
+Mean=+.7950
+Median=+.4694
+CI95 [-.1349,+1.8129]
+P(OUTSIDE>INSIDE)=95.14%
+```
+
+O sinal do matched-day muda: TRAIN favorece INSIDE, enquanto Validation/Test favorecem OUTSIDE. Todos os CIs ainda cruzam zero.
+
+## SEQUENCE STATES
+
+```text
+TRAIN
+BREAK_HOLD   Med +.1079 CONT 52.17%
+FAILED_BREAK Med +.3972 CONT 56.67%
+SWEEP_HOLD   Med -.2383 CONT 47.14%
+REBREAK      Med +.2507 CONT 53.12%
+
+VALIDATION
+BREAK_HOLD   Med +.1259 CONT 53.10%
+FAILED_BREAK Med +.1779 CONT 54.95%
+SWEEP_HOLD   Med -.7935 CONT 38.99%
+REBREAK      Med -.4753 CONT 44.26%
+
+TEST
+BREAK_HOLD   Med -.1196 CONT 48.12%
+FAILED_BREAK Med -.8185 CONT 39.36%
+SWEEP_HOLD   Med -.1064 CONT 48.05%
+REBREAK      Med +.9140 CONT 57.58%
+```
+
+Frozen contrasts:
+
+```text
+BREAK_HOLD > FAILED_BREAK
+not supported in TRAIN/VAL; only TEST separates in expected direction.
+
+REBREAK > SWEEP_HOLD
+median ordering appears in all three splits, but Validation both are negative and event dependence/regime sensitivity remain material.
+```
+
+Transition frequencies were relatively stable:
+
+```text
+BREAK_CLOSE -> OUTSIDE_15: TRAIN 67.12% / VAL 62.25% / TEST 59.75%
+SWEEP_REJECT -> INSIDE_15: TRAIN 68.42% / VAL 71.74% / TEST 69.40%
+```
+
+Continuous acceptance depth remained near zero correlation:
+
+```text
+Spearman acceptance_distance_atr x response120
+TRAIN +.0224
+VAL   +.0635
+TEST  +.0342
+```
+
+## INTERPRETATION
+
+O primeiro resultado realmente interessante desta subárvore é que **a dinâmica da transição contém mais estrutura que o primeiro toque**, mas ainda não existe um edge geral confirmado. Validation/Test apontam para `OUTSIDE_15 > INSIDE_15`, porém TRAIN apresenta o contraste day-level oposto; portanto não promover.
+
+`REBREAK > SWEEP_HOLD` é o único contraste ordinal que aparece na mesma direção nas medianas dos três splits, mas nasceu dentro de uma família de quatro estados já inspecionada e ainda é exploratório/regime-sensitive. Deve ser tratado apenas como pista para a próxima representação sequencial, não como regra.
+
+## STATUS
+
+```text
+OUTSIDE15_GENERAL_CONTINUATION = NOT_CONFIRMED / REGIME_DEPENDENT
+INSIDE15_GENERAL_FAILURE = NOT_CONFIRMED / REGIME_DEPENDENT
+BREAK_HOLD_VS_FAILED_BREAK = REJECTED_AS_GENERAL_RULE
+REBREAK_VS_SWEEP_HOLD = PROMISING_SEQUENCE_HINT / EXPLORATORY_ONLY
+CONTINUOUS_ACCEPTANCE_DEPTH = NO_GENERAL_EDGE
+SINGLE_LEVEL_INTERACTION_BRANCH = NOT_PROMOTED
+```
+
+## WHAT NOT TO REPEAT
+
+- não mudar 15m para 5/10/20/30m neste TEST;
+- não selecionar target timeframe após inspeção;
+- não transformar REBREAK em regra direcional;
+- não ignorar day-level/matched-day em favor de event-level;
+- manter deduplicação de interação real em todos os próximos testes.
+
+## NEXT QUESTION — FROZEN
+
+Encerrar a tentativa de extrair regra de um único nível e migrar para **sequência estrutural multi-step**:
+
+```text
+TRACK D — EXPERIMENT 9
+SEQUENTIAL SWING CONSUMPTION / BOS / RECAPTURE STATE
+```
+
+Pergunta: o estado muda quando o preço consome um swing, aceita além dele e então enfrenta/consome o próximo swing? A unidade passa a ser uma sequência de eventos estruturais, não um único candle/nível.
+
+---
+
+# 61. Current checkpoint — 2026-08-12 18:25 BRT
+
+Track D eliminou progressivamente explicações estáticas/simples:
+
+```text
+FULL agreement                  -> rejected as continuation edge
+FULL onset                      -> rejected as general edge
+FULL age                        -> rejected as monotonic maturity edge
+last aligner                    -> rejected as general edge
+parent candle quality           -> rejected
+static swing-target topology    -> rejected
+first break vs sweep            -> rejected
+15m acceptance alone            -> regime dependent / not promoted
+```
+
+A evidência acumulada aponta para um DNA mais próximo de uma **máquina de estados e transições** do que de uma combinação fixa de indicadores:
+
+```text
+STATE
+ -> STRUCTURAL LOCATION
+ -> LEVEL INTERACTION
+ -> ACCEPTANCE / RECAPTURE
+ -> NEXT STRUCTURAL EVENT
+ -> NEW STATE
+```
+
+Nenhuma descoberta desta árvore altera o runtime hard rules. `WARNING_ONLY_RESEARCH` permanece. O próximo experimento deve preservar H4/H1/M15 e swings causais, mas abandonar single-level slicing e estudar consumo sequencial/BOS/recapture.
+
+# END OF CURRENT CHECKPOINT
