@@ -1912,6 +1912,454 @@ Próxima execução congelada: `288-slot Market Clock multiple-testing correctio
 
 ---
 
+# 50. 2026-08-12 — 288-slot Market Clock multiple-testing correction
+
+## QUESTION
+
+Depois de procurar direção futura em praticamente todos os 288 slots M5 do relógio, algum horário pontual continua estatisticamente anormal quando corrigimos a seleção múltipla?
+
+## WHY
+
+Candidatos como `20:50 continuation` e `13:30 reversal` surgiram durante varredura ampla do relógio. Sem correção, algum slot pode parecer forte apenas porque muitas alternativas foram observadas.
+
+## FROZEN DEFINITION
+
+```text
+primary horizon = 120m
+response = current M5 direction * future 120m displacement / ATR
+TRAIN discovers only
+cluster = BRT day
+wild bootstrap = one +/-1 sign for the entire intraday curve of each day
+max-|t| statistic across all eligible clock slots
+bootstrap reps = 10,000
+minimum TRAIN coverage = 100 days
+FWER alpha = .05
+```
+
+## RESULTS
+
+```text
+Theoretical slots = 288
+Coverage eligible = 264
+TRAIN clustered days = 257
+FWER 5% critical |t| = 3.738
+FWER 1% critical |t| = 4.156
+```
+
+Best TRAIN slot:
+
+```text
+06:50
+n=211
+Mean120ATR=-.7230
+Median=-.5387
+CONT=38.39%
+t=-3.552
+p_FWER=.0993
+```
+
+Nenhum slot sobreviveu `p_FWER <= .05`.
+
+Legacy `20:50`:
+
+```text
+TRAIN Mean=+.8268 CONT=58.02% t=+2.351 p_FWER=.9940
+VALIDATION Mean=-.1608 CONT=48.05%
+TEST Mean=+.5257 CONT=50.67%
+```
+
+Legacy `13:30`:
+
+```text
+TRAIN Mean=-.1135 CONT=49.28% t=-.767 p_FWER=1.0000
+VALIDATION Mean=+.1247 CONT=54.55%
+TEST Mean=+.0916 CONT=48.61%
+```
+
+## INTERPRETATION
+
+A ideia de `hora exata -> direção futura` não sobrevive ao controle da família inteira de slots. Os antigos candidatos pontuais devem ser tratados como resultados de descoberta exploratória sem evidência estrutural.
+
+Isso **não invalida** `HIGH_VOL_MAIN [09:05,12:30)`, pois HIGH_VOL_MAIN é uma fase robusta de atividade/volatilidade, não um slot direcional exato.
+
+## STATUS
+
+```text
+POINT_CLOCK_DIRECTIONAL_EDGE = REJECTED_AFTER_FWER
+20_50_CONTINUATION = REJECTED_AS_STRUCTURAL_CLOCK_EDGE
+13_30_REVERSAL = REJECTED_AS_STRUCTURAL_CLOCK_EDGE
+HIGH_VOL_MAIN = UNAFFECTED / ROBUST_DESCRIPTIVE_PHASE
+TRACK_A_METHOD_CLEANUP = CONSOLIDATED_CHECKPOINT
+```
+
+## WHAT NOT TO REPEAT
+
+- não selecionar horários pontuais sem corrigir a família pesquisada;
+- não ressuscitar 20:50/13:30 por memória visual;
+- não confundir fase de volatilidade com direção determinística.
+
+---
+
+# 51. 2026-08-12 — Track D Experiment 1: simple H4/H1/M15 directional agreement
+
+## QUESTION
+
+H4, H1 e M15 totalmente alinhados (`FULL`) produzem maior persistência direcional que alinhamento parcial (`PARTIAL`)?
+
+## FROZEN DEFINITION
+
+```text
+anchor = M5
+parent directions = sign(close-open) do último candle fechado
+H4/H1/M15 available only after parent close
+FULL_UP = +1/+1/+1
+FULL_DOWN = -1/-1/-1
+PARTIAL = 2 of 3 in the same direction
+response = consensus sign * future displacement / M5 ATR
+horizons = 15/30/60/120m
+no Clock, D1, Z, weekday, Fib or EXTREME_FINISH
+```
+
+Infraestrutura foi ampliada para `H4=240m` em `TF_MINUTES`.
+
+## DATA
+
+```text
+M5  rows 99,999
+M15 rows 50,000
+H1  rows 20,000
+H4  rows 10,000
+```
+
+## RESULTS — EVENT LEVEL 120m
+
+```text
+                 TRAIN    VALIDATION   TEST
+FULL CONT        50.3%      48.1%      48.4%
+PARTIAL CONT     50.2%      48.2%      49.9%
+```
+
+Logo `FULL > PARTIAL continuation` não aparece.
+
+## RESULTS — DAY LEVEL 120m
+
+```text
+FULL median
+TRAIN      -.125
+VALIDATION -.214
+TEST       -.347
+
+FULL positive-day rate
+TRAIN      47.47%
+VALIDATION 45.74%
+TEST       38.89%
+
+PARTIAL median
+TRAIN      +.039
+VALIDATION -.093
+TEST       +.025
+```
+
+A diferença entre event-level e day-level mostra forte dependência/correlação entre múltiplos M5 do mesmo estado no mesmo dia.
+
+## UP/DOWN ASYMMETRY — EVENT LEVEL 120m
+
+```text
+FULL_UP CONT
+TRAIN 53.37%
+VAL   50.65%
+TEST  44.44%
+
+FULL_DOWN CONT
+TRAIN 46.42%
+VAL   44.84%
+TEST  51.59%
+```
+
+## INTERPRETATION
+
+`FULL` não significa automaticamente mais força de continuação. A assinatura day-level mais negativa é interessante, mas não pode ser tratada como edge sem entender persistência do estado, episódios e regime. UP/DOWN também não formam espelho estável.
+
+## STATUS
+
+```text
+SIMPLE_FULL_ALIGNMENT_CONTINUATION = REJECTED
+FULL_GREATER_THAN_PARTIAL = REJECTED
+FULL_DAY_LEVEL_ANTI_CONTINUATION = PROMISING_STATE_DIAGNOSTIC_ONLY
+UP_DOWN_SYMMETRY = REJECTED
+```
+
+## NEXT QUESTION
+
+Transformar `FULL` em episódios e estudar o nascimento do estado, evitando contar dezenas de M5 correlacionados como eventos independentes.
+
+---
+
+# 52. 2026-08-12 — Track D Experiment 2: FULL alignment episode onset
+
+## QUESTION
+
+O primeiro M5 de um episódio `FULL_UP/FULL_DOWN` contém informação diferente dos candles posteriores do mesmo estado?
+
+## INITIAL DEFINITION
+
+O experimento agrupou sequências FULL e criou `FULL_ENTRY`; porém a primeira implementação resetava a definição na mudança de `brt_date`.
+
+Portanto esse resultado é válido como **day-relative transition diagnostic**, mas não como nascimento estrutural puro de um episódio que pode atravessar meia-noite.
+
+## RESULTS — COMBINED FULL 120m
+
+```text
+TRAIN      n=2962 Mean=+.0804 Med=+.0457 CONT=50.61%
+VALIDATION n=1092 Mean=+.1237 Med=-.0913 CONT=47.99%
+TEST       n=1069 Mean=-.0876 Med=-.0975 CONT=48.36%
+```
+
+O onset combinado não apresenta sinal estável.
+
+## UP/DOWN 120m
+
+```text
+FULL_UP
+TRAIN Med=+.2499 CONT=54.24%
+VAL   Med=+.0597 CONT=51.28%
+TEST  Med=-.5200 CONT=42.11%
+
+FULL_DOWN
+TRAIN Med=-.2978 CONT=46.32%
+VAL   Med=-.3318 CONT=44.16%
+TEST  Med=+.1776 CONT=53.37%
+```
+
+Há forte flip de regime entre lados.
+
+## FIRST FULL EPISODE PER BRT DAY — DIAGNOSTIC
+
+30m reversal rate:
+
+```text
+TRAIN      57.03%
+VALIDATION 57.45%
+TEST       55.56%
+```
+
+Esse padrão foi percebido após inspeção de 15/30/60/120m, portanto é apenas exploratório e não deve ser promovido.
+
+## EPISODE DURATION — DESCRIPTIVE
+
+```text
+median = 3 M5 bars
+Q75    = 6 bars
+Q90    = 9-12 bars dependendo do split/lado
+```
+
+## INTERPRETATION
+
+O nascimento `FULL` não é exhaustion/continuation geral. O resultado reforça que direção e regime importam e que precisamos de uma definição estrutural contínua sem reset diário.
+
+## STATUS
+
+```text
+FULL_ENTRY_GENERAL_EDGE = REJECTED
+EXP2_DAY_RESET_FULL_ENTRY = DAY_RELATIVE_DIAGNOSTIC_ONLY
+FIRST_DAILY_FULL_15_30_PULLBACK = EXPLORATORY_POST_HOC
+TRUE_STRUCTURAL_ONSET = REQUIRES_CORRECTED_EPISODE_DEFINITION
+```
+
+## NEXT QUESTION
+
+Construir episódio FULL contínuo por M5 contíguo, sem reset de calendário, e testar idade causal do estado.
+
+---
+
+# 53. 2026-08-12 — Track D Experiment 3: true continuous FULL state age
+
+## QUESTION
+
+Depois de corrigir o reset diário, a idade causal de um estado FULL (`state_age_bars`) altera progressivamente sua distribuição futura?
+
+## WHY
+
+Se alinhamento completo representa maturidade do movimento, poderíamos observar uma transição aproximadamente monotônica entre FULL recém-nascido e FULL antigo. A variável precisa ser causal: apenas idade conhecida até o instante atual, nunca duração final do episódio.
+
+## FROZEN DEFINITION
+
+```text
+true FULL episode continues only when consecutive M5 timestamps differ by exactly 5m and state remains identical
+no midnight reset
+AGE landmarks = 1,3,6,12 bars
+primary horizon = 120m
+15/30/60 = diagnostic only
+no D1, Clock, Z, weekday, Fib or EXTREME_FINISH
+```
+
+## EPISODE DISTRIBUTION
+
+```text
+true episodes = 5,372
+mean duration = 5.41 bars
+median = 3 bars
+Q75 = 6 bars
+Q90 = 9 bars
+max = 30 bars
+```
+
+A distribuição de duração é relativamente estável; episódios muito longos são uma minoria.
+
+## COMBINED FULL — EVENT LEVEL 120m
+
+```text
+             AGE1       AGE3       AGE6       AGE12
+TRAIN Med    +.0416     +.0108     +.0390     +.0622
+TRAIN CONT   50.56%     50.10%     50.82%     51.38%
+
+VAL Med      -.0856     +.0039     -.1300     -.3780
+VAL CONT     48.12%     50.14%     48.42%     42.53%
+
+TEST Med     -.1062     -.2337     -.1514     -.1757
+TEST CONT    48.31%     47.00%     47.00%     47.13%
+```
+
+Não existe progressão monotônica comum aos três splits.
+
+## DAY-LEVEL 120m
+
+```text
+             AGE1       AGE3       AGE6       AGE12
+TRAIN Med    -.0027     +.0341     +.0360     +.1364
+VAL Med      +.1816     +.0278     -.1244     -.2064
+TEST Med     -.1896     -.2802     -.2510     -.1766
+```
+
+Novamente, a forma muda por regime.
+
+## DAY BOOTSTRAP — OLDER AGE vs AGE1
+
+Todos os principais CIs cruzam zero.
+
+```text
+TRAIN AGE12-AGE1 MeanDiff +.2694 CI95 [-.2470,+.7808]
+VAL   AGE12-AGE1 MeanDiff -.1695 CI95 [-.8499,+.5380]
+TEST  AGE12-AGE1 MeanDiff +.3915 CI95 [-.6223,+1.4468]
+```
+
+AGE6 também muda de sinal entre splits e não apresenta CI estável.
+
+## TRUE ONSET UP/DOWN ASYMMETRY — AGE1 120m
+
+```text
+FULL_UP CONT
+TRAIN 54.31%
+VAL   51.20%
+TEST  41.98%
+
+FULL_DOWN CONT
+TRAIN 46.15%
+VAL   44.55%
+TEST  53.39%
+```
+
+O flip é forte: a direção do FULL parece depender de contexto/regime maior, não possuir significado estrutural fixo sozinha.
+
+## INTERPRETATION
+
+A hipótese `FULL mais velho -> exhaustion progressivamente maior` é rejeitada como regra generalizável. `state_age_bars` é uma feature causal válida, mas nesta definição simples não carrega efeito monotônico estável.
+
+A descoberta útil é negativa: não procurar AGE7/AGE9/AGE14 até achar um número bonito. O próximo passo deve mudar a representação e perguntar **como o FULL foi formado**, não por quanto tempo ele já existe.
+
+## STATUS
+
+```text
+FULL_STATE_AGE_MONOTONIC_EXHAUSTION = REJECTED
+STATE_AGE_BARS = VALID_CAUSAL_FEATURE_BUT_NO_GENERAL_EDGE
+TRUE_ONSET_GENERAL_EDGE = NOT_CONFIRMED
+FULL_UP_DOWN_MEANING = STRONGLY_REGIME_DEPENDENT
+FINAL_EPISODE_DURATION = DESCRIPTIVE_ONLY / NEVER REALTIME FEATURE
+```
+
+## WHAT NOT TO REPEAT
+
+- não otimizar idade depois de ver AGE1/3/6/12;
+- não usar duração final do episódio como feature causal;
+- não tratar milhares de episódios/M5 como dias independentes;
+- não espelhar FULL_UP e FULL_DOWN;
+- não combinar Clock/D1/Z/Fib antes de entender a formação estrutural isolada.
+
+## NEXT QUESTION — FROZEN
+
+`TRACK D — EXPERIMENT 4: FULL FORMATION PATH`.
+
+Perguntar qual timeframe foi o último a entrar em acordo no nascimento verdadeiro do FULL:
+
+```text
+H4 + H1 já alinhados -> M15 joins
+H4 + M15 já alinhados -> H1 joins
+H1 + M15 já alinhados -> H4 joins
+MULTI_PARENT_CHANGE -> vários pais mudam juntos
+```
+
+Usar true AGE1, apenas transições com M5 anterior contíguo para as quais a formação seja observável. `120m` continua horizonte primário. Last-aligner será primeiro estudado isoladamente; Clock/D1/Z/Fib continuam fora.
+
+---
+
+# 54. Parked hypothesis — D1 extreme activity x Market Clock
+
+## ORIGIN
+
+Observação visual a investigar depois: em dias que estão estabelecendo máxima/mínima diária durante a região de maior atividade, a volatilidade parece maior, possivelmente com menos fakeouts e comportamento de exhaustion diferente perto do fim da HIGH_VOL_MAIN.
+
+## CAUSAL DEFINITION REQUIREMENT
+
+Nunca usar `final D1 high/low` intraday. Estados futuros devem ser reconstruídos point-in-time:
+
+```text
+NewD1HighSoFar
+NewD1LowSoFar
+D1PositionSoFar
+DailyRangeSoFar
+DailyRangeExpansion
+```
+
+## FUTURE QUESTIONS
+
+```text
+D1 extreme activity -> HIGH_VOL_MAIN relative volatility?
+D1 extreme activity -> directional efficiency/follow-through?
+D1 extreme activity -> lower false-breakout/fakeout rate?
+D1 extreme activity -> different terminal condition near 12:30?
+D1 extreme activity -> different post-phase persistence/depth?
+```
+
+Status: `PARKED_UNTESTED_HYPOTHESIS`.
+
+Não misturar com Track D antes de fechar a formação estrutural H4/H1/M15.
+
+---
+
+# 55. Current checkpoint — 2026-08-12 16:52 BRT
+
+Track A teve a principal dívida metodológica de horários pontuais encerrada: nenhum directional slot sobreviveu ao whole-clock FWER, enquanto HIGH_VOL_MAIN permanece uma fase estrutural de volatilidade.
+
+Track D começou isolado e já eliminou três simplificações:
+
+```text
+FULL H4/H1/M15 != continuation automática
+FULL onset != exhaustion/continuation geral
+FULL age != monotonic maturity/exhaustion edge
+```
+
+O indício central passa a ser que **a história de formação do estado e o regime em que ele ocorre** podem importar mais que o alinhamento estático ou sua idade.
+
+Próxima execução congelada:
+
+```text
+TRACK D — EXPERIMENT 4
+TRUE FULL FORMATION PATH / LAST ALIGNER
+primary horizon = 120m
+```
+
+---
+
 # END OF CURRENT CHECKPOINT
 
 Próximas rodadas devem ser adicionadas abaixo deste ponto, preservando tudo acima.
