@@ -1590,6 +1590,328 @@ Próximo teste recomendado:
 
 ---
 
+# 47. 2026-08-12 — Temporal stability of MON_FRI + EXTREME_FINISH
+
+## QUESTION
+
+O candidato pós-hoc `MON_FRI + EXTREME_FINISH` é estável ao longo do tempo ou sua aparente força está concentrada em um regime específico?
+
+## WHY
+
+Os testes anteriores mostraram forte separação entre `EXTREME_FINISH` e `OTHER` dentro de Monday/Friday. Como essa hipótese nasceu após inspeção dos resultados, era necessário verificar estabilidade temporal antes de qualquer tentativa de detalhar Monday e Friday separadamente.
+
+## FROZEN DEFINITION
+
+```text
+HIGH_VOL_MAIN = [09:05,12:30) BRT
+phase_end observed = 12:25
+EDGE_WEEK = Monday + Friday
+EXTREME_FINISH = terminal_extreme >= .850
+primary anchor = response120
+path = M5 endpoints 5..180m
+metrics = REV120, response120, negative_fraction, reversal_auc, min_response
+```
+
+Nenhum threshold foi recalibrado. Monday e Friday permaneceram agrupados.
+
+## DATA
+
+Base M5 atualizada até 2026-08-12.
+
+```text
+HIGH_VOL_MAIN phase days = 364
+MON_FRI phase days = 145
+MON_FRI EXTREME_FINISH = 46
+MON_FRI OTHER = 99
+```
+
+Os 145 dias MON_FRI foram ordenados cronologicamente e divididos em quatro blocos aproximadamente iguais, sem escolher datas por resultado.
+
+## RESULTS — CHRONOLOGICAL QUARTERS
+
+### Q1 — 2025-03-17 a 2025-07-25
+
+```text
+Days=37 | EF=10 | OTHER=27
+REV120       EF 50.0%   OTHER 48.15%
+Resp120 med  EF -.009   OTHER +.005
+NegFrac med  EF .403    OTHER .417
+AUC med      EF .049    OTHER .027
+MinResp med  EF -.200   OTHER -.177
+```
+
+Bootstrap expected contrast:
+
+```text
+P(EF more REV120)      53.75%
+P(EF higher NegFrac)   52.01%
+P(EF higher AUC)       64.09%
+P(EF deeper min)       62.88%
+```
+
+Conclusão: assinatura praticamente ausente no primeiro quarto.
+
+### Q2 — 2025-07-28 a 2025-11-28
+
+```text
+Days=36 | EF=17 | OTHER=19
+REV120       EF 64.71%  OTHER 36.84%
+Resp120 med  EF -.041   OTHER +.090
+NegFrac med  EF .556    OTHER .333
+AUC med      EF .049    OTHER .025
+MinResp med  EF -.158   OTHER -.115
+```
+
+Bootstrap:
+
+```text
+P(EF more REV120)      95.56%
+P(EF higher NegFrac)   93.69%
+P(EF higher AUC)       52.82%
+P(EF deeper min)       44.46%
+```
+
+Conclusão: aparece forte assinatura binária/persistência, porém depth/AUC ainda fracos.
+
+### Q3 — 2025-12-01 a 2026-04-06
+
+```text
+Days=36 | EF=12 | OTHER=24
+REV120       EF 75.00%  OTHER 33.33%
+Resp120 med  EF -.113   OTHER +.046
+NegFrac med  EF .861    OTHER .306
+AUC med      EF .099    OTHER .016
+MinResp med  EF -.292   OTHER -.122
+```
+
+Bootstrap:
+
+```text
+P(EF more REV120)      99.08%
+P(EF higher NegFrac)   99.60%
+P(EF higher AUC)       99.77%
+P(EF deeper min)       97.82%
+```
+
+Conclusão: este é o regime em que a assinatura aparece de forma mais completa e forte.
+
+### Q4 — 2026-04-10 a 2026-08-10
+
+```text
+Days=36 | EF=7 | OTHER=29
+REV120       EF 57.14%  OTHER 65.52%
+Resp120 med  EF -.089   OTHER -.084
+NegFrac med  EF .861    OTHER .528
+AUC med      EF .156    OTHER .076
+MinResp med  EF -.404   OTHER -.263
+```
+
+Bootstrap:
+
+```text
+P(EF more REV120)      33.79%
+P(EF higher NegFrac)   58.21%
+P(EF higher AUC)       86.80%
+P(EF deeper min)       75.40%
+```
+
+Q4 tem apenas 7 observações EF; portanto não é apropriado concluir por frequência binária. O ponto importante é que a assinatura de **persistência/profundidade** continua visível nas medianas mesmo quando a taxa REV120 não separa.
+
+## INTERPRETATION
+
+O teste rejeita a interpretação simples:
+
+```text
+MON_FRI + EXTREME_FINISH
+-> universal binary reversal rule
+```
+
+A força é claramente regime-dependent. Q1 não mostra efeito; Q2/Q3 mostram forte separação; Q4 perde a vantagem binária de REV120.
+
+Entretanto Q4 preserva a anatomia que já vinha aparecendo:
+
+```text
+NegativeFraction median: .861 vs .528
+ReversalAUC median:       .156 vs .076
+Max reversal depth:      -.404 vs -.263
+```
+
+Isso reforça que `EXTREME_FINISH` deve ser tratado como **modificador da distribuição do path**, principalmente persistência/profundidade, e não como trigger automático de reversal.
+
+## STATUS
+
+```text
+MON_FRI_EF_BINARY_REVERSAL = REGIME_DEPENDENT / NOT_STRUCTURAL
+MON_FRI_EF_PERSISTENCE = PROMISING_REGIME_DEPENDENT_STATE
+EXTREME_FINISH = STATE_MODIFIER_NOT_ENTRY_TRIGGER
+```
+
+## WHAT NOT TO REPEAT
+
+- não separar Monday e Friday ainda para escolher o melhor;
+- não otimizar `.850` por subperíodo;
+- não escolher o quarter Q3 como regime operacional após vê-lo;
+- não transformar mediana de persistence em directional entry rule;
+- não tratar overlapping rolling windows como amostras independentes.
+
+## NEXT QUESTION
+
+A pendência metodológica mais importante do Track A passa a ser corrigir a descoberta direcional do Market Clock pelos 288 slots M5 para multiple testing/data snooping, usando um teste que preserve dependência intraday e controle family-wise error.
+
+---
+
+# 48. 2026-08-12 — Research Program Consolidation / DNA Tracks
+
+## WHY
+
+A pesquisa começou a produzir várias hipóteses plausíveis ao mesmo tempo: Market Clock, sequências multi-day, confluência gráfica de Fibonacci em D1/W1/MN1 e estrutura em H4/H1/M15. Misturar essas ideias prematuramente aumentaria risco de overfit e destruiria a capacidade de identificar qual família realmente adiciona informação.
+
+Por isso a investigação passa a ser organizada em trilhas isoladas.
+
+## TRACK A — MARKET CLOCK / PHASE DNA — ACTIVE
+
+```text
+HIGH_VOL_MAIN [09:05,12:30)
+EXTREME_FINISH
+PhaseMaturity 90-150m
+60-90m candidate transition block
+PostHighVolExhaustionPersistence
+Week-cycle interaction
+Multiple-testing correction of 288 M5 slots
+```
+
+Objetivo: fechar a anatomia temporal antes de misturar nova estrutura técnica.
+
+## TRACK B — MULTI-DAY DNA — PARKED
+
+Perguntas futuras:
+
+```text
+DailySequenceLength
+D1ExtremePersistence
+RangeExpansionSequence
+MultiDayEfficiency
+state t-1 / t-2 / t-3 -> state t
+next-session / next-day state distribution
+```
+
+A motivação é testar sequências de dias, e não weekdays isolados.
+
+## TRACK C — MTF_GRAPHIC_FIB_CONFLUENCE — PARKED
+
+Hipótese originada da leitura gráfica manual:
+
+```text
+D1 / W1 / MN1 active impulse
+Fib targets / retracements
+multiple timeframe target cluster
+DistanceToFibCluster
+FibClusterReached
+FibClusterRejected
+FibClusterBroken
+```
+
+A seleção dos swings deve primeiro ser formalizada para reproduzir causalmente o método gráfico; não assumir que o ZigZag automático atual escolhe os mesmos pontos.
+
+## TRACK D — LOWER_TF_STRUCTURAL_CONFLUENCE — PARKED
+
+Timeframes principais:
+
+```text
+H4
+H1
+M15
+```
+
+Hipótese: timeframes menores podem fornecer estado estrutural mais frequente e antecipado que D1/W1/MN1.
+
+Features candidatas futuras:
+
+```text
+SwingDirection_H4/H1/M15
+DistanceToNearestFib_H4/H1/M15
+MTFStructuralAgreement
+MTFTargetDispersion
+expansion/compression
+structure/breakout/sweep
+phase efficiency
+```
+
+O Market Chronos atual já possui infraestrutura parcial de `mtf_alignment_score`, `mtf_bias` e alinhamento H4/H1/M15; isso é apenas ponto de partida, não validação desta nova hipótese.
+
+## TRACK E — INTEGRATION — FUTURE
+
+Somente depois de cada família ser estudada isoladamente:
+
+```text
+Clock
++ Z-score/stretch
++ MTF structure
++ Fib confluence
++ Week cycle
++ Multi-day sequence
+```
+
+A pergunta da integração não será “qual combinação fica mais bonita?”, mas:
+
+```text
+qual informação incremental cada família adiciona OOS?
+```
+
+Comparações futuras devem incluir baseline de cada família e ganho incremental, evitando simplesmente empilhar filtros.
+
+## RESEARCH GOVERNANCE
+
+Fluxo obrigatório para nova ideia:
+
+```text
+IDEA
+ -> isolated question
+ -> frozen definition on Train
+ -> Validation
+ -> exploratory Test
+ -> temporal/regime stability
+ -> incremental information
+ -> frozen shadow
+ -> integration
+```
+
+Uma variável não entra no Super Agent apenas por apresentar um resultado bonito em uma rodada.
+
+## CURRENT PRIORITY
+
+```text
+1. Finish Track A methodological cleanup.
+2. Multiple-testing correction for 288 M5 directional clock slots.
+3. Consolidate Track A.
+4. Open one parked DNA track at a time.
+5. Preserve all failed hypotheses and regime-dependent findings in this document.
+```
+
+Status: `RESEARCH_PROGRAM_CONSOLIDATED`.
+
+---
+
+# 49. Current checkpoint — 2026-08-12 15:35 BRT
+
+A descoberta mais importante até aqui não é um único horário ou indicador. É que o GOLD apresenta **mudanças de significado condicionadas ao estado**.
+
+Exemplos já observados na pesquisa:
+
+```text
+D1 upper continuation != D1 extreme chase
+EXTREME_FINISH != automatic reversal
+EXTREME_FINISH effect changes by regime/week context
+same terminal state can lead to continuation or exhaustion
+path persistence may contain more information than binary reversal
+```
+
+Portanto o objetivo permanece construir um **Market State / DNA Model**, não uma coleção de regras IF/THEN.
+
+Próxima execução congelada: `288-slot Market Clock multiple-testing correction`.
+
+---
+
 # END OF CURRENT CHECKPOINT
 
 Próximas rodadas devem ser adicionadas abaixo deste ponto, preservando tudo acima.
