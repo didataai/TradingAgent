@@ -17,6 +17,7 @@
 7. O objetivo é construir um **Market State Model**, não empilhar filtros.
 8. O estudo principal continua em `tools/study_d1_mtf_filter_v2.py`; evitar v3/v4 sem necessidade.
 9. Pesquisas rápidas podem continuar em memória/PowerShell; o raciocínio e resultados relevantes entram neste arquivo.
+10. A partir de 2026-08-12, toda rodada relevante deve ser registrada no mesmo dia, incluindo pergunta, hipótese, definição congelada, resultado, interpretação, status, falhas e próxima pergunta.
 
 ---
 
@@ -815,7 +816,7 @@ Somente depois congelar estado estatístico, associar aberturas/fechamentos/over
 
 ---
 
-# 34. Perguntas congeladas
+# 34. Perguntas congeladas — histórico da fila anterior
 
 1. Bootstrap EXTREME_FINISH com threshold `.850`.
 2. Bootstrap STRONG_DIRECTIONAL com `.783/.614`.
@@ -823,6 +824,8 @@ Somente depois congelar estado estatístico, associar aberturas/fechamentos/over
 4. Depois cruzar com Post09StressCycle.
 5. Corrigir directional Market Clock para multiple testing/data snooping.
 6. Só depois associar sessões econômicas reais.
+
+Esta fila é preservada como histórico; várias perguntas já foram executadas nas seções posteriores.
 
 ---
 
@@ -1067,28 +1070,526 @@ A nuance é importante: a feature parece deslocar a probabilidade/mediana para r
 - não usar STRONG_DIRECTIONAL como regra estrutural com n=10 no TEST;
 - não concluir pelo headline reversal rate sem olhar mean/median/contrast.
 
-## NEXT QUESTION — FROZEN
+---
 
-Agora faz sentido cruzar o estado mais promissor com D1Position, porque já existe uma hipótese independente e prévia no D1:
+# 39. 2026-08-12 — EXTREME_FINISH x D1Position
+
+## QUESTION
+
+`EXTREME_FINISH` se torna mais informativo quando a fase também termina em uma região estrutural do D1?
+
+## FROZEN DEFINITIONS
 
 ```text
-HIGH_VOL_MAIN + EXTREME_FINISH
-x
-D1 0.70-0.90 bullish continuation
-versus
-D1 >=0.90 anti-BUY-chase
-versus
-D1 <=0.10 anti-SELL-chase / lower mean-reversion family
+HIGH_VOL_MAIN = [09:05,12:30) BRT
+EXTREME_FINISH >= .850
+UP EF + D1 0.70-.90 bullish
+UP EF + D1 >= .90
+DOWN EF + D1 <= .10
+horizon = 120m
 ```
 
-Pergunta central:
+## RESULTS PRINCIPAIS
 
-> `terminal_extreme` é apenas uma propensão genérica de reversão, ou se torna muito mais informativo quando o D1 também está em um extremo?
+```text
+UP EF + D1 >=.90
+TRAIN n=39 REV=56.41% Mean=+.004 Med=-.026
+VAL   n=10 REV=50.00% Mean=-.127 Med=-.054
+TEST  n=6  REV=83.33% Mean=-.128 Med=-.215
+```
 
-Depois disso, cruzar com `Post09StressCycle` e só então voltar ao Market Clock directional com correção de multiple testing.
+Controle `UP EF + D1 .70-.90` colapsou em sample:
+
+```text
+TRAIN n=4
+VAL   n=0
+TEST  n=6
+```
+
+No TEST, o contraste D1>=.90 vs .70-.90 foi promissor, mas não pode ser confirmado historicamente por falta de Validation e sample.
+
+Lado inferior:
+
+```text
+DOWN EF + D1 <=.10
+TRAIN n=6 REV=66.67%
+VAL   n=4 REV=50.00%
+TEST  n=6 REV=50.00%
+```
+
+## INTERPRETATION
+
+- `EXTREME_FINISH` não parece ser apenas D1>=.90 disfarçado; o D1 mediano do conjunto EF caiu ao longo dos splits enquanto a reversão subiu.
+- D1>=.90 pode amplificar exaustão no lado UP, porém o cruzamento categórico destrói a amostra.
+- Lado LOW não confirma espelho.
+
+Status: `PROMISING_D1_HIGH_EXHAUSTION_AMPLIFIER / UNDERPOWERED_INTERACTION`.
+
+WHAT NOT TO REPEAT: não empilhar D1 + EF + Z + EP2 em categorias pequenas neste dataset.
+
+---
+
+# 40. 2026-08-12 — Continuous exhaustion model
+
+## QUESTION
+
+Existe relação contínua/generalizável entre `TerminalExtreme`, pressão D1 e exaustão pós-HIGH_VOL_MAIN?
+
+Modelos TRAIN-only:
+
+```text
+TERMINAL
+D1
+ADDITIVE
+INTERACTION
+```
+
+Target: `reversal_strength = -response_120`.
+
+## RESULTS
+
+Lado UP, correlação score x reversal strength:
+
+```text
+                 TRAIN    VAL      TEST
+TERMINAL         +.078   -.029    -.159
+D1               +.058   -.000    -.446
+ADDITIVE         +.078   -.026    -.211
+INTERACTION      +.148   +.059    -.379
+```
+
+Lado DOWN também não apresentou correlação estável.
+
+## INTERPRETATION
+
+Não existe evidência de relação linear/monotônica generalizável `mais terminal + mais D1 -> mais exaustão`.
+
+Isso não elimina o threshold-state `EXTREME_FINISH>=.850`: sugere efeito possivelmente **não linear / mudança de estado na cauda**, e não uma régua contínua.
+
+Status:
+
+```text
+CONTINUOUS_MODEL = REJECTED_AS_GENERALIZABLE_LINEAR_MODEL
+EXTREME_FINISH_THRESHOLD_STATE = PRESERVED
+D1_CONTINUOUS_INTERACTION = NOT_CONFIRMED
+```
+
+---
+
+# 41. 2026-08-12 — Phase Transition Curve
+
+## QUESTION
+
+Quando a propensão de reversão associada ao `EXTREME_FINISH` amadurece após o fim da HIGH_VOL_MAIN?
+
+Horizontes pré-definidos: 15,30,45,60,90,120,150,180m.
+
+## RESULTADO CENTRAL
+
+Contraste `EXTREME_FINISH` vs OTHER em probabilidade de ser mais reversivo:
+
+```text
+              90m    120m    150m
+TRAIN        80.5%   84.7%   91.8%
+VAL          66.0%   85.1%   96.2%
+TEST         82.1%   84.8%   69.1%
+```
+
+Mediana acumulada em 120m:
+
+```text
+TRAIN -.026
+VAL   -.023
+TEST  -.089
+```
+
+Em 180m o TEST perde/inverte a assinatura (`median +.023`, REV 42.9%).
+
+## INTERPRETATION
+
+- 90m: efeito começa a aparecer.
+- 120m: anchor mais estável entre os três splits.
+- 150m: forte em Train/Val, menos estável no Test.
+- 180m: previsibilidade degrada.
+
+Status: `PROMISING_PHASE_MATURITY_WINDOW_90_150 / 120M_ANCHOR`.
+
+Não interpretar os acumulados como minuto exato de início da reversão.
+
+---
+
+# 42. 2026-08-12 — Incremental Transition Anatomy
+
+## QUESTION
+
+Qual bloco incremental de 30m constrói o efeito acumulado?
+
+Blocos: 0-30, 30-60, 60-90, 90-120, 120-150, 150-180.
+
+## RESULTS
+
+O bloco com melhor repetição relativa foi 60-90m:
+
+```text
+               EF median   OTHER median   P(EF med lower)
+TRAIN            -.015        -.001            76.2%
+VAL              ~.000        +.016            69.3%
+TEST             -.062        -.008            76.6%
+```
+
+P(mean lower): 94.9% / 64.3% / 85.5%.
+
+Outros blocos mudam fortemente por regime. 120-150 é forte em Train/Val, mas não Test. 90-120 chega a inverter comportamento entre períodos.
+
+## TIMING DISTRIBUTION
+
+Primeiro acumulado negativo em 30m:
+
+```text
+TRAIN 49.3%
+VAL   54.5%
+TEST  54.5%
+```
+
+O timing de máximo reversal é heterogêneo; não existe um único bloco universal.
+
+## CLOCK SEMANTICS
+
+O código usa intervalo half-open:
+
+```text
+HIGH_VOL_MAIN = [09:05,12:30) BRT
+```
+
+Logo o último candle M5 incluído é sempre `12:25`, observado nos 364 dias.
+
+Status: `60_90_CANDIDATE_TRANSITION_BLOCK / HETEROGENEOUS_TIMING`.
+
+---
+
+# 43. 2026-08-12 — Eventual reversal / depth / persistence
+
+## QUESTION
+
+`EXTREME_FINISH` aumenta a chance de entrar em reversão, a profundidade, ou principalmente o tempo permanecido do lado reversivo?
+
+Path M5: 5..180m.
+
+## EVENTUAL REVERSAL
+
+A variável `EVER_NEGATIVE` ficou permissiva demais. No TEST, EF cruzou negativo menos vezes que OTHER:
+
+```text
+até 180m
+EF    77.27%
+OTHER 92.59%
+```
+
+Portanto `EXTREME_FINISH -> maior chance de tocar qualquer reversal` foi rejeitado.
+
+## NEGATIVE FRACTION
+
+Mediana da fração do path no lado reversivo:
+
+```text
+                 EF       OTHER
+TRAIN           .611      .417
+VAL             .833      .528
+TEST            .792      .528
+```
+
+Bootstrap P(EF mean > OTHER):
+
+```text
+TRAIN 89.90%
+VAL   90.25%
+TEST  65.70%
+```
+
+## MAX REVERSAL DEPTH — MEDIANA
+
+```text
+                 EF       OTHER
+TRAIN          -.203      -.165
+VAL            -.261      -.200
+TEST           -.313      -.191
+```
+
+Means são contaminadas por tails, especialmente no Test.
+
+## INTERPRETATION
+
+O melhor nome conceitual não é `PostHighVolReversalHazard`, mas algo como:
+
+```text
+PostHighVolExhaustionPersistence
+```
+
+`EXTREME_FINISH` não necessariamente faz o preço entrar mais vezes em reversão; ele parece associado ao dia típico permanecer mais tempo e/ou aprofundar mais no lado reversivo.
+
+Status: `PROMISING_REVERSAL_PERSISTENCE_STATE`, ainda não regra direcional.
+
+---
+
+# 44. 2026-08-12 — MIDWEEK hypothesis x EXTREME_FINISH
+
+## QUESTION
+
+A hipótese pré-definida `Tue/Wed/Thu` melhora o padrão por maior volatilidade, maior ocorrência de EF ou maior persistência reversiva?
+
+Grupos congelados:
+
+```text
+MIDWEEK = Tue/Wed/Thu
+MON_FRI = Monday/Friday
+```
+
+## VOLATILITY
+
+P(MIDWEEK phase-vol higher):
+
+```text
+TRAIN 45.88%
+VAL   60.24%
+TEST  66.62%
+```
+
+Não confirmado.
+
+## EXTREME_FINISH OCCURRENCE
+
+```text
+                 MIDWEEK   MON_FRI
+TRAIN             28.57%    41.18%
+VAL               28.26%    29.03%
+TEST              26.09%    33.33%
+```
+
+No TRAIN, P(MIDWEEK EF rate higher)=3.14%. Logo a hipótese de EF ocorrer mais no meio da semana foi rejeitada.
+
+## EXTREME_FINISH OUTCOME
+
+REV120:
+
+```text
+                 MIDWEEK   MON_FRI
+TRAIN             44.44%    65.71%
+VAL               46.15%    77.78%
+TEST              58.33%    70.00%
+```
+
+NegativeFraction median:
+
+```text
+                 MIDWEEK   MON_FRI
+TRAIN               .500      .722
+VAL                 .417      .917
+TEST                .597      .861
+```
+
+## WITHIN-GROUP CONTROL
+
+MON_FRI EF vs OTHER REV120:
+
+```text
+TRAIN 65.71% vs 36.00%
+VAL   77.78% vs 45.45%
+TEST  70.00% vs 50.00%
+```
+
+MIDWEEK EF vs OTHER é inconsistente.
+
+## DID
+
+A hipótese original era `MIDWEEK amplifies EF`. O DID não confirma; em negative_fraction o sinal é oposto:
+
+```text
+TRAIN DID -.160, P(midweek amplifies)=6.48%
+VAL   DID -.345, CI95 [-.664,-.002], P=2.40%
+TEST  DID -.049, P=40.44%
+```
+
+## INTERPRETATION
+
+```text
+MIDWEEK higher volatility -> NOT CONFIRMED
+MIDWEEK more EF -> REJECTED
+MIDWEEK amplifies EF reversal -> REJECTED
+MON_FRI + EF exhaustion -> NEW EXPLORATORY CANDIDATE
+```
+
+Importante: `MON_FRI + EF` surgiu após inspeção dos resultados, portanto não é hipótese confirmatória.
+
+---
+
+# 45. 2026-08-12 — Week Cycle: direct trend quality
+
+## QUESTION
+
+Talvez Tue/Wed/Thu não sejam mais voláteis, mas sejam mais **tendenciais/direcionalmente persistentes** que Mon/Fri?
+
+Medidas:
+
+```text
+PhaseEfficiency = abs(close-open)/range
+PathEfficiency = abs(net move)/sum(abs(M5 moves))
+AlignedFraction = fração de moves M5 alinhada à direção final
+ImpulseRelative
+TerminalExtreme
+PostResponse120
+```
+
+## RESULTS — DIRECT TREND QUALITY
+
+### TRAIN
+
+MIDWEEK teve MENOR qualidade direcional:
+
+```text
+PhaseEfficiency diff -0.069, CI95 [-.137,-.000], P(mid higher)=2.42%
+PathEfficiency  diff -0.035, CI95 [-.069,-.001], P=2.19%
+AlignedFraction diff -0.019, CI95 [-.036,-.002], P=1.44%
+TerminalExtreme diff -0.050, P=3.31%
+```
+
+### VALIDATION
+
+Mesmo sentido, embora CIs mais largos:
+
+```text
+PhaseEfficiency diff -.072, P(mid higher)=9.21%
+PathEfficiency  diff -.033, P=8.29%
+AlignedFraction diff -.021, P=6.54%
+TerminalExtreme diff -.059, P=8.83%
+```
+
+### TEST
+
+Diferenças diminuem/mudam:
+
+```text
+PhaseEfficiency diff ~0
+PathEfficiency diff -.009
+AlignedFraction diff +.021, P(mid higher)=95.56%
+ImpulseRelative diff +.019
+TerminalExtreme diff -.017
+```
+
+PostResponse120 não apresenta diferença robusta:
+
+```text
+TRAIN diff +.023 CI crosses 0
+VAL   diff +.033 CI crosses 0
+TEST  diff +.015 CI crosses 0
+```
+
+## TERMINAL STATE x WEEK GROUP
+
+A assinatura mais consistente permanece em `MON_FRI + EXTREME_FINISH`:
+
+```text
+MON_FRI EXTREME CONT120
+TRAIN 34.29%
+VAL   22.22%
+TEST  30.00%
+
+MON_FRI OTHER CONT120
+TRAIN 63.27%
+VAL   54.55%
+TEST  44.44%
+```
+
+Diferença EF vs OTHER em continuation:
+
+```text
+TRAIN -28.98 pp
+VAL   -32.33 pp
+TEST  -14.44 pp
+```
+
+MIDWEEK EXTREME vs OTHER:
+
+```text
+TRAIN 55.56% vs 46.67%
+VAL   53.85% vs 54.55%
+TEST  36.36% vs 47.06%
+```
+
+inconsistente.
+
+## INTERPRETATION
+
+A teoria `Tue/Wed/Thu são mais tendenciais que Mon/Fri` **não é suportada de forma geral** pela HIGH_VOL_MAIN. Train e Validation apontam inclusive maior eficiência direcional em Mon/Fri; Test é misto.
+
+O achado novo mais interessante é condicional:
+
+```text
+MON_FRI + EXTREME_FINISH
+-> muito menor continuidade pós-fase
+-> possível EDGE_WEEK_EXHAUSTION_STATE
+```
+
+Isso não autoriza excluir segunda/sexta. Pelo contrário: removê-las apagaria atualmente o subset mais reversivo associado ao `EXTREME_FINISH`.
+
+Status:
+
+```text
+MIDWEEK_GENERAL_TREND_PERSISTENCE = REJECTED
+MON_FRI_EXTREME_FINISH_EXHAUSTION = PROMISING_POST_HOC_CANDIDATE
+```
+
+---
+
+# 46. Current checkpoint — 2026-08-12
+
+## O que está forte
+
+```text
+D1 0.70-.90 bullish aligned -> continuation context
+D1 >=.90 -> avoid BUY chase
+D1 <=.10 -> avoid SELL chase
+D1 low + H1/M15 down + Z20<=-2 -> mean-reversion shadow family
+Post09StressCycle #2 -> promising small-sample sequence
+HIGH_VOL_MAIN [09:05,12:30) -> robust structural volatility phase
+```
+
+## O que está promissor no Market Clock
+
+```text
+EXTREME_FINISH >=.850 -> nonlinear exhaustion/persistence state candidate
+120m -> most stable cumulative comparison anchor
+60-90m -> candidate transition block, not rule
+MON_FRI + EXTREME_FINISH -> new post-hoc exhaustion candidate
+```
+
+## O que foi rejeitado nesta árvore
+
+```text
+continuous TerminalExtreme exhaustion model
+continuous D1 exhaustion model
+Terminal x D1 linear interaction
+MIDWEEK higher volatility
+MIDWEEK more EXTREME_FINISH
+MIDWEEK amplifies EF reversal
+MIDWEEK generally more directional/trending
+EVER_NEGATIVE as useful discriminator
+```
+
+## NEXT QUESTION — FROZEN
+
+Não otimizar weekdays individualmente agora.
+
+Próximo teste recomendado:
+
+1. congelar `EDGE_WEEK = MON_FRI` como hipótese exploratória derivada;
+2. medir estabilidade temporal de `MON_FRI + EXTREME_FINISH` sem novos thresholds: chronological subperiods / rolling blocks + day bootstrap;
+3. testar explicitamente o efeito EF vs OTHER dentro de MON_FRI para `response120`, `negative_fraction`, `reversal_auc` e distribuição/tails;
+4. somente se sobreviver, investigar Monday vs Friday separadamente como diagnóstico, marcado como post-hoc;
+5. manter correção de multiple testing do Market Clock directional na fila;
+6. depois associar fases a sessões/aberturas/fechamentos reais e DST.
 
 ---
 
 # END OF CURRENT CHECKPOINT
 
-Próximas rodadas devem ser adicionadas abaixo deste ponto, mantendo o histórico acima.
+Próximas rodadas devem ser adicionadas abaixo deste ponto, preservando tudo acima.
