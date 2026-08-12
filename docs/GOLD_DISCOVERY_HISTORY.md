@@ -3936,4 +3936,269 @@ The next test stays entirely inside lower-timeframe structural information and a
 
 No runtime promotion. The current TEST is repeatedly inspected exploratory OOS; any future candidate still requires fresh forward/nested validation.
 
+---
+
+# 69. 2026-08-12 — Track D Experiment 13: L2 structural provenance / MTF level multiplicity
+
+## QUESTION
+
+Depois de controlar `CorridorPosition`, um L2 que corresponde ao mesmo preço de swing confirmado em mais de um timeframe (M15/H1/H4) altera a probabilidade de `ADVANCE_BOS` versus `RECAPTURE_L1`?
+
+## WHY
+
+Nos Exp9-12 o nearest L2 foi selecionado como M15 em 100% dos estados. Isso não excluía que o mesmo preço tivesse provenance causal H1/H4. O Exp13 testou se essa multiplicidade exata representava força/importância estrutural omitida no modelo geométrico.
+
+## FROZEN DEFINITION
+
+```text
+same KIND
+same exact L2 price after round(6)
+confirm_time <= state_time
+
+L2TFMultiplicity = distinct TF count in {M15,H1,H4}
+HigherTFConfluenceCount = L2TFMultiplicity - 1
+
+BASE:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+
+EXTENDED:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+                 + b2*HigherTFConfluenceCount
+
+fit = TRAIN only
+Validation/Test = evaluation only
+```
+
+Nenhuma tolerância espacial foi criada.
+
+## DATA / COVERAGE
+
+```text
+true FULL events = 5,209
+L1 eligible = 4,786
+raw first interactions = 2,588
+unique interactions = 2,310
+OUTSIDE_15 = 1,091
+valid corridor states = 1,014
+nearest L2 source = M15 in 1,014 / 1,014
+```
+
+Exact provenance:
+
+```text
+multiplicity 1 = 768
+multiplicity 2 = 188
+multiplicity 3 = 58
+
+M15 only      = 768
+H1+M15        = 188
+H1+H4+M15     = 58
+
+has H1 = 246 / 1,014 = 24.26%
+has H4 =  58 / 1,014 =  5.72%
+```
+
+A estrutura é nested nesta amostra: todo H4 exact-match também aparece como H1+M15; não houve H4+M15 sem H1.
+
+Coverage por split, antes de remover censura:
+
+```text
+TRAIN      mult1 76.25% / mult2 17.56% / mult3 6.19%
+VALIDATION mult1 78.43% / mult2 18.63% / mult3 2.94%
+TEST       mult1 71.70% / mult2 21.23% / mult3 7.08%
+```
+
+No sample não censurado, `multiplicity>1` teve:
+
+```text
+TRAIN      n=141 days=105
+VALIDATION n= 42 days= 32
+TEST       n= 58 days= 36
+```
+
+Portanto a multiplicidade >1 ampla não é simplesmente inexistente. O subset triple/H4, porém, continua pequeno especialmente em Validation.
+
+## TRAIN-ONLY COEFFICIENTS
+
+```text
+BASE
+intercept = -.112307
+geometry  = +.388604
+
+EXTENDED
+intercept = -.101429
+geometry  = +.387946
+MTF provenance = -.032271
+```
+
+O coeficiente de provenance no TRAIN é muito pequeno e negativo.
+
+## PRIMARY MODEL COMPARISON
+
+```text
+TRAIN
+AUC      .6970 -> .6976   Delta +.0007
+Brier    .209354 -> .209355   Delta +.000001
+LogLoss  .607483 -> .607445   Delta -.000038
+
+VALIDATION
+AUC      .6652 -> .6651   Delta -.0001
+Brier    .217867 -> .218074   Delta +.000207
+LogLoss  .627491 -> .627937   Delta +.000446
+
+TEST
+AUC      .6459 -> .6452   Delta -.0007
+Brier    .219689 -> .219510   Delta -.000179
+LogLoss  .631903 -> .631488   Delta -.000415
+```
+
+A feature piora Validation e melhora apenas minimamente Brier/LogLoss no TEST. Ela falha o critério congelado de ganho em ambos os períodos.
+
+## DAY-CLUSTER SCORE GAIN
+
+Positive means EXTENDED better.
+
+```text
+VALIDATION
+BrierGain  Mean=-.000199 CI95 [-.000807,+.000387] P(gain>0)=26.03%
+LogLossGain Mean=-.000436 CI95 [-.001809,+.000863] P(gain>0)=26.01%
+
+TEST
+BrierGain  Mean=+.000228 CI95 [-.000338,+.000818] P(gain>0)=77.70%
+LogLossGain Mean=+.000578 CI95 [-.000783,+.002024] P(gain>0)=78.78%
+```
+
+Os CIs cruzam zero e o sinal muda entre Validation e TEST.
+
+## MULTIPLICITY DESCRIPTIVE OUTCOME
+
+```text
+TRAIN
+mult1 Obs62.08% Base61.44%
+mult2 Obs56.73% Base61.02%
+mult3 Obs59.46% Base55.30%
+
+VALIDATION
+mult1 Obs60.90% Base61.65%
+mult2 Obs63.89% Base58.45%
+mult3 Obs66.67% Base57.31%   n=6
+
+TEST
+mult1 Obs63.58% Base68.50%
+mult2 Obs74.42% Base71.83%
+mult3 Obs46.67% Base68.92%   n=15
+```
+
+Não há ordering monotônico ou estável de multiplicidade. Em particular, mult3 parece positivo em Validation e fortemente negativo em TEST, com amostras pequenas.
+
+Spearman `HigherTFConfluenceCount x base residual`:
+
+```text
+TRAIN      -.0002
+VALIDATION +.0852
+TEST       -.0090
+```
+
+Essencialmente não há relação incremental estável.
+
+## CALIBRATION RESIDUAL AFTER EXTENDED
+
+```text
+VALIDATION MeanResidual +2.13pp CI95 [-5.54,+9.60]
+TEST       MeanResidual -7.96pp CI95 [-15.78,-.27]
+```
+
+A provenance exata praticamente não altera o problema de calibração. O residual TEST permanece negativo e estatisticamente separado de zero no day-cluster bootstrap.
+
+## INTERPRETATION
+
+A coincidência exata de L2 em H1/H4 é uma propriedade estrutural real e relativamente frequente no caso H1, mas **não adiciona informação probabilística generalizável além de CorridorPosition** nesta definição congelada.
+
+O resultado é mais forte que um simples `UNDERPOWERED` para a hipótese ampla de multiplicidade >1: há 141/42/58 eventos não censurados em 105/32/36 dias. Mesmo assim, o ganho de modelo muda de sinal entre Validation e TEST e o residual permanece praticamente intacto.
+
+Já o diagnóstico específico H4/triple continua underpowered e não deve ser separado/otimizado após inspeção.
+
+## STATUS
+
+```text
+EXACT_MTF_L2_PROVENANCE_INCREMENTAL_INFORMATION = REJECTED
+L2_TF_MULTIPLICITY = DESCRIPTIVE_NOT_PREDICTIVE
+H1_EXACT_PROVENANCE = OBSERVED_BUT_NO_GENERAL_INCREMENT
+H4_TRIPLE_PROVENANCE = UNDERPOWERED_SPECIFIC_DIAGNOSTIC
+GEOMETRY_BACKBONE = PRESERVED
+TEST_CALIBRATION_DRIFT = PERSISTS_UNEXPLAINED
+PRICE_TOLERANCE_CONFLUENCE_SEARCH = PROHIBITED_AFTER_RESULT
+RUNTIME_PROMOTION = NONE
+```
+
+## WHAT NOT TO REPEAT
+
+- não criar tolerância em pontos/ATR para aumentar confluência depois de ver a amostra;
+- não selecionar `has_H1`, `has_H4`, mult2 ou mult3 pelo melhor split;
+- não modelar multiplicidade como categorias separadas neste TEST;
+- não usar H4 triple porque o TEST mult3 ficou extremo;
+- não adicionar Clock/D1/Z/Fib para salvar provenance;
+- preservar CorridorPosition como baseline de referência.
+
+## NEXT QUESTION — FROZEN
+
+`TRACK D — EXPERIMENT 14: PRIOR L2 INTERACTION MEMORY / LEVEL AGE CONTROL`.
+
+Pergunta: além da posição geométrica atual, a **memória causal do próprio boundary L2** — quantas vezes ele já foi tocado desde que ficou confirmado — altera a hazard ADVANCE vs RECAPTURE?
+
+Definições congeladas:
+
+```text
+L2BirthTime = earliest confirm_time among exact same KIND/price in M15/H1/H4
+              that is known by state_time
+
+L2AgeHours = (state_time - L2BirthTime) / 1 hour
+
+PriorL2TouchEpisode:
+    closed M5 after L2BirthTime and strictly before state_time
+    HIGH target: high >= L2
+    LOW target:  low <= L2
+    contiguous touching M5 bars exactly 5m apart count as ONE episode
+
+PriorL2TouchEpisodes = count of prior touch episodes
+```
+
+Age is an explicit nuisance/control because older levels naturally have more opportunity to accumulate touches.
+
+Frozen model family:
+
+```text
+GEOMETRY:
+    geo_logit
+
+AGE_BASE:
+    geo_logit + log1p(L2AgeHours)
+
+MEMORY_EXTENDED:
+    geo_logit + log1p(L2AgeHours) + log1p(PriorL2TouchEpisodes)
+```
+
+Fit somente TRAIN. Primary question is `MEMORY_EXTENDED vs AGE_BASE` in both Validation and TEST. `AGE_BASE vs GEOMETRY` is a frozen secondary question.
+
+No thresholds of touch count, no zero/one/two-plus optimization, no classification of prior touches into break/reject yet. If memory survives, a later experiment may ask what type of prior interaction matters. If age survives but memory fails, level age becomes the next isolated candidate. If both fail, simple exact-level memory is closed before moving to a different structural state representation.
+
+---
+
+# 70. Current checkpoint — 2026-08-12 20:04 BRT
+
+Track D lower-TF transition branch now reads:
+
+```text
+CorridorPosition                  -> strong OOS ranking/discrimination
+Raw geometry probability          -> overconfident / rejected
+AcceptancePressure15              -> rejected incremental
+Expanding recalibration           -> rejected general solution
+Exact MTF L2 provenance           -> rejected incremental
+Current calibration residual      -> still unexplained
+```
+
+The investigation remains deliberately inside causal structural information. The next test asks whether a level's own prior interaction history carries information beyond geometry **after controlling for how long that level has existed**.
+
+No runtime promotion. Current TEST remains repeatedly inspected exploratory OOS; fresh forward/nested validation is mandatory before operational use.
+
 # END OF CURRENT CHECKPOINT
