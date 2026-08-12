@@ -2884,4 +2884,453 @@ STATE
 
 Nenhuma descoberta desta árvore altera o runtime hard rules. `WARNING_ONLY_RESEARCH` permanece. O próximo experimento deve preservar H4/H1/M15 e swings causais, mas abandonar single-level slicing e estudar consumo sequencial/BOS/recapture.
 
+---
+
+# 62. 2026-08-12 — Track D Experiment 9: sequential swing consumption / BOS / recapture
+
+## QUESTION
+
+Depois de um `OUTSIDE_15` deduplicado, consumir o próximo swing estrutural (`ADVANCE_BOS`) ou recapturar o primeiro nível aceito (`RECAPTURE_L1`) produz estados futuros diferentes?
+
+## WHY
+
+Os Experimentos 7-8 mostraram que primeiro toque e aceitação de um único nível não eram suficientes. A hipótese evoluiu para uma sequência multi-step: nível aceito -> próximo nível ou recaptura.
+
+## FROZEN DEFINITION
+
+```text
+origin = deduplicated OUTSIDE_15
+L1 = first accepted structural target
+L2 = nearest causally confirmed H4/H1/M15 swing still ahead at state_time
+transition window = 120m
+ADVANCE_BOS = close beyond L2 in original FULL direction
+RECAPTURE_L1 = close back through L1
+first competing event wins
+primary outcome = response120 after transition close
+fractal = 2-left / 2-right
+no D1, Clock, Z, weekday, Fib or EXTREME_FINISH
+```
+
+## DATA / COVERAGE
+
+```text
+true FULL events = 5,209
+L1 ahead eligible = 4,786 (91.88%)
+raw first interactions = 2,588
+unique first interactions = 2,310
+exact +15m confirmations = 2,281
+OUTSIDE_15 states = 1,091
+L2 known and ahead = 1,014 / 1,091 (92.94%)
+L2 distance median = .1239 M5 ATR
+```
+
+Important structural caveat:
+
+```text
+L2 source TF = M15 for all 1,014 states
+```
+
+Portanto o experimento não testou uma hierarquia real H4/H1/M15 no segundo target; ele testou progressão sequencial de swings locais M15 dentro do contexto FULL H4/H1/M15.
+
+## TRANSITION INCIDENCE
+
+```text
+                 TRAIN      VALIDATION    TEST
+ADVANCE_BOS      60.37%       59.80%      63.68%
+RECAPTURE_L1     38.63%       37.25%      34.91%
+CENSORED          1.00%        2.94%       1.42%
+```
+
+A incidência ~60/40 foi surpreendentemente estável entre períodos.
+
+## EVENT-LEVEL RESPONSE120
+
+```text
+TRAIN
+ADVANCE   n=316 Med +.2668 Mean +.4043 CONT 51.58%
+RECAPTURE n=210 Med -.0186 Mean -.0001 CONT 49.05%
+
+VALIDATION
+ADVANCE   n=109 Med +.1367 Mean +.0388 CONT 51.38%
+RECAPTURE n=70  Med -.4347 Mean -.4495 CONT 40.00%
+
+TEST
+ADVANCE   n=122 Med +.3867 Mean +.3008 CONT 52.46%
+RECAPTURE n=73  Med +.1542 Mean +.5057 CONT 52.05%
+```
+
+As medianas favorecem ADVANCE nos três splits, mas no TEST a média é maior para RECAPTURE por tails.
+
+## DAY-LEVEL / MATCHED-DAY
+
+```text
+TRAIN      ADV Med -.0800 / RECAP Med -.0086
+VALIDATION ADV Med -.0221 / RECAP Med -.2822
+TEST       ADV Med +.2712 / RECAP Med +.5895
+```
+
+Matched-day `ADVANCE - RECAPTURE`:
+
+```text
+TRAIN      n=103 Mean +.5267 Med +.5203 CI95 [-.3831,+1.4372]
+VALIDATION n=32  Mean -.0042 Med +.0185 CI95 [-1.0910,+1.0899]
+TEST       n=36  Mean +.1181 Med +.5519 CI95 [-1.2854,+1.4692]
+```
+
+Nenhum CI exclui zero; Validation é essencialmente neutra.
+
+## LATENCY / DISTANCE
+
+```text
+ADVANCE_BOS median latency = 5m nos 3 splits
+RECAPTURE_L1 median latency = 10m nos 3 splits
+Spearman L2 distance x response120 = -.0448 / -.0984 / +.0881
+```
+
+## INTERPRETATION
+
+A sequência estrutural apresenta uma anatomia mais estável que as regras de primeiro toque, principalmente na **incidência da próxima transição**, porém `ADVANCE_BOS > RECAPTURE_L1` não se sustenta como edge futuro day-level. A descoberta mais importante foi deslocar a pergunta de retorno futuro para probabilidade do próximo estado.
+
+O colapso de L2 para M15 também muda a interpretação: a partir daqui esta subárvore deve ser tratada explicitamente como **local M15 structural transition process inside FULL context**, até que uma definição hierárquica diferente seja congelada.
+
+## STATUS
+
+```text
+ADVANCE_BOS_GT_RECAPTURE_GENERAL_EDGE = NOT_CONFIRMED
+EVENT_LEVEL_MEDIAN_ORDERING = PROMISING_DESCRIPTIVE_SEQUENCE_HINT
+DAY_LEVEL_MATCHED_EFFECT = NOT_CONFIRMED
+TRANSITION_INCIDENCE_60_40 = ROBUST_DESCRIPTIVE_PATTERN_BUT_GEOMETRY_CONFOUNDED
+EXP9_MTF_NEXT_TARGET_HIERARCHY = NOT_TESTED_AS_INTENDED
+L2_SOURCE = M15_ONLY
+```
+
+No runtime promotion.
+
+## WHAT NOT TO REPEAT
+
+- não otimizar a janela de 120m após ver o resultado;
+- não escolher source path BREAK_HOLD/REBREAK para salvar o edge;
+- não escolher lado FULL_UP/FULL_DOWN após inspeção;
+- não chamar L2 de hierarquia MTF enquanto o nearest target colapsa para M15;
+- não interpretar a incidência ~60/40 como drift antes de corrigir geometria das duas barreiras.
+
+## NEXT QUESTION — FROZEN
+
+`TRACK D — EXPERIMENT 10: STRUCTURAL CORRIDOR / COMPETING-RISK GEOMETRY`.
+
+Perguntar se a incidência ~60/40 é simplesmente consequência da posição relativa do preço entre L1 e L2.
+
+---
+
+# 63. 2026-08-12 — Track D Experiment 10: structural corridor / competing-risk geometry
+
+## QUESTION
+
+A probabilidade de `ADVANCE_BOS` versus `RECAPTURE_L1` é explicada pela geometria causal do corredor entre L1 e L2, ou existe informação residual além da posição relativa entre as barreiras?
+
+## WHY
+
+Exp9 encontrou incidência de ADVANCE extremamente estável (~60-64%), mas L2 estava muito próximo e sempre em M15. Antes de interpretar isso como tendência estrutural, era necessário comparar com um null de first-passage baseado apenas nas distâncias às duas barreiras.
+
+## FROZEN DEFINITION
+
+No estado `OUTSIDE_15`:
+
+```text
+d_back = oriented ATR distance from state_close back to L1
+d_forward = oriented ATR distance from state_close to L2
+corridor_width = d_back + d_forward
+corridor_position = d_back / corridor_width
+p_geometry = corridor_position
+```
+
+`p_geometry` é um null geométrico simples de first-passage, não uma hipótese de que o GOLD seja um Brownian motion perfeito.
+
+Target:
+
+```text
+ADVANCE_BOS = 1
+RECAPTURE_L1 = 0
+```
+
+TRAIN-only calibration:
+
+```text
+logit P(ADVANCE) = b0 + b1 * logit(p_geometry)
+```
+
+Avaliação OOS por AUC, Brier, LogLoss, fixed bins e bootstrap por BRT day. Nenhum threshold foi recalibrado.
+
+## DATA / CORRIDOR GEOMETRY
+
+```text
+valid corridors = 1,014 / 1,091 (92.94%)
+L2 source = M15 em 1,014 / 1,014
+
+d_back mean 1.1143 ATR / median .8778
+d_forward mean .3646 ATR / median .1239
+corridor_width mean 1.4789 / median 1.1651
+corridor_position mean .7568 / median .8702
+```
+
+A geometria explica por que ADVANCE seria naturalmente mais provável: o estado normalmente já está muito mais distante de L1 do que de L2.
+
+## PRIMARY — OBSERVED vs RAW GEOMETRY NULL
+
+```text
+TRAIN      n=592 days=207 Observed=60.98% Geometry=72.70% Residual=-11.72 pp
+VALIDATION n=198 days=79  Observed=61.62% Geometry=73.81% Residual=-12.19 pp
+TEST       n=209 days=72  Observed=64.59% Geometry=85.76% Residual=-21.17 pp
+```
+
+O null `P=CorridorPosition` sobrestima sistematicamente ADVANCE.
+
+Day-cluster bootstrap do residual bruto:
+
+```text
+TRAIN MeanResidual=-10.11 pp CI95 [-14.98,-5.35] P(<0)=100.00%
+VAL   MeanResidual=-10.53 pp CI95 [-18.15,-2.98] P(<0)=99.70%
+TEST  MeanResidual=-24.56 pp CI95 [-32.43,-17.03] P(<0)=100.00%
+```
+
+Portanto a diferença não é ruído event-level: a propensão real de recapture é maior que o null geométrico simples em todos os splits.
+
+## TRAIN-ONLY CALIBRATION
+
+```text
+intercept = -.112307
+slope     = +.388604
+ideal raw-geometry null = intercept 0 / slope 1
+```
+
+A slope muito abaixo de 1 comprime probabilidades extremas: a posição relativa importa, porém o processo real responde muito menos agressivamente à proximidade da fronteira do que o null linear de first-passage sugeriria.
+
+## DISCRIMINATION
+
+```text
+AUC corridor_position
+TRAIN      .6970
+VALIDATION .6652
+TEST       .6459
+```
+
+Como a calibração logística é transformação monotônica, AUC calibrado é idêntico. O ponto importante é a estabilidade OOS positiva da ordenação.
+
+Spearman `corridor_position x ADVANCE`:
+
+```text
+TRAIN      +.3328
+VALIDATION +.2784
+TEST       +.2418
+```
+
+Isto é a primeira feature estrutural do Track D que mantém **discriminação probabilística clara da próxima transição** nos três períodos.
+
+## PROBABILITY QUALITY
+
+Brier score:
+
+```text
+                 TRAIN      VALIDATION    TEST
+constant          .237945     .236547     .230009
+raw geometry      .233511     .242524     .273146
+TRAIN calibrated  .209354     .217867     .219689
+```
+
+Brier skill aproximado do modelo calibrado vs constant TRAIN-rate baseline:
+
+```text
+TRAIN      +12.0%
+VALIDATION  +7.9%
+TEST        +4.5%
+```
+
+O ganho diminui temporalmente, mas permanece positivo em Validation e Test. Raw geometry sem calibração fica pior que o constant baseline em Validation/Test.
+
+LogLoss:
+
+```text
+                 TRAIN      VALIDATION    TEST
+raw geometry      .753247     .771901     .916504
+TRAIN calibrated  .607483     .627491     .631903
+```
+
+## FIXED CORRIDOR BINS
+
+TRAIN apresenta progressão clara:
+
+```text
+0-.20    Obs 21.43% / Geom 10.34%
+.20-.40  Obs 35.29% / Geom 30.06%
+.40-.60  Obs 47.89% / Geom 49.93%
+.60-.80  Obs 62.00% / Geom 70.10%
+.80-1    Obs 72.56% / Geom 93.04%
+```
+
+Validation mantém a ordenação ampla, embora o bucket .40-.60 seja fraco:
+
+```text
+0-.20    30.77% n=13
+.20-.40  41.67% n=12
+.40-.60  33.33% n=27
+.60-.80  68.89% n=45
+.80-1    72.28% n=101
+```
+
+TEST está fortemente concentrado no topo; buckets baixos são pequenos. Nos buckets com amostra útil:
+
+```text
+.40-.60  Obs 40.00% n=15
+.60-.80  Obs 48.48% n=33
+.80-1    Obs 70.51% n=156
+```
+
+Um padrão descritivo marcante é que o bucket `.80-1` fica em ~70-73% observed nos três splits, apesar do null geométrico esperar ~93-94%. Não transformar esse nível em threshold/regra após inspeção.
+
+## AFTER TRAIN CALIBRATION — DAY CLUSTER
+
+```text
+TRAIN MeanResidual +.88 pp CI95 [-3.73,+5.46]
+VAL   MeanResidual +2.18 pp CI95 [-5.36,+9.60]
+TEST  MeanResidual -8.00 pp CI95 [-15.76,-.48]
+```
+
+A calibração TRAIN neutraliza bem Train/Validation, mas deixa residual negativo significativo no TEST. Portanto a mapping `geometry -> transition probability` não é perfeitamente estacionária.
+
+## DIRECTION / WIDTH DIAGNOSTICS
+
+O residual bruto é negativo nos dois lados em todos os splits:
+
+```text
+FULL_UP residual:   -7.87 / -9.11 / -18.20 pp
+FULL_DOWN residual: -16.62 / -16.72 / -23.46 pp
+```
+
+Logo a falha do null não é apenas um lado do FULL.
+
+`corridor_width` não mostra relação incremental consistente com residual:
+
+```text
+Spearman width x residual
+TRAIN +.0311 / VAL -.0079 / TEST -.0810
+```
+
+## INTERPRETATION
+
+O Exp10 muda materialmente o Track D.
+
+1. A incidência ~60/40 do Exp9 é **parcialmente explicada pela geometria**: L2 geralmente está muito mais próximo que L1.
+2. Entretanto o null simples `P(ADVANCE)=corridor_position` é fortemente sobreconfiante e é rejeitado em todos os splits; o mercado recaptura L1 mais frequentemente do que esse null preveria.
+3. `CorridorPosition` ainda é uma feature probabilística real: AUC .697/.665/.646 e Spearman positivo nos três splits.
+4. Uma calibração TRAIN-only comprime a geometria e melhora Brier sobre o baseline constante em Train/Validation/Test, embora o ganho caia de ~12% para ~4.5% e o TEST apresente residual negativo remanescente.
+5. Portanto encontramos algo diferente de um directional edge: uma **state-transition probability feature**. O preço dentro de um corredor estrutural carrega informação sobre qual fronteira tende a ser atingida primeiro.
+6. A calibração ainda sofre drift/regime change; não está pronta para runtime e muito menos para inferência de retorno financeiro.
+
+## STATUS
+
+```text
+CORRIDOR_POSITION_TRANSITION_DISCRIMINATION = STRONG_OOS_RESEARCH_FEATURE
+RAW_IDENTITY_GEOMETRY_NULL = REJECTED_AS_CALIBRATED_PROBABILITY_MODEL
+RAW_GEOMETRY_RESIDUAL = CONSISTENT_NEGATIVE / RECAPTURE_PROPENSITY_VS_NULL
+TRAIN_LOGISTIC_GEOMETRY_CALIBRATION = OOS_USEFUL_BUT_NOT_STATIONARY
+POST_CALIBRATION_TEST_DRIFT = PRESENT
+CORRIDOR_WIDTH_INCREMENTAL_SIGNAL = NOT_OBSERVED
+FULL_SIDE_EXPLAINS_RAW_RESIDUAL = NO
+L2_SOURCE = M15_ONLY
+RUNTIME_PROMOTION = NONE
+```
+
+## WHAT CHANGED
+
+Antes:
+
+```text
+STATE -> next swing or recapture looked ~60/40
+```
+
+Agora:
+
+```text
+STATE + STRUCTURAL CORRIDOR POSITION
+    -> non-trivial probability of next boundary
+    -> calibrated relationship is compressed vs neutral geometry
+    -> mapping drifts over time
+```
+
+Esta é a primeira evidência forte no Track D de um componente do DNA que faz sentido como **probabilidade de transição de estado**, não como BUY/SELL.
+
+## WHAT NOT TO REPEAT
+
+- não usar `p_geometry` cru como probabilidade operacional;
+- não criar threshold `.80` porque o top bucket parece bom;
+- não refitar calibração em Validation/Test;
+- não otimizar corridor bins;
+- não usar corridor width como filtro depois do Spearman quase zero;
+- não separar FULL_UP/FULL_DOWN para escolher o lado melhor;
+- não adicionar Clock/D1/Z/Fib ainda para explicar o residual;
+- não confundir AUC de transição com edge de retorno financeiro.
+
+## NEXT QUESTION — FROZEN
+
+`TRACK D — EXPERIMENT 11: CORRIDOR GEOMETRY + LOCAL ACCEPTANCE PRESSURE`.
+
+Pergunta: a forma causal como o preço percorreu os 15 minutos entre o primeiro contato e `OUTSIDE_15` explica informação de transição incremental além de `CorridorPosition` e reduz o residual de calibração?
+
+Feature primária congelada:
+
+```text
+AcceptancePressure15 =
+    oriented net close displacement from contact close to state_close
+    /
+    sum(abs(M5 close-to-close moves)) over the fixed 15m acceptance path
+```
+
+Range natural aproximado `[-1,+1]`; nenhum threshold será criado.
+
+Comparação congelada:
+
+```text
+BASE:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+
+EXTENDED:
+logit P(ADVANCE) = b0 + b1*logit(CorridorPosition)
+                 + b2*AcceptancePressure15
+```
+
+Fit somente TRAIN. Validation/Test avaliam incremento por AUC, Brier, LogLoss e day-cluster residual. `BREAK_HOLD` vs `REBREAK` permanece diagnóstico secundário, sem seleção.
+
+---
+
+# 64. Current checkpoint — 2026-08-12 19:13 BRT
+
+Track D finalmente produziu uma feature probabilística estrutural que preserva sinal OOS:
+
+```text
+CorridorPosition -> P(next boundary = ADVANCE_BOS)
+AUC .697 / .665 / .646
+```
+
+Mas a probabilidade não é a geometria crua; `P=position` é excessivamente extrema e sobrestima ADVANCE. A calibração TRAIN-only ajuda em Validation/Test, porém o TEST ainda mostra drift residual.
+
+A investigação passa, portanto, de regras de direção para uma state machine probabilística:
+
+```text
+CURRENT STRUCTURAL STATE
+    + CORRIDOR GEOMETRY
+    + LOCAL PATH PRESSURE ?
+        -> P(ADVANCE)
+        -> P(RECAPTURE)
+        -> NEXT STATE
+```
+
+Próxima execução congelada:
+
+```text
+TRACK D — EXPERIMENT 11
+CORRIDOR GEOMETRY + LOCAL ACCEPTANCE PRESSURE
+```
+
+No runtime promotion. Fresh forward / nested validation continua obrigatório antes de qualquer uso operacional.
+
 # END OF CURRENT CHECKPOINT
