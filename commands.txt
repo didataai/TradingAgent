@@ -148,3 +148,15 @@ python .\tools\personal_risk_guard_builder.py `
 # Define latest exact same KIND/price confirm_time <= state_time and CurrentL2AgeHours = state_time - latest_confirm_time.
 # Primary: GEOMETRY vs GEOMETRY + log1p(CurrentL2AgeHours), TRAIN-only fit; must improve both VALIDATION and TEST, especially day-cluster Brier/LogLoss.
 # No thresholds, no rolling windows, no touch buckets, no D1/Clock/Z/Fib.
+
+## Research — Exp15 checkpoint / Exp16 frozen
+# Exp15: current-confirmation recency is almost identical to lineage age: Spearman(current_age,lineage_age)=+0.9889.
+# Refresh is rare: refresh-span median=0h, Q75=0h, Q90=2.25h; confirmation_count median=1, Q75=1.
+# TEST current L2 age median ~3374.4h vs ~212.6h TRAIN / ~212.7h VALIDATION: the recent regime is genuinely using very old all-history boundaries, not merely recently refreshed old price lineages.
+# RECENCY_EXT worsens VALIDATION (Brier +0.000102, LogLoss +0.000109) and improves TEST only modestly (Brier -0.000563, LogLoss -0.001290); AUC falls slightly in all splits.
+# Day-cluster Validation is neutral and TEST gain CIs still cross zero. Status: CURRENT_L2_RECENCY = REJECTED_INCREMENTAL; EXACT_PRICE_AGE_MEMORY_FAMILY = CLOSED; CORRIDOR_POSITION = PRESERVED; TEST_DRIFT = PERSISTS.
+# Exp16 frozen: ACTIVE STRUCTURAL FRONTIER.
+# A confirmed swing remains ACTIVE only while no closed M5 after its confirm_time has closed through it in its target direction (HIGH consumed by close>level; LOW consumed by close<level).
+# At OUTSIDE_15 state_time choose nearest ACTIVE confirmed H4/H1/M15 swing ahead; consumed historical levels are ineligible forever.
+# Primary questions: active-frontier coverage/source-TF/age stability; transition incidence; TRAIN-only geometry calibration evaluated on Validation/Test by AUC/Brier/LogLoss and day-cluster residual/skill.
+# Do not tune consumption tolerance, use wicks, reactivate consumed levels, change fractal, or add D1/Clock/Z/Fib after inspection.
