@@ -130,3 +130,9 @@ python .\tools\personal_risk_guard_builder.py `
   --data-symbol GOLD
 
   Get-ChildItem .\data\personal_trade_auditor\GOLD\personal_trade_* | Remove-Item -Force  
+
+## Research — Exp14 ad-hoc syntax fix
+# Em Python <=3.11, não quebrar chamada .corr(...) dentro de expressão f-string.
+# Use variável intermediária:
+# rho_age_touch = accepted["l2_age_hours"].corr(accepted["prior_touch_episodes"], method="spearman")
+# print(f"rho(age,touch_count)={rho_age_touch:+.4f}")
