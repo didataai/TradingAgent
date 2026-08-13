@@ -533,3 +533,63 @@ If either fails:
 ```
 
 Exp27 is validation-only. Runtime promotion remains NONE. Costs/slippage and any later decision-layer research are separate downstream gates.
+
+## 2026-08-13 09:32 BRT — Exp28 frozen: OBSERVABLE HIGH_VOL_MAIN EXIT-HAZARD MODULATOR
+
+Exp27 remains completely untouched. Exp28 is a historical discovery-only integration test and must hard-cut all input data before `2026-08-13 00:00:00 BRT`; no forward-shadow row may be loaded into the experiment.
+
+### Scientific question
+
+After the frozen active-frontier `CorridorPosition + Dwell` SEMI kernel is known, does the already-consolidated Track A volatility phase `HIGH_VOL_MAIN = [09:05,12:30) BRT` add stable observable information about next-M5 EXIT vs STAY hazard?
+
+This is the first deliberately isolated Track A -> structural-kernel context test. It does NOT add a directional clock rule and does not reopen the rejected 288-slot directional scan.
+
+### Frozen feature
+
+```text
+HighVol_t = 1 if 09:05 <= state_time_BRT < 12:30 else 0
+p_train = mean(HighVol_t on TRAIN states)
+PhaseCentered_t = HighVol_t - p_train
+```
+
+Centering is frozen before the result because the Exp21 intercepts already calibrate TRAIN class totals. The centered binary feature tests the HIGH_VOL_MAIN contrast without turning the added coefficient into a generic global intercept correction.
+
+### Frozen model
+
+BASE = exact Exp21 SEMI coefficients:
+
+```text
+ADVANCE   [-2.337951, +0.920362, -0.617819]
+RECAPTURE [-2.788824, -0.786389, -0.535507]
+```
+
+PHASE_EXTENDED adds exactly one TRAIN-fitted coefficient `k_phase` identically to both exit logits:
+
+```text
+ADV-vs-STAY += k_phase * PhaseCentered_t
+REC-vs-STAY += k_phase * PhaseCentered_t
+```
+
+Therefore `P(ADVANCE | EXIT)` remains mathematically unchanged. Exp28 tests only observable EXIT timing/hazard modulation.
+
+### Primary estimand and inference
+
+Primary estimand is STATE_WEIGHTED because the model predicts the next transition from each current M5 structural state. Dependence-aware uncertainty uses whole-BRT-day cluster bootstrap preserving state weights in every replicate (`total score gain / total sampled states`).
+
+PHASE_EXTENDED survives only if it improves frozen SEMI on BOTH multiclass Brier and LogLoss in BOTH Validation and Test with CI95 entirely above zero under this state-weighted whole-day bootstrap.
+
+Equal-day and equal-episode estimands remain mandatory heterogeneity diagnostics. Also report HIGH_VOL_MAIN state incidence and descriptive correlations with `geo_logit` and `log_dwell`; these diagnostics cannot trigger slicing or interactions.
+
+### Anti-repeat / prohibited rescue
+
+- do not alter the frozen `09:05-12:30` window;
+- no neighboring clock windows, slot scan, phase subdivisions or phase-maturity curve;
+- no direction-specific clock coefficient and no side-specific latent term;
+- no D1/Z/Fib/weekday/Post09/TerminalExtreme interaction;
+- no Scale, HMM, L4/L5 or coefficient refit of geometry/dwell;
+- no use of any row at or after the Exp27 shadow start;
+- no runtime promotion from historical Validation/Test.
+
+If Exp28 fails, reject this exact observable `HIGH_VOL_MAIN` common-hazard modifier and do not tune the clock window. If it survives, preserve it only as a historical exploratory Track E context candidate; it is NOT eligible to be evaluated on Exp27 because Exp27 was frozen without it.
+
+Runtime promotion: NONE.
