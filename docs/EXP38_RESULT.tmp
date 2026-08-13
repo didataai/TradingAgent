@@ -93,4 +93,76 @@ Scientific consequence:
 - Exp27 remains untouched.
 - Runtime promotion remains NONE.
 
-This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and then deleted when the canonical history is next rewritten in full.
+---
+
+# Exp39 — In-Corridor Path Dynamics Family — FROZEN
+
+Date frozen: 2026-08-13, before scoring.
+
+Scientific question:
+After frozen CorridorPosition + Dwell are known, does the causal path already travelled inside the CURRENT ACTIVE corridor add stable one-step information beyond the static current location and episode age?
+
+This is structurally different from Exp38. Exp38 described ACTIVE levels beyond L2 at episode origin. Exp39 describes the realized within-corridor trajectory up to each state_time.
+
+Frozen causal state universe:
+- exact Exp20/21 dynamic-state universe must reproduce first;
+- no row at/after 2026-08-13 00:00 BRT;
+- same TRAIN / Validation / exploratory TEST split;
+- same frozen Exp21 SEMI probabilities as BASE;
+- no refit of the six BASE coefficients.
+
+Frozen candidate panel, all computed from episode origin through current state_time only, using close path normalized by fixed corridor width `(L2-L1)` in bias orientation:
+
+HAZARD CHANNEL:
+1. `PATH_LENGTH` = cumulative sum of absolute normalized close-to-close steps.
+2. `VISITED_SPAN` = max visited corridor position - min visited corridor position.
+3. `TURN_RATE` = sign changes among consecutive nonzero normalized close steps divided by available nonzero-step transitions; defined as 0 when fewer than two nonzero steps exist.
+
+SIDE CHANNEL:
+4. `SIGNED_EFFICIENCY` = net normalized displacement from episode origin divided by PATH_LENGTH; defined as 0 when PATH_LENGTH=0.
+5. `FORWARD_RETRACE` = max visited position - current position.
+6. `BACK_RETRACE` = current position - min visited position.
+
+Frozen transformations:
+- `log1p(PATH_LENGTH)`;
+- all other five coordinates raw on their natural bounded/normalized scale;
+- each coordinate centered/scaled using TRAIN mean/std only.
+
+Frozen factorized extension of BASE:
+- derive BASE `P(EXIT)` and BASE `P(ADVANCE|EXIT)` from exact frozen SEMI probabilities;
+- HAZARD3 adds exactly three TRAIN-only coefficients to `logit(P(EXIT))`;
+- SIDE3 adds exactly three TRAIN-only coefficients to `logit(P(ADVANCE|EXIT))`;
+- JOINT6 applies both channels simultaneously;
+- no BASE coefficient is refit.
+
+Primary family claim:
+- same complete state sample for BASE and JOINT6;
+- STATE_WEIGHTED proper scores;
+- whole-BRT-day bootstrap preserving state weights;
+- JOINT6 must improve BASE with CI95 gain >0 for BOTH multiclass Brier and LogLoss in BOTH Validation and TEST;
+- no univariate or channel-specific survivor may rescue a failed JOINT6.
+
+Diagnostics only:
+- HAZARD3 vs BASE;
+- SIDE3 vs BASE;
+- six univariate screens in their frozen channel;
+- drop-one contribution from JOINT6;
+- feature correlation at state and episode weighting;
+- EXIT-hazard and EXIT-side AUC/calibration diagnostics.
+
+Anti-rescue:
+- no fixed recent window such as last 3/6/12 bars;
+- no body/wick/volume/ATR-energy replacement;
+- no path-length threshold/bucket;
+- no alternate efficiency transform;
+- no max/min touch-count threshold;
+- no feature subset selected after results;
+- no interaction with D1/Clock/Z/Fib/weekday/Scale/Energy/HMM;
+- no Exp38 GAP combination;
+- no Exp27 scoring or modification.
+
+If JOINT6 fails, close this exact episode-to-date in-corridor path-dynamics family. Do not rescue individual coordinates from descriptive screens.
+
+Historical OOS remains exploratory. Runtime promotion = NONE.
+
+This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted during the next full canonical-history rewrite.
