@@ -160,3 +160,14 @@ python .\tools\personal_risk_guard_builder.py `
 # At OUTSIDE_15 state_time choose nearest ACTIVE confirmed H4/H1/M15 swing ahead; consumed historical levels are ineligible forever.
 # Primary questions: active-frontier coverage/source-TF/age stability; transition incidence; TRAIN-only geometry calibration evaluated on Validation/Test by AUC/Brier/LogLoss and day-cluster residual/skill.
 # Do not tune consumption tolerance, use wicks, reactivate consumed levels, change fractal, or add D1/Clock/Z/Fib after inspection.
+
+## Research — Exp16 checkpoint / Exp17 frozen
+# Exp16 materially changes the structural representation: only 14.87% / 14.55% / 4.72% of legacy L2 are still active in TRAIN / VALIDATION / TEST; same-target rates are 16.75% / 15.69% / 4.72%.
+# Active-frontier coverage is 90.59% / 92.73% / 100.00%; active L2 median distance is 1.7658 / 1.5742 / 1.6335 ATR, versus legacy median 0.1239 ATR; active median age is 12.67h / 16.00h / 17.46h, eliminating the legacy TEST age explosion.
+# Transition incidence becomes ADVANCE 33.84% / 37.25% / 31.60%, RECAPTURE 55.61% / 51.47% / 54.72%, CENSORED 10.55% / 11.27% / 13.68%.
+# TRAIN-only active geometry model: intercept=-0.075205, slope=+0.671355. AUC = .7649 / .7744 / .7970; Brier skill vs frozen TRAIN constant = +20.40% / +22.29% / +25.19%.
+# Day-cluster skill is strongly positive in both VALIDATION and TEST with CIs fully >0 for Brier and LogLoss. Calibration residual is +2.52pp VAL and -5.94pp TEST, both CIs crossing zero.
+# Raw active corridor geometry is already close to observed probability (36.49/38.61/39.03% predicted vs 37.83/41.99/36.61% observed), unlike the overconfident legacy geometry. Status: ACTIVE_STRUCTURAL_FRONTIER = STRONG_EXPLORATORY_REPRESENTATION; LEGACY_IMMORTAL_L2 = SUPERSEDED_FOR_THIS_BRANCH; RUNTIME_PROMOTION = NONE.
+# Exp17 frozen: RECURSIVE ACTIVE FRONTIER / SECOND-STEP MARKOV TRANSPORTABILITY.
+# After a first ADVANCE_ACTIVE_BOS, use consumed L2 as the new back boundary, select nearest ACTIVE L3 ahead at that transition_time, and ask whether the same corridor-position law predicts ADVANCE_L3 vs RECAPTURE_L2 within 120m.
+# Primary transport test applies the Exp16 STEP1 TRAIN-fitted geometry coefficients without refitting to STEP2 Validation/Test; a STEP2 TRAIN-only fit is diagnostic comparison only. Preserve close-based consumption, no tolerance, no reactivation, no D1/Clock/Z/Fib.
