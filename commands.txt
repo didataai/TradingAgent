@@ -171,3 +171,13 @@ python .\tools\personal_risk_guard_builder.py `
 # Exp17 frozen: RECURSIVE ACTIVE FRONTIER / SECOND-STEP MARKOV TRANSPORTABILITY.
 # After a first ADVANCE_ACTIVE_BOS, use consumed L2 as the new back boundary, select nearest ACTIVE L3 ahead at that transition_time, and ask whether the same corridor-position law predicts ADVANCE_L3 vs RECAPTURE_L2 within 120m.
 # Primary transport test applies the Exp16 STEP1 TRAIN-fitted geometry coefficients without refitting to STEP2 Validation/Test; a STEP2 TRAIN-only fit is diagnostic comparison only. Preserve close-based consumption, no tolerance, no reactivation, no D1/Clock/Z/Fib.
+
+## Research — Exp17 execution contract finalized
+# STEP2 origin = first-step ADVANCE_ACTIVE_BOS close. At this close L2 is consumed and becomes the back/recapture boundary.
+# L3 is selected strictly from swing instances confirmed by STEP2 state_time whose consume_time is either NaT or strictly > STEP2 state_time; levels consumed on the same M5 close are excluded.
+# STEP2 geometry: d_back2 = oriented distance from STEP2 close back to L2; d_forward2 = oriented distance to nearest active L3; position2=d_back2/(d_back2+d_forward2).
+# Competing event window remains frozen at 120m after STEP2 state_time: first close beyond L3 = ADVANCE_L3; first close back through L2 = RECAPTURE_L2; otherwise CENSORED.
+# Dedup STEP2 structural states by step2_state_time|bias|L2|L3 (round(6)), keeping the latest originating STEP1 state_time only if convergence occurs.
+# Primary transport model uses Exp16 STEP1 TRAIN coefficients regenerated from STEP1 TRAIN only, then applied unchanged to STEP2 TRAIN/VALIDATION/TEST. STEP2 TRAIN refit is diagnostic only and must not replace the transport model.
+# Period is assigned by STEP2 state_time. Any non-censored label whose resolution_time crosses the next split boundary is excluded from model scoring and explicitly audited; no cross-boundary label enters a prior-period fit.
+# No L4/L5, no tolerance, no wick consumption, no expiry/reactivation, no D1/Clock/Z/Fib/weekday, and no post-result thresholding.
