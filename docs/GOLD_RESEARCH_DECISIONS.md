@@ -157,7 +157,7 @@ EXP23_TEMPORAL_MEMORY_SURVIVAL = REJECTED
 DAILY_TWO_STATE_HMM_TEMPORAL_INFORMATION = REJECTED_FOR_FROZEN_MODEL
 STATIC_STATIONARY_MIXTURE_REPRODUCES_EXP22_GAIN = CONFIRMED
 EXP22_HMM_GAIN_MECHANISM = STATIC_MIXTURE / CALIBRATION_MAP, NOT TEMPORAL_FILTERING
-TWO_STATE_DAILY_HAZARD_HMM_BRANCH = CLOSED AGAINST POST_HOC RESCUE
+TWO_STATE_DAILY_HAZARD_HMM_BRANCH = CLOSED AGAINST POST_HOC_RESCUE
 SEMI_MARKOV_ACTIVE_CORRIDOR_BACKBONE = PRESERVED
 EXIT_SIDE_GEOMETRY = PRESERVED
 RUNTIME_PROMOTION = NONE
@@ -403,3 +403,133 @@ Also report equal-day and equal-episode estimands as heterogeneity diagnostics a
 If Exp20 geometry and Exp21 dwell improvements remain positive under the corrected STATE_WEIGHTED cluster inference, the `Active Frontier + Position + Dwell` backbone is methodologically strengthened before fresh forward validation. If one fails, its previous status must be downgraded for future integration even though no old result is rewritten retroactively.
 
 Repeatedly inspected TEST remains exploratory. No runtime promotion.
+
+## 2026-08-13 09:27 BRT — Exp26 result / Exp27 fresh forward shadow frozen
+
+### Exp26 result — backbone estimand re-audit
+
+The Exp26 sample reproduced the Exp20/21 dynamic universe exactly:
+
+```text
+TRAIN      5612 states / 596 episodes / 207 days
+VALIDATION 1959 states / 204 episodes / 80 days
+TEST       2096 states / 212 episodes / 73 days
+```
+
+#### A) Geometry over constant — strongly reaffirmed
+
+STATE_WEIGHTED whole-day bootstrap preserving state weights:
+
+```text
+VALIDATION
+Brier   +0.013625195 CI95[+0.007886861,+0.020396874] P>0=100.00%
+LogLoss +0.071308742 CI95[+0.058585150,+0.086666314] P>0=100.00%
+
+TEST
+Brier   +0.011016748 CI95[+0.003736423,+0.019730017] P>0=99.87%
+LogLoss +0.066682174 CI95[+0.050761125,+0.086336079] P>0=100.00%
+```
+
+Equal-day and equal-episode estimands are also strongly positive in both OOS periods. Therefore active CorridorPosition is reaffirmed as the strongest current Track D state coordinate.
+
+Formal status:
+
+```text
+ACTIVE_STRUCTURAL_FRONTIER = PRESERVED
+CORRIDOR_POSITION = STRONGLY_REAFFIRMED
+ONE_STEP_GEOMETRY_KERNEL = STRONG_EXPLORATORY_BACKBONE
+```
+
+#### B) Dwell over geometry — positive but strict reconfirmation not complete
+
+STATE_WEIGHTED whole-day bootstrap preserving state weights:
+
+```text
+VALIDATION
+Brier   +0.003132413 CI95[-0.000496886,+0.007069943] P>0=95.36%
+LogLoss +0.016177007 CI95[+0.007808771,+0.025290279] P>0=100.00%
+
+TEST
+Brier   +0.005169096 CI95[+0.000163469,+0.010445175] P>0=97.81%
+LogLoss +0.022839282 CI95[+0.011982976,+0.033511957] P>0=100.00%
+```
+
+Three of four primary OOS checks have CI95 entirely above zero. Validation Brier is positive but its CI crosses zero slightly; therefore the frozen rule requiring BOTH Brier and LogLoss in BOTH OOS periods is not fully satisfied.
+
+Equal-day and equal-episode gains remain strongly positive in Validation and Test. Cluster-size diagnostics show negative association between cluster size and Dwell gain, especially at episode level, so longer episodes receive more state weight precisely where Dwell adds less incremental score improvement.
+
+Formal status:
+
+```text
+DWELL_INCREMENTAL_INFORMATION = POSITIVE_BUT_NOT_FULLY_RECONFIRMED
+SEMI_MARKOV_EXTENSION = PRESERVED_AS_FROZEN_CHALLENGER
+POSITION_PLUS_DWELL = NOT_YET_FINAL
+FRESH_FORWARD_CONFIRMATION = REQUIRED
+```
+
+Scale remains rejected under Exp24; the frozen daily 2-state temporal HMM remains rejected under Exp23. No historical result is post-hoc rescued.
+
+### Exp27 frozen — FRESH FORWARD BACKBONE SHADOW
+
+Purpose: obtain genuinely prospective evidence for the frozen backbone without reusing the repeatedly inspected historical TEST.
+
+Frozen start:
+
+```text
+SHADOW_START = 2026-08-13 00:00:00 BRT
+```
+
+Only data with causal state_time at or after SHADOW_START may enter Exp27.
+
+Frozen models:
+
+```text
+MODEL_0 CONST
+  TRAIN historical class-frequency baseline from Exp20/26
+
+MODEL_1 GEO
+  THETA_GEO_FROZEN
+  ADVANCE-vs-STAY   [-3.517028, +0.857591]
+  RECAPTURE-vs-STAY [-3.813144, -0.844111]
+
+MODEL_2 SEMI
+  THETA_SEMI_FROZEN
+  ADVANCE   [-2.337951, +0.920362, -0.617819]
+  RECAPTURE [-2.788824, -0.786389, -0.535507]
+```
+
+No parameter may be updated after SHADOW_START. No Scale, HMM, Clock, D1, Z, Fib, weekday, new threshold, interaction, new target or new feature may enter Exp27.
+
+Maturity gate — do not inspect model scores before BOTH are true:
+
+```text
+eligible BRT days >= 60
+AND
+dynamic structural states >= 1500
+```
+
+The counts needed only to determine maturity may be inspected; Brier, LogLoss, AUC, calibration, class residuals and model-comparison gains must remain unseen until the gate is met.
+
+Final one-shot primary comparisons:
+
+```text
+A) GEO vs CONST
+B) SEMI vs GEO
+```
+
+Primary estimand = STATE_WEIGHTED. Dependence-aware inference = whole-day bootstrap preserving state weights in every replicate (`sum score gain / sum sampled states`). Equal-day and equal-episode estimands remain secondary heterogeneity diagnostics.
+
+Frozen prospective interpretation:
+
+```text
+If GEO beats CONST on Brier AND LogLoss with CI95 > 0:
+    prospective support for Active Frontier + CorridorPosition is obtained.
+
+If SEMI beats GEO on Brier AND LogLoss with CI95 > 0:
+    prospective support for Dwell as an incremental semi-Markov coordinate is obtained.
+
+If either fails:
+    downgrade that component for future integration; do not retune on the shadow.
+```
+
+Exp27 is validation-only. Runtime promotion remains NONE. Costs/slippage and any later decision-layer research are separate downstream gates.
