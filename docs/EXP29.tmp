@@ -1,1 +1,5 @@
-checkpoint
+Research checkpoint.
+
+Exp29 local M5 range-energy incremental hazard test: REJECTED under the frozen state-weighted Validation/Test criterion. Exp27 forward shadow remains untouched.
+
+Exp30 frozen next question: test the already-established D1 bullish continuation context as a side-only modifier of P(ADVANCE|EXIT) beyond the frozen active-frontier Position+Dwell SEMI backbone. Keep total P(EXIT) unchanged, fit only one TRAIN coefficient on conditional exit side, evaluate full multiclass Brier/LogLoss with state-weighted whole-day bootstrap in Validation and Test. No alternate D1 bands, bearish mirror, clock, Z, Fib, weekday, Scale, HMM, energy-family rescue, or SEMI refit. Runtime promotion: NONE.
