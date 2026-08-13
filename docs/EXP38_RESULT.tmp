@@ -165,4 +165,8 @@ If JOINT6 fails, close this exact episode-to-date in-corridor path-dynamics fami
 
 Historical OOS remains exploratory. Runtime promotion = NONE.
 
+## Execution contract issued
+
+The runnable Exp39 implementation was issued after the family freeze. It reproduces the exact Exp20/21 upstream and dynamic-state checkpoints before any new score, derives all six path coordinates causally from episode origin through each state_time, and uses the frozen factorization `P(EXIT) x P(ADVANCE|EXIT)` with TRAIN-only added coefficients. No scientific definition was changed after inspecting Exp38.
+
 This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted during the next full canonical-history rewrite.
