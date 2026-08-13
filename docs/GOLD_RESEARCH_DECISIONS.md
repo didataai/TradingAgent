@@ -275,3 +275,131 @@ The runnable execution must also print descriptive correlations `Spearman(Scale,
 Primary decision remains unchanged: SCALE_EXTENDED must improve frozen BASE in BOTH Validation and Test on multiclass Brier and LogLoss, with positive BRT-day cluster score gain. EXIT hazard metrics and equal-day calibration are secondary diagnostics. Exit-side probabilities must remain numerically identical up to floating-point error.
 
 Runtime promotion: NONE. Fresh forward/nested validation remains mandatory for any later promotion.
+
+## 2026-08-13 00:10 BRT — Exp24 result + Exp25 estimand audit result
+
+### Exp24 result remains frozen as REJECTED
+
+Exp24 fitted only the common scale coefficient on top of the frozen Exp21 SEMI kernel:
+
+```text
+k = -0.217885747
+exp(k) = 0.804217
+2^k = 0.859825
+```
+
+Row/state-weighted OOS scores improved, but the preregistered equal-day primary criterion failed with negative confidence intervals in Validation and Test; equal-episode diagnostics were even more negative. Equal-day class calibration worsened. Exit-side invariance held to floating point (`max_abs diff = 1.11e-16`). Therefore Exp24 is not rescued or reopened.
+
+Formal status remains:
+
+```text
+ACTIVE_CORRIDOR_SCALE_INCREMENTAL_INFORMATION = REJECTED_UNDER_FROZEN_EXP24_CONTRACT
+SCALE_PHYSICAL_SIGN = NOT_ACCEPTED
+POSITION_PLUS_DWELL = PRESERVED
+RUNTIME_PROMOTION = NONE
+```
+
+### Exp25 question
+
+Does the contradiction between row/state-weighted and equal-day/equal-episode scores come from dependence correction, or from silently changing the estimand by changing cluster weights?
+
+Exp25 fitted nothing and reused the exact frozen Exp24 BASE/SCALE predictions.
+
+### Three estimands — exact observed divergence
+
+```text
+VALIDATION
+Brier   STATE +0.000367618 | DAY -0.005392613 | EPISODE -0.017539285
+LogLoss STATE +0.001344023 | DAY -0.011831980 | EPISODE -0.028850312
+
+TEST
+Brier   STATE +0.001246203 | DAY -0.006302204 | EPISODE -0.016177614
+LogLoss STATE +0.003743185 | DAY -0.010850953 | EPISODE -0.029253616
+```
+
+Positive means SCALE has lower loss than BASE. Therefore the sign reversal is not a numerical accident: the three weighting schemes answer materially different scientific questions.
+
+### State-weighted whole-day bootstrap
+
+Whole BRT days were resampled with replacement, but each replicate preserved the state-level target weight by using `total gain / total sampled states`.
+
+```text
+VALIDATION
+Brier   +0.000367618 CI[-0.001088114,+0.001750727] P>0=68.38%
+LogLoss +0.001344023 CI[-0.001888555,+0.003964425] P>0=80.50%
+
+TEST
+Brier   +0.001246203 CI[-0.000699452,+0.003266137] P>0=89.02%
+LogLoss +0.003743185 CI[-0.000009998,+0.006918390] P>0=97.43%
+```
+
+The state-weighted point gain is positive in both OOS periods, but the dependence-aware confidence intervals still cross zero. Thus Exp25 does NOT provide new confirmatory evidence for Scale; it only clarifies the estimand issue.
+
+### Informative cluster size is strongly present
+
+Cluster size is positively related to mean SCALE-vs-BASE gain in every split and at both day and episode levels. Examples:
+
+```text
+VALIDATION rho(day N,meanGain): Brier +0.5737 / LL +0.7324
+VALIDATION rho(ep N,meanGain):  Brier +0.6122 / LL +0.6686
+TEST rho(day N,meanGain):       Brier +0.4749 / LL +0.5508
+TEST rho(ep N,meanGain):        Brier +0.5311 / LL +0.5837
+```
+
+The exact weighting identity also holds numerically:
+
+```text
+STATE_WEIGHTED - EQUAL_CLUSTER
+= Cov(cluster_size, cluster_mean_gain) / E[cluster_size]
+```
+
+For example, Validation LogLoss STATE-DAY difference is +0.013176003 and the covariance identity gives exactly +0.013176003; Test LogLoss STATE-EP difference is +0.032996801 and the identity gives exactly +0.032996801.
+
+This demonstrates that the pooled/equal-cluster sign reversal is driven by informative cluster size / weighting, not merely by a generic failure to account for dependence.
+
+### Permanent methodological rule from Exp25
+
+```text
+ESTIMAND MUST BE DECLARED BEFORE THE EXPERIMENT.
+DEPENDENCE CORRECTION MUST PRESERVE THAT ESTIMAND.
+```
+
+For Track D transition-kernel questions of the form `given the current M5 structural state, what is the next-state distribution?`, the natural primary estimand is STATE_WEIGHTED because each runtime prediction corresponds to one current state. The primary uncertainty procedure is therefore whole-day cluster resampling with the replicate statistic `total score gain / total sampled states`.
+
+DAY_WEIGHTED and EPISODE_WEIGHTED remain mandatory heterogeneity diagnostics. They are not silently substituted for the state-level estimand. If a future deployment policy acts once per episode or once per day, that policy must preregister the corresponding estimand separately.
+
+Exp24 remains rejected and Scale cannot be rescued from this audit.
+
+## Exp26 frozen — BACKBONE ESTIMAND RE-AUDIT
+
+Before adding any new Track D feature, re-audit the two surviving structural steps under the corrected inferential contract.
+
+No new feature and no refit beyond deterministic reconstruction of the original frozen baselines.
+
+### Frozen comparisons
+
+```text
+A) Exp20 geometry-only one-step kernel vs frozen TRAIN class-frequency constant baseline.
+
+Exp20 geometry kernel:
+ADVANCE-vs-STAY   intercept=-3.517028, geo=+0.857591
+RECAPTURE-vs-STAY intercept=-3.813144, geo=-0.844111
+
+B) Exp21 semi-Markov kernel vs Exp20 geometry-only kernel.
+
+Exp21 SEMI:
+ADVANCE   [-2.337951, +0.920362, -0.617819]
+RECAPTURE [-2.788824, -0.786389, -0.535507]
+```
+
+### Primary inference
+
+For Validation and Test, use STATE_WEIGHTED Brier and LogLoss with whole-day cluster bootstrap preserving state weights (`sum gain / sum states` per bootstrap replicate).
+
+Also report equal-day and equal-episode estimands as heterogeneity diagnostics and cluster-size correlations. No feature tuning, no coefficient refit, no thresholds, no Clock/D1/Z/Fib/weekday, no Scale, no HMM.
+
+### Interpretation
+
+If Exp20 geometry and Exp21 dwell improvements remain positive under the corrected STATE_WEIGHTED cluster inference, the `Active Frontier + Position + Dwell` backbone is methodologically strengthened before fresh forward validation. If one fails, its previous status must be downgraded for future integration even though no old result is rewritten retroactively.
+
+Repeatedly inspected TEST remains exploratory. No runtime promotion.
