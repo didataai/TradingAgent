@@ -1,418 +1,263 @@
-# Track-D Temporary Checkpoint — Exp38 through Exp43
+# Track-D Temporary Checkpoint — Exp38 through Exp44
 
 Date: 2026-08-13
 
-Purpose: compact temporary checkpoint for Track-D. Later fold into `docs/GOLD_DISCOVERY_HISTORY.md` and delete this file. Historical OOS has been repeatedly inspected; runtime promotion remains `NONE`; Exp27 remains untouched.
+Temporary compact checkpoint. Later fold into `docs/GOLD_DISCOVERY_HISTORY.md` and delete. Historical OOS repeatedly inspected; `RUNTIME_PROMOTION=NONE`; Exp27 untouched.
 
----
-
-## Shared exact backbone
+## Exact shared backbone
 
 ```text
 parent sign = sign(parent_close-parent_open)
-TRUE FULL onset = current FULL
-                  AND exact 5-minute M5 contiguity
-                  AND current FULL state != previous state
+TRUE FULL onset = current FULL + exact 5m contiguity + current FULL != previous state
+
+events=5209 | L1 eligible=4786 | raw touches=2588 | unique touches=2310
+OUTSIDE_15=1091 | active L2=1013 | raw dynamic=9826 | unique dynamic=9667
+TRAIN 5612 states/596 episodes/207 days
+VAL   1959/204/80
+TEST  2096/212/73
+cutoff < 2026-08-13 00:00 BRT | Exp27 starts there and is untouched
 ```
 
-Frozen Exp20/21 universe:
-
-```text
-events=5209
-L1 eligible=4786
-raw touches=2588
-unique touches=2310
-OUTSIDE_15=1091
-active L2=1013
-raw dynamic rows=9826
-unique dynamic rows=9667
-
-TRAIN      5612 states / 596 episodes / 207 days
-VALIDATION 1959 / 204 / 80
-TEST       2096 / 212 / 73
-```
-
-Hard historical cutoff: `< 2026-08-13 00:00:00 BRT`.
-Exp27 shadow start: `2026-08-13 00:00:00 BRT` and remains untouched.
 Any reproduction guard mismatch => abort before score.
 
----
+## Exp38 — Forward Active Stack — REJECTED
 
-## Exp38 — Forward Active-Frontier Stack — REJECTED
-
-Frozen family: `GAP1/GAP2/GAP3/STACK_CV` for active L3-L5 beyond L2.
+`GAP1/GAP2/GAP3/STACK_CV` JOINT4 vs frozen SEMI:
 
 ```text
-JOINT4 vs frozen Exp21 SEMI
 VAL  Brier +0.002285528 CI[+0.000212268,+0.004831991]
 VAL  LL    +0.005249016 CI[+0.000930910,+0.010848211]
 TEST Brier -0.000552405 CI[-0.002152305,+0.000892810]
 TEST LL    -0.000872800 CI[-0.003473133,+0.001601815]
-
-FORWARD_ACTIVE_STACK_INCREMENTAL_FAMILY = REJECTED
+FORWARD_ACTIVE_STACK_INCREMENTAL_FAMILY=REJECTED
 ```
 
-No GAP3/subset/L6-L7/threshold/transform rescue.
+No subset/GAP3/L6-L7/transform rescue.
 
----
+## Exp39 — In-Corridor Path — REJECTED
 
-## Exp39 — In-Corridor Path Dynamics — REJECTED
-
-Frozen family:
+Frozen `PATH_LENGTH/VISITED_SPAN/TURN_RATE/SIGNED_EFFICIENCY/FORWARD_RETRACE/BACK_RETRACE`.
 
 ```text
-HAZARD: PATH_LENGTH, VISITED_SPAN, TURN_RATE
-SIDE:   SIGNED_EFFICIENCY, FORWARD_RETRACE, BACK_RETRACE
-```
-
-```text
-JOINT6 vs frozen SEMI
 VAL  Brier +0.000165920 CI[-0.002574581,+0.002666242]
 VAL  LL    +0.001112041 CI[-0.003997531,+0.006368177]
 TEST Brier -0.001014505 CI[-0.003461134,+0.001367184]
 TEST LL    -0.001854969 CI[-0.006554982,+0.002366650]
-
-IN_CORRIDOR_PATH_DYNAMICS_INCREMENTAL_FAMILY = REJECTED
-HAZARD3_INCREMENT = NOT_TRANSPORTABLE
-SIDE3_INCREMENT = NOT_CONFIRMED
+IN_CORRIDOR_PATH_DYNAMICS_INCREMENTAL_FAMILY=REJECTED
 ```
 
-No path subset, BACK_RETRACE-only, short-window, transform or Exp38+39 rescue.
-Consequence after Exp38/39: no stable third coordinate emerged. Representation remains `Current Active Corridor + CorridorPosition + Dwell`.
-
----
+No path/subset/context rescue. No stable third coordinate emerged.
 
 ## Exp40 — Multi-Horizon Competing Risk — FULL PASS
 
-Frozen horizons: `15/30/60/120m`.
-Target: `NO_EXIT / ADVANCE first / RECAPTURE first`, using future M5 CLOSE against fixed starting L1/L2.
-
-Models fit TRAIN-only separately by horizon:
+Horizons `15/30/60/120m`, target `NO_EXIT/ADVANCE/RECAPTURE`.
 
 ```text
-CONST_H
-POSITION_H = geo_logit(CorridorPosition)
-SEMI_H     = geo_logit(CorridorPosition) + log1p(DwellBars)
+coverage TRAIN 96.58% | VAL 96.69% | TEST 95.52%
+Gate A POSITION vs CONST: 4/4 PASS
+Gate B SEMI vs POSITION: 4/4 PASS
+FULL_MULTI_HORIZON_CORRIDOR_DNA=PASS
 ```
+
+Primary gains:
+
+```text
+Gate A
+VAL Brier +0.068522504 CI[+0.052223083,+0.088188747]
+VAL LL    +0.123128112 CI[+0.094352882,+0.156897241]
+TEST Brier +0.066104081 CI[+0.045185778,+0.090946002]
+TEST LL    +0.134257871 CI[+0.102439102,+0.171966385]
+
+Gate B
+VAL Brier +0.028578386 CI[+0.006232356,+0.053713004]
+VAL LL    +0.050518703 CI[+0.017348802,+0.087527059]
+TEST Brier +0.045060038 CI[+0.015658408,+0.073945664]
+TEST LL    +0.070092690 CI[+0.028448330,+0.113572228]
+```
+
+Interpretation: `Position -> WHICH SIDE`; `Dwell -> WHEN/WHETHER EXIT`.
+
+## Exp41 — Shared Survival Law — FULL PASS
+
+One TRAIN-fitted law, `k=1..24`, shared Position/Dwell coefficients.
+
+```text
+TRAIN person-period=67550 | STAY=63795 ADV=1559 REC=2196
+POSITION: ADV geo +0.48459159 | REC geo -0.46233758
+SEMI: ADV geo +0.56488735 dwell -0.49064436
+      REC geo -0.38927814 dwell -0.34241833
+```
+
+```text
+Gate A POSITION_SURV vs BASE_SURV: 4/4 PASS
+VAL Brier +0.064694268 CI[+0.049262455,+0.083489471]
+VAL LL    +0.116126448 CI[+0.089068821,+0.148688916]
+TEST Brier +0.064276674 CI[+0.044789535,+0.087118857]
+TEST LL    +0.125316939 CI[+0.095287646,+0.161435467]
+
+Gate B SEMI_SURV vs POSITION_SURV: 4/4 PASS
+VAL Brier +0.029476939 CI[+0.009247834,+0.052242895]
+VAL LL    +0.045646123 CI[+0.016119684,+0.078881841]
+TEST Brier +0.043172318 CI[+0.017482273,+0.068635147]
+TEST LL    +0.061707360 CI[+0.023525791,+0.100625463]
+
+SHARED_SURVIVAL_CORRIDOR_LAW=PASS
+```
+
+## Exp42 — Directional Transport — STRICT FAIL / POSITION PASS
+
+Exact Exp41 law scored separately on `FULL_UP/FULL_DOWN`; no refit. Coverage 93.24%–98.98%.
+
+```text
+Gate A POSITION vs BASE: 8/8 PASS
+DIRECTIONAL_POSITION_TRANSPORT=PASS
+
+Gate B SEMI vs POSITION: 7/8 PASS
+single fail = FULL_UP VAL Brier
++0.027203943 CI[-0.000697083,+0.058845588]
+DIRECTIONAL_DWELL_TRANSPORT=FAIL
+
+ORIENTED_SHARED_SURVIVAL_LAW=FAIL
+EXP41_STATUS=PRESERVED_FULL_PASS
+```
+
+Interpretation: Position directional invariance established; Dwell pooled value preserved but exact directional invariance not established.
+
+## Exp43 — Chronological Transport — STRICT FAIL / POSITION PASS
+
+Frozen cuts before score:
+
+```text
+VAL_TIME_CUT  = 2026-03-05 00:00 BRT
+TEST_TIME_CUT = 2026-06-21 00:00 BRT
+```
+
+Cuts classify starting `state_time` only and never censor/redefine outcomes.
+
+Exact pre-score reproduction PASS: all Exp20/21 guards, all Exp41 cells, 67550 person-period rows, all Exp41 coefficients (~1e-9), and all pooled Exp41 scores (~5e-10).
 
 Coverage:
 
 ```text
-TRAIN      21681/22448 = 96.58%
-VALIDATION  7577/ 7836 = 96.69%
-TEST        8008/ 8384 = 95.52%
+VAL_EARLY 3169/3252=97.45% | 40 days
+VAL_LATE  4408/4584=96.16% | 40 days
+TEST_EARLY 4196/4312=97.31% | 37 days
+TEST_LATE  3812/4072=93.61% | 36 days
+EXP43_TEMPORAL_COVERAGE_STATUS=PASS
 ```
 
-Frozen pooled inference:
+Gate A `POSITION_SURV vs BASE_SURV`: all 8 mandatory cells PASS.
 
 ```text
-Gate A POSITION vs CONST
-VAL  Brier +0.068522504 CI[+0.052223083,+0.088188747]
-VAL  LL    +0.123128112 CI[+0.094352882,+0.156897241]
-TEST Brier +0.066104081 CI[+0.045185778,+0.090946002]
-TEST LL    +0.134257871 CI[+0.102439102,+0.171966385]
-4/4 PASS
-
-Gate B SEMI vs POSITION
-VAL  Brier +0.028578386 CI[+0.006232356,+0.053713004]
-VAL  LL    +0.050518703 CI[+0.017348802,+0.087527059]
-TEST Brier +0.045060038 CI[+0.015658408,+0.073945664]
-TEST LL    +0.070092690 CI[+0.028448330,+0.113572228]
-4/4 PASS
-
-FULL_MULTI_HORIZON_CORRIDOR_DNA = PASS
+VAL_EARLY  Brier +0.071899750 CI[+0.045636463,+0.103383049]
+           LL    +0.132106618 CI[+0.086957014,+0.184541062]
+VAL_LATE   Brier +0.059514102 CI[+0.041369150,+0.084533283]
+           LL    +0.104637982 CI[+0.074317816,+0.144941756]
+TEST_EARLY Brier +0.074332315 CI[+0.049825898,+0.110697659]
+           LL    +0.145228236 CI[+0.109354207,+0.200338253]
+TEST_LATE  Brier +0.053208082 CI[+0.022775554,+0.087608038]
+           LL    +0.103399888 CI[+0.053588957,+0.160624797]
+TEMPORAL_POSITION_TRANSPORT=PASS
 ```
 
-Mechanistic diagnostic: `CorridorPosition -> WHICH SIDE`; `Dwell -> WHEN / WHETHER EXIT`.
-Exp40 does not retroactively rewrite Exp21 one-step status.
-
----
-
-## Exp41 — Shared Discrete-Time Competing-Risk Survival Law — FULL PASS
-
-Question: can one TRAIN-fitted law replace four horizon-specific models?
+Gate B `SEMI_SURV vs POSITION_SURV`: 5/8 PASS; 3 formal failures.
 
 ```text
-BASE_SURV:
- ADV vs STAY = alpha_ADV[k]
- REC vs STAY = alpha_REC[k]
-
-POSITION_SURV:
- ADV vs STAY = alpha_ADV[k] + beta_ADV_geo*geo0
- REC vs STAY = alpha_REC[k] + beta_REC_geo*geo0
-
-SEMI_SURV:
- ADV vs STAY = alpha_ADV[k] + beta_ADV_geo*geo0 + beta_ADV_dwell*dwell0
- REC vs STAY = alpha_REC[k] + beta_REC_geo*geo0 + beta_REC_dwell*dwell0
+VAL_EARLY  Brier +0.025041449 CI[+0.000239236,+0.057807736] PASS
+           LL    +0.034151108 CI[-0.000120172,+0.079468233] FAIL
+VAL_LATE   Brier +0.032665703 CI[+0.003237930,+0.065185118] PASS
+           LL    +0.053910121 CI[+0.011663585,+0.100295159] PASS
+TEST_EARLY Brier +0.071452772 CI[+0.032989795,+0.108510618] PASS
+           LL    +0.108158802 CI[+0.053014253,+0.159435177] PASS
+TEST_LATE  Brier +0.012043046 CI[-0.010328393,+0.038408425] FAIL
+           LL    +0.010576653 CI[-0.024393174,+0.050233614] FAIL
+TEMPORAL_DWELL_TRANSPORT=FAIL
 ```
 
-`k=1..24` future M5 steps; Position/Dwell coefficients shared across all future steps; starting covariates frozen at state_time.
-
-TRAIN person-period:
-
-```text
-67550 at-risk rows
-STAY=63795 | ADVANCE=1559 | RECAPTURE=2196
-```
-
-Shared TRAIN coefficients:
-
-```text
-POSITION_SURV
-beta_ADV_geo = +0.48459159
-beta_REC_geo = -0.46233758
-
-SEMI_SURV
-beta_ADV_geo   = +0.56488735
-beta_ADV_dwell = -0.49064436
-beta_REC_geo   = -0.38927814
-beta_REC_dwell = -0.34241833
-```
-
-Pooled scores:
-
-```text
-VALIDATION
-BASE_SURV      Brier .551497773 | LL .935442929
-POSITION_SURV  Brier .486803505 | LL .819316481
-SEMI_SURV      Brier .457326565 | LL .773670357
-
-TEST
-BASE_SURV      Brier .541519940 | LL .921174237
-POSITION_SURV  Brier .477243267 | LL .795857298
-SEMI_SURV      Brier .434070949 | LL .734149938
-```
-
-Frozen inference:
-
-```text
-Gate A POSITION_SURV vs BASE_SURV
-VAL  Brier +0.064694268 CI[+0.049262455,+0.083489471]
-VAL  LL    +0.116126448 CI[+0.089068821,+0.148688916]
-TEST Brier +0.064276674 CI[+0.044789535,+0.087118857]
-TEST LL    +0.125316939 CI[+0.095287646,+0.161435467]
-4/4 PASS
-
-Gate B SEMI_SURV vs POSITION_SURV
-VAL  Brier +0.029476939 CI[+0.009247834,+0.052242895]
-VAL  LL    +0.045646123 CI[+0.016119684,+0.078881841]
-TEST Brier +0.043172318 CI[+0.017482273,+0.068635147]
-TEST LL    +0.061707360 CI[+0.023525791,+0.100625463]
-4/4 PASS
-
-SHARED_SURVIVAL_CORRIDOR_LAW = PASS
-```
-
-Cumulative coherence: `P(NO_EXIT)` non-increasing 100%; `CIF_ADV/CIF_REC` non-decreasing 100%; probability-sum error ~1e-15.
-Interpretation: most multi-horizon information is representable by one coherent shared survival law. Historical exploratory only; not a trading-rule backtest.
-
----
-
-## Exp42 — Directional Orientation Transport Stress — STRICT FAIL / POSITION PASS
-
-Frozen question: does the exact Exp41 shared law transport separately on `FULL_UP` and `FULL_DOWN` with no side-specific refit, coefficient, interaction or recalibration?
-
-First runner had an implementation-only abort before score (`_, p = X.shape` accidentally split); corrected to `p = X.shape[1]`. All scientific guards and frozen definitions remained unchanged.
-
-Directional coverage:
-
-```text
-TRAIN      FULL_UP    12355/12900 = 95.78% | 155 days
-TRAIN      FULL_DOWN   9326/ 9548 = 97.67% | 136 days
-VALIDATION FULL_UP     4946/ 5108 = 96.83% |  60 days
-VALIDATION FULL_DOWN   2631/ 2728 = 96.44% |  50 days
-TEST       FULL_UP     3294/ 3328 = 98.98% |  48 days
-TEST       FULL_DOWN   4714/ 5056 = 93.24% |  55 days
-
-EXP42_DIRECTIONAL_COVERAGE_STATUS = PASS
-```
-
-Gate A — `POSITION_SURV vs BASE_SURV`: all 8 required cells passed.
-
-```text
-FULL_UP
-VAL  Brier +0.069481861 CI[+0.054100740,+0.090630389]
-VAL  LL    +0.122427403 CI[+0.095841095,+0.157387584]
-TEST Brier +0.083056809 CI[+0.052242420,+0.116816723]
-TEST LL    +0.153321640 CI[+0.102127660,+0.208578473]
-
-FULL_DOWN
-VAL  Brier +0.055694102 CI[+0.030473750,+0.092179533]
-VAL  LL    +0.104281323 CI[+0.060593513,+0.165807684]
-TEST Brier +0.051153685 CI[+0.028903912,+0.081840188]
-TEST LL    +0.105748105 CI[+0.071689001,+0.153338802]
-
-DIRECTIONAL_POSITION_TRANSPORT = PASS
-```
-
-Gate B — `SEMI_SURV vs POSITION_SURV`: 7/8 required cells passed. Single frozen failure:
-
-```text
-FULL_UP
-VAL  Brier +0.027203943 CI[-0.000697083,+0.058845588] P(gain>0)=97.17% FAIL
-VAL  LL    +0.045765281 CI[+0.006816751,+0.090915748] PASS
-TEST Brier +0.049818941 CI[+0.011315900,+0.087460504] PASS
-TEST LL    +0.068244270 CI[+0.001882444,+0.127311083] PASS
-
-FULL_DOWN
-VAL  Brier +0.033749932 CI[+0.004651520,+0.068385328] PASS
-VAL  LL    +0.045422119 CI[+0.006422495,+0.092879098] PASS
-TEST Brier +0.038527860 CI[+0.008100386,+0.072780030] PASS
-TEST LL    +0.057139566 CI[+0.013066197,+0.105741821] PASS
-
-DIRECTIONAL_DWELL_TRANSPORT = FAIL
-```
-
-Point gain remained positive in the failed cell, but preregistered criterion required CI95 lower bound >0. No rescue. Every frozen horizon had positive point gain for both nested gates in both directions, Validation and TEST; diagnostics do not rescue the formal gate.
+Diagnostics only: all Position horizon gains positive. Dwell becomes weak in TEST_LATE and is negative at TEST_LATE 120m (`Brier -0.005953`, `LL -0.026558`); EXIT AUC delta at TEST_LATE 120m is `-0.0164`. No rescue.
 
 Formal:
 
 ```text
-EXP42_DIRECTIONAL_COVERAGE_STATUS = PASS
-DIRECTIONAL_POSITION_TRANSPORT = PASS
-DIRECTIONAL_DWELL_TRANSPORT = FAIL
-ORIENTED_SHARED_SURVIVAL_LAW = FAIL
-EXP42_FORMAL_STATUS = FAIL
-EXP41_STATUS = PRESERVED_FULL_PASS
-EXP27 = UNTOUCHED
-RUNTIME_PROMOTION = NONE
+EXP43_TEMPORAL_COVERAGE_STATUS=PASS
+TEMPORAL_POSITION_TRANSPORT=PASS
+TEMPORAL_DWELL_TRANSPORT=FAIL
+CHRONOLOGICALLY_STABLE_SHARED_SURVIVAL_LAW=FAIL
+EXP43_FORMAL_STATUS=FAIL
+EXP40_STATUS=PRESERVED_FULL_PASS
+EXP41_STATUS=PRESERVED_FULL_PASS
+EXP42_POSITION_TRANSPORT_STATUS=PRESERVED_PASS
+EXP27=UNTOUCHED
+RUNTIME_PROMOTION=NONE
 ```
 
-Preferred interpretation:
+Current scientific wording:
 
 ```text
-CorridorPosition: WHICH SIDE; directional transport PASS.
-Dwell: WHEN/WHETHER EXIT; pooled shared-law PASS, exact directional invariance not established.
+CorridorPosition = robust structural core for WHICH SIDE; passed pooled, multi-horizon, directional and chronological tests.
+Dwell = real pooled WHEN/WHETHER EXIT extension; exact directional and chronological invariance not established.
 ```
 
-Anti-rescue remains frozen: no side-specific refit/bias coefficient/interaction/calibration/threshold; no horizon subset; no elapsed-step interaction; no alternate Position/Dwell transform; no Exp38/39 or D1/Clock/Z/Fib/weekday/Scale/Energy/HMM rescue; no Validation/TEST refit; no Exp27 peek.
+No Markov-sufficiency claim. No post-hoc Dwell rescue with alternate cuts/refits/interactions/thresholds/subsets/transforms/context.
 
 ---
 
-# Exp43 — Chronological Transport Stability Stress — FROZEN
+# Exp44 — Joint Direction × Time Position Transport Stress — FROZEN
 
-Date frozen: 2026-08-13, after Exp42 completion and before any Exp43 environment score is inspected.
+Frozen 2026-08-13 after Exp43 result and before any Exp44 joint score.
 
-## Scientific question
+Question: does the exact original TRAIN-fitted `POSITION_SURV` core transport when direction and chronology are crossed simultaneously, with no refit, interaction, recalibration, threshold or Dwell primary term?
 
-Does the exact pooled TRAIN-fitted Exp41 shared survival law transport through chronological sub-environments inside historical Validation and TEST, without era-specific refit, coefficient, interaction, recalibration, threshold or feature change?
-
-This is a temporal transportability stress test, not a predictor search and not a rescue of Exp42.
-
-## Frozen model
-
-Use the exact same Exp41 TRAIN-fitted models and parameters unchanged:
+Frozen models:
 
 ```text
 BASE_SURV
 POSITION_SURV
-SEMI_SURV
+PRIMARY = POSITION_SURV vs BASE_SURV
 ```
 
-No refit outside the original pooled TRAIN. Starting covariates remain exactly:
+Reuse exact Exp41 cells, `geo0=logit(CorridorPosition)`, `k=1..24`, horizons `15/30/60/120m`.
+
+Joint environments use only already-frozen Exp42 direction and Exp43 time definitions:
 
 ```text
-geo0   = logit(CorridorPosition)
-dwell0 = log1p(DwellBars)
+VAL_EARLY × FULL_UP
+VAL_EARLY × FULL_DOWN
+VAL_LATE  × FULL_UP
+VAL_LATE  × FULL_DOWN
+TEST_EARLY × FULL_UP
+TEST_EARLY × FULL_DOWN
+TEST_LATE  × FULL_UP
+TEST_LATE  × FULL_DOWN
 ```
 
-Future at-risk steps remain `k=1..24` M5 and cumulative horizons remain exactly `15/30/60/120m`.
+Primary within each environment: `STATE_HORIZON_WEIGHTED`; uncertainty = whole-BRT-day bootstrap; coverage >=70%.
 
-## Frozen chronological environments
-
-Environment membership is determined only by the starting `state_time`. The temporal cut is a grouping variable only: it does NOT censor, truncate or redefine the future outcome. Existing Exp41 eligible state-horizon cells are reused exactly.
-
-Exact split midpoints are:
+Frozen formal gate: `POSITION_SURV vs BASE_SURV` must have Brier and LogLoss CI95 lower bound >0 in all 8 joint environments = 16 mandatory cells.
 
 ```text
-VALIDATION exact midpoint = 2026-03-05 11:45:00 BRT
-TEST       exact midpoint = 2026-06-21 05:20:00 BRT
+JOINT_DIRECTION_TIME_POSITION_TRANSPORT=PASS only if all 16 cells pass
+ROBUST_POSITION_CORE=PASS only if coverage and 16-cell gate pass
 ```
 
-To avoid introducing a new within-day cut, each midpoint is deterministically rounded to the nearest BRT midnight before any score:
+Coverage failure => `UNDERPOWERED_JOINT_COVERAGE`, not scientific FAIL.
+
+Diagnostics only: counts, class distributions, horizon gains, EXIT/SIDE AUC, calibration, descriptive direction/time gain differences.
+
+Anti-rescue:
 
 ```text
-VAL_TIME_CUT  = 2026-03-05 00:00:00 BRT
-TEST_TIME_CUT = 2026-06-21 00:00:00 BRT
-```
-
-Frozen environments:
-
-```text
-VALIDATION_EARLY: SPLIT_A <= state_time < VAL_TIME_CUT
-VALIDATION_LATE:  VAL_TIME_CUT <= state_time < SPLIT_B
-TEST_EARLY:       SPLIT_B <= state_time < TEST_TIME_CUT
-TEST_LATE:        TEST_TIME_CUT <= state_time < SHADOW_START
-```
-
-No alternative cut may be selected after results.
-
-## Estimand and uncertainty
-
-Within each chronological environment separately:
-
-```text
-PRIMARY = STATE_HORIZON_WEIGHTED pooled across 15/30/60/120m
-UNCERTAINTY = whole-BRT-day bootstrap preserving all eligible cells for each environment/day
-```
-
-Coverage gate per environment: eligible cells / theoretical four-horizon cells >=70%.
-
-## Frozen gates
-
-Gate A — `POSITION_SURV vs BASE_SURV` must have Brier and LogLoss gain CI95 lower bound >0 in ALL four chronological environments:
-
-```text
-VALIDATION_EARLY
-VALIDATION_LATE
-TEST_EARLY
-TEST_LATE
-```
-
-This is 8 mandatory proper-score cells.
-
-Gate B — `SEMI_SURV vs POSITION_SURV` must satisfy the same 8 mandatory cells.
-
-Formal:
-
-```text
-TEMPORAL_POSITION_TRANSPORT = PASS only if Gate A passes all 8 cells
-TEMPORAL_DWELL_TRANSPORT = PASS only if Gate B passes all 8 cells
-CHRONOLOGICALLY_STABLE_SHARED_SURVIVAL_LAW = PASS only if both gates pass
-```
-
-If any environment has coverage <70%, formal status is `UNDERPOWERED_TEMPORAL_COVERAGE`, not PASS/FAIL.
-
-## Diagnostics only
-
-```text
-state/cell/day counts by environment
-observed competing-risk distribution by environment/horizon
-horizon point gains
-EXIT/SIDE AUC
-calibration summaries
-early-minus-late gain differences
-```
-
-Diagnostics cannot rescue either gate.
-
-## Anti-rescue
-
-```text
-NO alternate temporal cut after result
-NO month/week/day cherry-picking
-NO rolling-window rescue
-NO era-specific refit
-NO temporal intercept/coefficient recalibration
-NO time/era coefficient or interaction
-NO side-specific refit or bias_sign interaction
-NO horizon subset rescue
-NO elapsed-step interaction rescue
-NO alternate Position/Dwell transform
-NO Exp38/39 coordinates
-NO D1/Clock/Z/Fib/weekday/Scale/Energy/HMM context rescue
-NO Validation/TEST refit
+NO alternate time cut or direction definition
+NO dropping joint environment
+NO horizon subset
+NO direction/time interaction
+NO direction/era-specific coefficient
+NO intercept recalibration
+NO Position transform/threshold/bucket
+NO Dwell primary rescue
+NO Exp38/39 or D1/Clock/Z/Fib/weekday/Scale/Energy/HMM context
+NO VAL/TEST refit
 NO Exp27 scoring/modification
 ```
 
-Failure of Exp43 does not erase Exp40, Exp41 or the separate Exp42 Position transport PASS. Historical OOS remains exploratory. Runtime promotion = NONE.
+Exp44 failure cannot erase Exp40/41 or separate Exp42/43 Position passes. Historical OOS exploratory; runtime promotion NONE.
