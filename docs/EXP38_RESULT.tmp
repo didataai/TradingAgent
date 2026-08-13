@@ -173,4 +173,8 @@ The runnable Exp39 implementation was issued after the family freeze. It reprodu
 
 The first Exp39 runnable block did not execute any research logic. It failed immediately while decoding the chat-delivered compressed payload with `zlib.error: incorrect data check`. This is a transport/integrity failure only; no data were loaded, no model was fit, no score was inspected, and the frozen Exp39 scientific contract remains unchanged. The replacement runnable is delivered without compressed zlib transport.
 
+## 2026-08-13 — onset-reproduction correction before scoring
+
+The first uncompressed Exp39 runnable also aborted before any new score: the upstream guard produced `events=4379` instead of the frozen `5209`. The cause is implementation-only. The runnable incorrectly required the prior M5 bar to be exactly contiguous AND the FULL state to change. The frozen Exp20/21 onset semantics restart a FULL episode whenever the current M5 state is FULL and either (a) the prior FULL state differs OR (b) the prior M5 bar is not exactly 5 minutes contiguous. A gap therefore starts a new causal segment; it is not an eligibility exclusion. No Exp39 model, feature score, Validation result, or TEST result was inspected. The scientific contract remains unchanged.
+
 This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted during the next full canonical-history rewrite.
