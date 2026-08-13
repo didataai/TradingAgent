@@ -1,0 +1,96 @@
+# Exp38 — Forward Active-Frontier Stack Family
+
+Date: 2026-08-13
+
+Status: REJECTED under frozen family contract.
+
+The first Exp38 execution aborted before scoring because the reconstructed Exp20/21 universe did not match the frozen backbone. That was an implementation-only failure. The corrected run reproduced the upstream and dynamic-state checkpoints exactly before any scientific scoring:
+
+```text
+events=5209
+L1 eligible=4786
+raw touches=2588
+unique touches=2310
+OUTSIDE_15=1091
+active L2=1013
+raw dynamic rows=9826
+unique dynamic rows=9667
+
+TRAIN      states=5612 episodes=596 days=207
+VALIDATION states=1959 episodes=204 days=80
+TEST       states=2096 episodes=212 days=73
+```
+
+Batch coverage passed strongly:
+
+```text
+TRAIN      states 94.12% | episodes 91.11%
+VALIDATION states 94.18% | episodes 94.12%
+TEST       states 100.00% | episodes 100.00%
+```
+
+Frozen candidate family:
+
+```text
+GAP1 = L2->L3 / current corridor width
+GAP2 = L3->L4 / current corridor width
+GAP3 = L4->L5 / current corridor width
+STACK_CV = coefficient of variation of the three gaps
+```
+
+Features were frozen at episode origin, transformed with log1p and TRAIN z-score. The exact Exp21 SEMI kernel remained frozen. New terms entered ADVANCE-vs-STAY only.
+
+TRAIN-only joint coefficients were all positive:
+
+```text
+GAP1     +0.091363
+GAP2     +0.102712
+GAP3     +0.118859
+STACK_CV +0.102264
+```
+
+Validation showed a clear apparent gain:
+
+```text
+Brier   +0.002285528 CI[+0.000212268,+0.004831991]
+LogLoss +0.005249016 CI[+0.000930910,+0.010848211]
+```
+
+TEST did not transport:
+
+```text
+Brier   -0.000552405 CI[-0.002152305,+0.000892810]
+LogLoss -0.000872800 CI[-0.003473133,+0.001601815]
+```
+
+Therefore:
+
+```text
+EXP38_PRIMARY_FAMILY_STRICT_PASS = FALSE
+FORWARD_ACTIVE_STACK_INCREMENTAL_FAMILY = REJECTED
+```
+
+Descriptive univariates cannot rescue the family. GAP1 was the strongest Validation univariate but negative in TEST. GAP3 remained the only positive TEST univariate and positive TEST drop-one LogLoss contribution, but both were frozen diagnostics only; family selection after the result is prohibited.
+
+AUC for ADVANCE improved slightly in all splits under JOINT4, but score calibration worsened in TEST. This suggests the forward stack may carry weak ranking information while the fitted static probability increment is not transportable. This is not sufficient for survival under the frozen proper-score contract.
+
+Anti-repeat:
+
+```text
+NO GAP3-only rescue
+NO L6/L7 extension
+NO threshold/bucket tuning
+NO alternate transform
+NO dynamic-stack recomputation during dwell
+NO side split
+NO D1/Clock/Z/Fib/weekday/Scale/Energy/HMM interaction rescue
+```
+
+Scientific consequence:
+- CorridorPosition remains the core Track-D coordinate.
+- Dwell remains the frozen challenger.
+- The deeper forward active stack is not accepted as a third stable coordinate under this static family formulation.
+- Exp27 remains untouched.
+- Runtime promotion remains NONE.
+
+This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and then deleted when the canonical history is next rewritten in full.
