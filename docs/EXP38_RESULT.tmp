@@ -169,4 +169,8 @@ Historical OOS remains exploratory. Runtime promotion = NONE.
 
 The runnable Exp39 implementation was issued after the family freeze. It reproduces the exact Exp20/21 upstream and dynamic-state checkpoints before any new score, derives all six path coordinates causally from episode origin through each state_time, and uses the frozen factorization `P(EXIT) x P(ADVANCE|EXIT)` with TRAIN-only added coefficients. No scientific definition was changed after inspecting Exp38.
 
+## 2026-08-13 — transport-only failure
+
+The first Exp39 runnable block did not execute any research logic. It failed immediately while decoding the chat-delivered compressed payload with `zlib.error: incorrect data check`. This is a transport/integrity failure only; no data were loaded, no model was fit, no score was inspected, and the frozen Exp39 scientific contract remains unchanged. The replacement runnable is delivered without compressed zlib transport.
+
 This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted during the next full canonical-history rewrite.
