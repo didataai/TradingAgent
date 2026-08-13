@@ -189,4 +189,23 @@ true_full_onset = current state FULL
 
 Therefore M5 gaps do NOT create an onset under the frozen historical backbone. The 4379/4532 mismatches came from reconstructing parent signs from the prepared `direction` field instead of the historical `sign(close-open)` implementation; the second attempt additionally changed the gap rule incorrectly. Both attempts are implementation-only aborts. No Exp39 HAZARD3, SIDE3, JOINT6, Validation score, or TEST score was inspected. The Exp39 scientific contract remains unchanged.
 
+## 2026-08-13 — historical onset semantics independently confirmed
+
+A dedicated pre-run audit, containing no Exp39 feature calculation, fit, Validation score or TEST score, reproduced the historical onset count exactly:
+
+```text
+M5 rows=99999
+M5 first=2025-03-14 16:50:00
+M5 last=2026-08-12 14:05:00
+
+sign(close-open), contiguous + state-change = 5209
+gap-restart diagnostic                  = 5372
+prepared direction, contiguous+change  = 4379
+prepared direction, gap-restart        = 4532
+
+HISTORICAL EXACT 5209/5209 = PASS
+```
+
+This confirms the frozen upstream semantics before the full Exp39 execution. The next runnable must use `sign(parent_close-parent_open)` plus the exact contiguous-5-minute state-change onset rule and must still reproduce every later Exp20/21 checkpoint before any Exp39 score is allowed.
+
 This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted during the next full canonical-history rewrite.
