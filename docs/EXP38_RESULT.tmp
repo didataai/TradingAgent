@@ -2,13 +2,22 @@
 
 Date: 2026-08-13
 
-Purpose: compact temporary checkpoint for the current Track-D research sequence. This file must later be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted. Runtime promotion remains NONE. Historical OOS is repeatedly inspected and remains exploratory.
+Purpose: compact temporary checkpoint for the current Track-D research sequence. It must later be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted. Historical OOS is repeatedly inspected; runtime promotion remains NONE; Exp27 remains untouched.
 
 ---
 
-## Exp38 — Forward Active-Frontier Stack Family — REJECTED
+## Shared exact backbone
 
-Exact Exp20/21 universe reproduced before scoring:
+The valid Exp38-41 branch uses the exact historical Track-D semantics:
+
+```text
+parent sign = sign(parent_close-parent_open)
+TRUE FULL onset = current FULL
+                  AND exact 5-minute M5 contiguity
+                  AND current FULL state != previous state
+```
+
+Exact frozen Exp20/21 universe:
 
 ```text
 events=5209
@@ -19,12 +28,17 @@ OUTSIDE_15=1091
 active L2=1013
 raw dynamic rows=9826
 unique dynamic rows=9667
+
 TRAIN      5612 states / 596 episodes / 207 days
 VALIDATION 1959 / 204 / 80
 TEST       2096 / 212 / 73
 ```
 
-Frozen family: `GAP1`, `GAP2`, `GAP3`, `STACK_CV`, describing deeper active levels L3-L5 at episode origin.
+---
+
+## Exp38 — Forward Active-Frontier Stack Family — REJECTED
+
+Frozen family: `GAP1`, `GAP2`, `GAP3`, `STACK_CV` describing deeper active levels L3-L5 at episode origin.
 
 Primary JOINT4 vs frozen Exp21 SEMI:
 
@@ -42,42 +56,20 @@ EXP38_PRIMARY_FAMILY_STRICT_PASS = FALSE
 FORWARD_ACTIVE_STACK_INCREMENTAL_FAMILY = REJECTED
 ```
 
-GAP3-only/subset/L6-L7/threshold/transform rescues are prohibited. Exp38 suggested at most weak ranking information, not a transportable static probability increment.
+No GAP3-only/subset/L6-L7/threshold/transform/context rescue.
 
 ---
 
 ## Exp39 — In-Corridor Path Dynamics Family — REJECTED
 
-Frozen six-coordinate causal path family:
+Frozen causal path family:
 
 ```text
 HAZARD: PATH_LENGTH, VISITED_SPAN, TURN_RATE
 SIDE:   SIGNED_EFFICIENCY, FORWARD_RETRACE, BACK_RETRACE
 ```
 
-Before valid scoring, implementation audits established the exact historical upstream semantics:
-
-```text
-parent sign = sign(parent_close-parent_open)
-TRUE FULL onset = current FULL
-                  AND exact 5-minute M5 contiguity
-                  AND current FULL state != previous state
-```
-
-Dedicated pre-run audit reproduced `5209` exact historical FULL onsets; prepared `direction` produced only `4379`, proving it was not the historical definition. No score was inspected during failed reproduction attempts.
-
-Valid run reproduced the exact Exp20/21 universe above. TRAIN path coordinates were strongly redundant, including state-weighted `rho(PATH_LENGTH,VISITED_SPAN)=0.9029` and episode-weighted `rho=0.9465`.
-
-TRAIN factorized coefficients:
-
-```text
-HAZARD PATH_LENGTH       -0.209319
-HAZARD VISITED_SPAN      +0.461219
-HAZARD TURN_RATE         -0.099886
-SIDE   SIGNED_EFFICIENCY -0.139144
-SIDE   FORWARD_RETRACE   -0.015379
-SIDE   BACK_RETRACE      +0.545116
-```
+Valid run reproduced the exact backbone. TRAIN path coordinates were redundant, including state-weighted `rho(PATH_LENGTH,VISITED_SPAN)=0.9029` and episode-weighted `rho=0.9465`.
 
 Primary JOINT6 vs frozen SEMI:
 
@@ -97,19 +89,17 @@ HAZARD3_INCREMENT = NOT_TRANSPORTABLE
 SIDE3_INCREMENT = NOT_CONFIRMED
 ```
 
-No PATH/VISITED_SPAN subset, BACK_RETRACE-only, TURN_RATE removal, recent 3/6/12-bar path, threshold/bucket, alternate transform, Exp38+Exp39 combination, or contextual rescue is allowed.
+No PATH subset, BACK_RETRACE-only, TURN_RATE removal, short-window path, threshold/bucket, alternate transform, Exp38+39 combination or contextual rescue.
 
-Scientific consequence after Exp38-39: `CorridorPosition` remains the core coordinate; `Dwell` remains the only preserved historical challenger; deeper frontier and realized path history do not provide a stable third one-step coordinate. This strengthens, without proving, local sufficiency of the current active corridor representation.
+Scientific consequence after Exp38-39: `CorridorPosition` remains the core coordinate; `Dwell` remains the only preserved historical challenger; deeper frontier and realized path history do not provide a stable third one-step coordinate.
 
 ---
 
-## Exp40 — Multi-Horizon Active-Corridor Competing-Risk Family — COMPLETED / FULL PASS
+## Exp40 — Multi-Horizon Active-Corridor Competing-Risk Family — FULL PASS
 
-### Frozen question
+Frozen horizons: `15m / 30m / 60m / 120m`.
 
-Does the information in the CURRENT ACTIVE corridor persist beyond one M5 transition at fixed horizons `15m / 30m / 60m / 120m`?
-
-Frozen competing-risk target from every exact Exp20/21 starting state:
+Frozen competing-risk target:
 
 ```text
 NO_EXIT
@@ -117,9 +107,7 @@ ADVANCE first by future M5 CLOSE
 RECAPTURE first by future M5 CLOSE
 ```
 
-Starting L1-L2 boundaries remain fixed for the state. Cells are censored if the future path becomes unobservable before the target is determined. Primary estimand is pooled `STATE_HORIZON_WEIGHTED`; whole BRT days are resampled preserving all state-horizon cells from each sampled day.
-
-Models are fit separately by horizon using TRAIN only:
+Models fit separately by horizon using TRAIN only:
 
 ```text
 CONST_H
@@ -127,23 +115,15 @@ POSITION_H = geo_logit(CorridorPosition)
 SEMI_H     = geo_logit(CorridorPosition) + log1p(DwellBars)
 ```
 
-### Exact reproduction and coverage
-
-All Exp20/21 upstream and split guards reproduced exactly before Exp40 scoring.
-
-Coverage strongly exceeded the frozen 70% floor:
+Exact Exp40 evaluation coverage:
 
 ```text
-TRAIN      21681/22448 cells = 96.58%; all-4 states 5220/5612 = 93.01%
-VALIDATION  7577/ 7836 cells = 96.69%; all-4 states 1831/1959 = 93.47%
-TEST        8008/ 8384 cells = 95.52%; all-4 states 1898/2096 = 90.55%
+TRAIN      21681/22448 cells = 96.58%
+VALIDATION  7577/ 7836 cells = 96.69%
+TEST        8008/ 8384 cells = 95.52%
 ```
 
-Censoring was driven by M5 gaps and rose smoothly with horizon. TEST eligibility remained 99.05% at 15m and 90.55% at 120m.
-
-### Observed competing-risk depth
-
-TEST:
+TEST class depth:
 
 ```text
 15m  NO_EXIT 77.50% | ADV  8.48% | REC 14.02%
@@ -152,64 +132,25 @@ TEST:
 120m NO_EXIT 33.14% | ADV 28.87% | REC 37.99%
 ```
 
-### TRAIN coefficient structure
-
-Position preserved the expected side geometry at every horizon: ADV geo coefficient positive and REC geo coefficient negative. Magnitudes attenuated with horizon.
-
-Dwell coefficients were negative for BOTH causes at every horizon:
+Dwell coefficients were negative for both causes at all horizons:
 
 ```text
-H=15m  ADV dwell=-0.691865 | REC dwell=-0.525664
-H=30m  ADV dwell=-0.708940 | REC dwell=-0.519087
-H=60m  ADV dwell=-0.754371 | REC dwell=-0.580955
-H=120m ADV dwell=-0.714698 | REC dwell=-0.593600
+15m  ADV -0.691865 | REC -0.525664
+30m  ADV -0.708940 | REC -0.519087
+60m  ADV -0.754371 | REC -0.580955
+120m ADV -0.714698 | REC -0.593600
 ```
 
-This is a stable duration-dependence signature: after current position is known, older surviving corridor states have lower cumulative exit propensity over the next fixed horizon.
-
-### Horizon diagnostics
-
-Every frozen horizon showed positive POSITION-vs-CONST and SEMI-vs-POSITION point gains in Validation and TEST. No horizon selection is permitted.
-
-TEST point gains:
+Frozen pooled primary inference:
 
 ```text
-15m  POS-CONST Brier +0.035063 | LL +0.110230 | SEMI-POS Brier +0.025171 | LL +0.050423
-30m  POS-CONST Brier +0.054507 | LL +0.133559 | SEMI-POS Brier +0.052732 | LL +0.077141
-60m  POS-CONST Brier +0.082683 | LL +0.153757 | SEMI-POS Brier +0.058615 | LL +0.081603
-120m POS-CONST Brier +0.095192 | LL +0.140869 | SEMI-POS Brier +0.044346 | LL +0.071952
-```
-
-### Pooled proper scores
-
-```text
-VALIDATION
-CONST     Brier 0.551099198 | LL 0.934900431
-POSITION  Brier 0.482576694 | LL 0.811772319
-SEMI      Brier 0.453998308 | LL 0.761253616
-
-TEST
-CONST     Brier 0.542666377 | LL 0.922853824
-POSITION  Brier 0.476562296 | LL 0.788595954
-SEMI      Brier 0.431502257 | LL 0.718503263
-```
-
-Relative to CONST, SEMI improves pooled TEST Brier by about 20.5% and LogLoss by about 22.1%. These percentages are descriptive effect-size summaries, not promotion criteria.
-
-### Frozen primary hierarchical inference
-
-Gate A — POSITION vs CONST:
-
-```text
+Gate A POSITION vs CONST
 VALIDATION Brier   +0.068522504 CI[+0.052223083,+0.088188747] PASS
 VALIDATION LogLoss +0.123128112 CI[+0.094352882,+0.156897241] PASS
 TEST       Brier   +0.066104081 CI[+0.045185778,+0.090946002] PASS
 TEST       LogLoss +0.134257871 CI[+0.102439102,+0.171966385] PASS
-```
 
-Gate B — SEMI vs POSITION:
-
-```text
+Gate B SEMI vs POSITION
 VALIDATION Brier   +0.028578386 CI[+0.006232356,+0.053713004] PASS
 VALIDATION LogLoss +0.050518703 CI[+0.017348802,+0.087527059] PASS
 TEST       Brier   +0.045060038 CI[+0.015658408,+0.073945664] PASS
@@ -225,84 +166,37 @@ MULTI_HORIZON_DWELL_INCREMENT = PASS
 FULL_MULTI_HORIZON_CORRIDOR_DNA = PASS
 POSITION_TEMPORAL_DEPTH = CONFIRMED_IN_HISTORICAL_OOS
 DWELL_TEMPORAL_DEPTH = CONFIRMED_IN_HISTORICAL_OOS
-RUNTIME_PROMOTION = NONE
-EXP27 = UNTOUCHED
 ```
 
-Important non-retroactivity rule: Exp40 does NOT retroactively change the formal Exp21 one-step verdict. Exp21 remains positive but not fully strictly reconfirmed because the frozen Exp26 Validation state-weighted Brier CI crossed zero. Exp40 establishes a separate multi-horizon Dwell result under a different target family.
-
-### Mechanistic diagnostics
-
-Adding Dwell greatly improves EXIT discrimination while barely changing EXIT-side discrimination:
-
-```text
-VALIDATION EXIT AUC delta: +0.0742 / +0.0857 / +0.1066 / +0.0804 for 15/30/60/120m
-TEST       EXIT AUC delta: +0.1152 / +0.1494 / +0.1388 / +0.1357
-```
-
-SIDE AUC changes are near zero. This strongly supports the existing factorization:
+Mechanistic diagnostic: Dwell strongly improves EXIT AUC while SIDE AUC remains nearly unchanged, supporting:
 
 ```text
 CorridorPosition -> WHICH SIDE
-Dwell            -> WHEN / WHETHER EXIT within horizon
+Dwell            -> WHEN / WHETHER EXIT
 ```
 
-Despite independent fitting by horizon, predicted `P(NO_EXIT)` was already nearly perfectly non-increasing across horizons: approximately 99.95% in Validation and TEST for SEMI.
-
-### DNA update after Exp40
-
-The strongest current Track-D representation is now:
-
-```text
-ACTIVE STRUCTURAL FRONTIER
-  -> CURRENT ACTIVE CORRIDOR
-     -> CorridorPosition  [strong core; side geometry; multi-horizon depth]
-     -> Dwell             [duration/hazard coordinate; multi-horizon depth]
-     -> competing-risk future {NO_EXIT, ADVANCE, RECAPTURE}
-```
-
-The evidence now argues against interpreting Position+Dwell as merely a next-M5 artifact. The same two-coordinate state representation carries substantial proper-score information across 15-120 minutes in historical OOS.
-
-Anti-overstatement:
-- TEST is repeatedly inspected;
-- costs/slippage are irrelevant to this structural probability experiment and were not modeled;
-- Exp40 is not a trading-rule backtest;
-- no runtime rule/model promotion is authorized;
-- fresh forward Exp27 remains the decisive prospective gate.
+Exp40 does not retroactively change Exp21's one-step formal status.
 
 ---
 
-# Exp41 — Shared Discrete-Time Competing-Risk Survival Law — FROZEN
+# Exp41 — Shared Discrete-Time Competing-Risk Survival Law — FROZEN / EXECUTION ISSUED
 
 Date frozen: 2026-08-13, after Exp40 completion and before any Exp41 fit or score.
 
-## Scientific question
+Scientific question: can ONE shared TRAIN-fitted discrete-time competing-risk law generate coherent 15/30/60/120m cumulative probabilities using only starting `CorridorPosition` and `Dwell`, instead of fitting separate Position/Dwell coefficients by horizon?
 
-Exp40 proved that separately fitted horizon-specific Position+Dwell models transport across 15/30/60/120m historical OOS. Exp41 asks a deeper mechanistic question:
-
-Can ONE shared TRAIN-fitted discrete-time competing-risk survival law, using only the starting state's CorridorPosition and Dwell plus a nuisance baseline hazard for future elapsed step, generate coherent cumulative probabilities across all four horizons without fitting separate Position/Dwell coefficients for each horizon?
-
-This tests whether Exp40 reflects a coherent temporal law rather than four unrelated horizon-specific regressions.
-
-## Frozen universe and target
-
-- exact Exp20/21 state universe must reproduce first;
-- same historical cutoff `< 2026-08-13 00:00:00 BRT`;
+Frozen universe:
+- exact backbone above must reproduce;
+- cutoff `< 2026-08-13 00:00:00 BRT`;
 - same TRAIN / Validation / exploratory TEST splits;
-- same fixed starting ACTIVE L1-L2 corridor boundaries;
+- fixed starting ACTIVE L1-L2 boundaries;
 - future path uses M5 CLOSE only;
-- future at-risk intervals are 5m steps `k=1..24` (maximum 120m);
-- first ADVANCE/RECAPTURE close crossing terminates risk;
-- M5 gap, split boundary or end-of-data censors if reached before exit;
-- starting covariates are frozen at state_time: `geo0=logit(CorridorPosition)` and `dwell0=log1p(DwellBars)`.
+- at-risk steps `k=1..24`;
+- first ADV/REC close crossing terminates risk;
+- gap/split/end-of-data censors if reached first;
+- starting covariates are frozen `geo0=logit(CorridorPosition)` and `dwell0=log1p(DwellBars)`.
 
-## Frozen shared hazard models
-
-At every at-risk future step k, target is `{STAY, ADVANCE, RECAPTURE}` with STAY as baseline.
-
-Nuisance baseline time hazard is represented by a separate TRAIN-fitted intercept for every elapsed future step `k=1..24`, separately for ADV and REC. These 48 intercepts are baseline-hazard nuisance parameters, not candidate predictors.
-
-Three nested models:
+Frozen shared hazard laws:
 
 ```text
 BASE_SURV:
@@ -318,66 +212,63 @@ SEMI_SURV:
   REC vs STAY = alpha_REC[k] + beta_REC_geo * geo0 + beta_REC_dwell * dwell0
 ```
 
-The Position and Dwell coefficients are SHARED across all future elapsed steps and all 15/30/60/120m horizons. No horizon-specific Position/Dwell coefficient is allowed.
+There are 24 elapsed-step nuisance intercepts per cause. Position/Dwell coefficients are shared across all 24 future steps; no elapsed-time interaction is allowed.
 
-## Cumulative prediction
-
-For each starting state, the fitted per-step competing hazards are recursively converted into:
+Recursive cumulative output:
 
 ```text
-S(H)       = probability of NO_EXIT through H
-CIF_ADV(H) = cumulative probability ADVANCE occurs first by H
-CIF_REC(H) = cumulative probability RECAPTURE occurs first by H
+S(H)       = P(NO_EXIT through H)
+CIF_ADV(H) = P(ADVANCE first by H)
+CIF_REC(H) = P(RECAPTURE first by H)
 ```
 
 for exactly `15/30/60/120m`.
 
-These derived probabilities are coherent by construction and must sum to one.
+Primary estimand: same eligible Exp40 `state x horizon` cells, pooled `STATE_HORIZON_WEIGHTED`, whole-BRT-day bootstrap.
 
-## Primary estimand and gates
-
-Use the same eligible `state x horizon` cells and same `STATE_HORIZON_WEIGHTED` pooled estimand as Exp40. Whole BRT days are resampled, preserving all state-horizon cells in the sampled day.
-
-Gate A — `POSITION_SURV vs BASE_SURV`:
-- pooled multiclass Brier and LogLoss;
-- CI95 gain >0 for BOTH metrics in BOTH Validation and TEST.
-
-Gate B — `SEMI_SURV vs POSITION_SURV`:
-- same requirement.
-
-Formal:
+Formal gates:
 
 ```text
-SHARED_SURVIVAL_POSITION_CORE = PASS only if Gate A passes 4/4 cells
-SHARED_SURVIVAL_DWELL_INCREMENT = PASS only if Gate B passes 4/4 cells
-SHARED_SURVIVAL_CORRIDOR_LAW = PASS only if both gates pass
+Gate A: POSITION_SURV vs BASE_SURV
+Gate B: SEMI_SURV vs POSITION_SURV
+
+SHARED_SURVIVAL_POSITION_CORE = PASS only if Gate A passes Brier+LL in VAL+TEST
+SHARED_SURVIVAL_DWELL_INCREMENT = PASS only if Gate B passes Brier+LL in VAL+TEST
+SHARED_SURVIVAL_CORRIDOR_LAW = PASS only if both pass
 ```
 
-Coverage below 70% in any split => `UNDERPOWERED_COVERAGE` rather than PASS/FAIL.
+Coverage below 70% in any split => `UNDERPOWERED_COVERAGE`.
 
-## Diagnostics only
-
+Diagnostics only:
 - shared beta coefficients;
-- step-specific baseline hazards;
-- score gains by frozen horizon;
-- EXIT and EXIT-side AUC by horizon;
-- cumulative probability monotonicity (should be exact by construction);
-- descriptive comparison of Exp41 SEMI_SURV proper scores against Exp40 horizon-specific SEMI_H to quantify the price of coefficient sharing. This comparison is NOT a rescue gate and no post-hoc non-inferiority margin may be invented.
+- 24 step-specific baseline hazards;
+- horizon point gains;
+- EXIT/SIDE AUC;
+- exact cumulative monotonicity/coherence;
+- descriptive price of sharing versus the Exp40 horizon-specific `SEMI_H`.
 
-## Anti-rescue
+Anti-rescue:
 
 ```text
-NO horizon-specific geo/dwell coefficient after Exp41 results
-NO elapsed-time interaction with geo or dwell
+NO horizon-specific geo/dwell coefficients after result
+NO elapsed-time interaction with geo/dwell
 NO alternative step bins/splines/polynomials
 NO horizon additions/removals
-NO threshold/bucket of Position or Dwell
+NO Position/Dwell thresholds or buckets
 NO Exp38/Exp39 coordinates
 NO D1/Clock/Z/Fib/weekday/Scale/Energy/HMM interaction
 NO Validation/TEST refit
 NO Exp27 scoring/modification
 ```
 
-If the shared law fails while Exp40 remains strong, interpret that as: Position+Dwell has multi-horizon predictive depth, but its probability mapping is horizon-dependent rather than governed by this simple proportional shared discrete-time survival law. Do not use failure to erase Exp40.
+If Exp41 fails while Exp40 remains strong, interpretation is: Position+Dwell has multi-horizon predictive depth, but this simple proportional shared discrete-time law is insufficient. Exp40 remains valid.
+
+Execution contract issued in the research chat after this freeze:
+- exact Exp20/21 guards;
+- exact Exp40 eligible-cell guards by split and horizon;
+- person-period TRAIN likelihood with one row per observed future 5m at-risk interval;
+- numerical-only Hessian stabilization `1e-10`;
+- no scientific parameter or target change;
+- no Exp41 score inspected before issuing the implementation.
 
 Historical OOS remains exploratory. Runtime promotion = NONE.
