@@ -296,4 +296,113 @@ NO Exp38 GAP + Exp39 path combination
 
 The exact one-step additive path-history family is closed. If research continues immediately, the next question should materially change the scientific target/horizon rather than mine another additive coordinate against the repeatedly inspected one-step TEST.
 
+---
+
+# Exp40 — Multi-Horizon Active-Corridor Competing-Risk Family — FROZEN
+
+Date frozen: 2026-08-13, before any Exp40 target construction or scoring.
+
+Scientific question:
+Does the structural information already discovered in the CURRENT ACTIVE corridor persist beyond the next M5 transition, or is it mainly a one-step phenomenon?
+
+This experiment deliberately changes TARGET/HORIZON rather than adding another feature to the repeatedly inspected one-step problem.
+
+Frozen state universe:
+- rebuild and reproduce the exact Exp20/21 dynamic-state universe first;
+- parent sign must be the historical `sign(parent_close-parent_open)` implementation;
+- TRUE FULL onset requires current FULL + exact 5-minute M5 contiguity + state change;
+- no row at/after `2026-08-13 00:00:00 BRT` may be used;
+- same TRAIN / Validation / exploratory TEST temporal splits;
+- starting states must be interior states from the exact current ACTIVE L1-L2 corridor representation.
+
+Frozen horizons:
+
+```text
+15m
+30m
+60m
+120m
+```
+
+Frozen competing-risk target for each state and horizon H:
+- scan future M5 CLOSES only, beginning at the next M5 close;
+- preserve the same fixed ACTIVE corridor boundaries `(L1,L2)` that define the starting state;
+- `ADVANCE` if the forward boundary is crossed first on close within H;
+- `RECAPTURE` if the back boundary is crossed first on close within H;
+- `NO_EXIT` if neither boundary is crossed by H;
+- if data become non-contiguous or cross the temporal split before the outcome can be determined, the state-horizon cell is censored;
+- if an exit is observed before a later gap/split boundary, that first-exit outcome remains determined for all horizons that include the exit time.
+
+Frozen complete-family estimand:
+- primary pooled unit is an eligible `state x horizon` cell;
+- all four horizons are pooled with equal cell weight (`STATE_HORIZON_WEIGHTED`);
+- dependence is handled by resampling whole BRT days, preserving every state and all horizon cells belonging to the sampled day;
+- individual 15/30/60/120m outputs are diagnostics only and cannot be cherry-picked.
+
+Frozen models fitted separately by horizon using TRAIN only:
+
+```text
+CONST_H:
+  class frequencies for {NO_EXIT, ADVANCE, RECAPTURE}
+
+POSITION_H:
+  multinomial softmax
+  ADV vs NO_EXIT  = intercept + beta_geo * CorridorPositionLogit
+  REC vs NO_EXIT  = intercept + beta_geo * CorridorPositionLogit
+
+SEMI_H:
+  multinomial softmax
+  ADV vs NO_EXIT  = intercept + beta_geo * CorridorPositionLogit + beta_dwell * log1p(DwellBars)
+  REC vs NO_EXIT  = intercept + beta_geo * CorridorPositionLogit + beta_dwell * log1p(DwellBars)
+```
+
+Each horizon receives its own TRAIN-fitted coefficients because the target probability changes with horizon. No horizon is tuned or removed after results.
+
+Frozen hierarchical primary claims:
+
+Gate A — `POSITION vs CONST` pooled across all four horizons:
+- STATE_HORIZON_WEIGHTED multiclass Brier and LogLoss;
+- whole-BRT-day bootstrap;
+- CI95 gain must be >0 for BOTH metrics in BOTH Validation and TEST.
+
+Gate B — `SEMI vs POSITION` pooled across all four horizons:
+- evaluated as the incremental Dwell claim;
+- same estimand and whole-day bootstrap;
+- CI95 gain must be >0 for BOTH metrics in BOTH Validation and TEST.
+
+Formal interpretation:
+- `MULTI_HORIZON_POSITION_CORE = PASS` only if Gate A passes all four primary metric/split cells;
+- `MULTI_HORIZON_DWELL_INCREMENT = PASS` only if Gate B passes all four cells;
+- `FULL_MULTI_HORIZON_CORRIDOR_DNA = PASS` only if both Gate A and Gate B pass;
+- horizon-specific wins cannot rescue a pooled family failure.
+
+Coverage/censoring safeguards:
+- report eligible cell counts by split and horizon before scoring;
+- report states with all four horizons observable/determined;
+- report censoring causes (M5 gap, split boundary, end-of-data) by horizon;
+- if pooled eligible state-horizon cells fall below 70% of the theoretical four-horizon cells in any split, formal status becomes `UNDERPOWERED_COVERAGE` rather than PASS/FAIL.
+
+Diagnostics only:
+- score gains by individual horizon;
+- class distribution by horizon;
+- geometry coefficients by horizon;
+- dwell coefficients by horizon;
+- AUC for EXIT and `P(ADVANCE|EXIT)` where meaningful;
+- monotonicity of `P(NO_EXIT)` and cumulative exit incidence with horizon.
+
+Anti-rescue:
+- no 5m/10m/20m/45m/90m/180m horizon additions after seeing results;
+- no horizon subset selection;
+- no alternate high/low touch target after seeing close-based results;
+- no threshold on CorridorPosition or Dwell;
+- no Exp38/Exp39 coordinates;
+- no D1/Clock/Z/Fib/weekday/Scale/Energy/HMM interaction;
+- no refit on Validation/TEST;
+- no Exp27 scoring/modification.
+
+Scientific purpose:
+Exp40 is not a trading-rule test. It asks whether the discovered ACTIVE-corridor state representation has temporal depth. A successful Position gate would show that corridor geometry remains informative beyond one M5 step. A successful Dwell gate would show that episode age contributes over a broader future horizon. Failure would imply that the strongest Track-D DNA is primarily local/one-step rather than a stable multi-horizon probability representation.
+
+Historical OOS remains exploratory. Runtime promotion = NONE.
+
 This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted during the next full canonical-history rewrite.
