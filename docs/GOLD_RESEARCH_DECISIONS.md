@@ -246,3 +246,32 @@ Scale survives only if the common hazard coefficient improves BASE in BOTH Valid
 If scale fails, the active one-step structural kernel remains `Position + Dwell`; the next research decision should address whether to move to a genuinely fresh forward validation block before adding additional context families.
 
 Runtime promotion: NONE.
+
+## 2026-08-12 23:49 BRT — Exp24 execution contract finalized
+
+The Exp24 implementation is frozen as a strict added-variable test.
+
+```text
+FROZEN BASE PARAMETERS
+ADVANCE   [-2.337951, +0.920362, -0.617819]
+RECAPTURE [-2.788824, -0.786389, -0.535507]
+```
+
+Only one new degree of freedom is allowed:
+
+```text
+k = common coefficient on Scale_t
+Scale_t = log(CorridorWidthATR_t)
+```
+
+All six Exp21 coefficients remain exactly frozen. The model is not jointly refit. This prevents Scale from reallocating explanatory power already assigned to CorridorPosition or DwellBars and makes Exp24 a clean incremental-information test.
+
+The common term is added identically to ADVANCE-vs-STAY and RECAPTURE-vs-STAY, so `P(ADVANCE|EXIT)` remains exactly invariant by algebra. Only EXIT-vs-STAY hazard is tested.
+
+The runnable execution must also print descriptive correlations `Spearman(Scale, log_dwell)` and `Spearman(Scale, geo_logit)` by TRAIN/VALIDATION/TEST. These are diagnostics only: no orthogonalization, thresholds, interactions, feature substitutions or conditional slicing are allowed after inspection.
+
+`k` is fitted by one-dimensional TRAIN-only maximum likelihood with Newton updates on the binary EXIT likelihood induced by the frozen SEMI model. Validation and Test receive the exact fitted `k` without updating.
+
+Primary decision remains unchanged: SCALE_EXTENDED must improve frozen BASE in BOTH Validation and Test on multiclass Brier and LogLoss, with positive BRT-day cluster score gain. EXIT hazard metrics and equal-day calibration are secondary diagnostics. Exit-side probabilities must remain numerically identical up to floating-point error.
+
+Runtime promotion: NONE. Fresh forward/nested validation remains mandatory for any later promotion.
