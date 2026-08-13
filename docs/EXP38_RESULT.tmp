@@ -208,4 +208,92 @@ HISTORICAL EXACT 5209/5209 = PASS
 
 This confirms the frozen upstream semantics before the full Exp39 execution. The next runnable must use `sign(parent_close-parent_open)` plus the exact contiguous-5-minute state-change onset rule and must still reproduce every later Exp20/21 checkpoint before any Exp39 score is allowed.
 
+## 2026-08-13 — EXP39 COMPLETED / FAMILY REJECTED
+
+The corrected full run reproduced every frozen upstream checkpoint and the exact Exp20/21 dynamic-state universe before any Exp39 score:
+
+```text
+events=5209
+L1 eligible=4786
+raw touches=2588
+unique touches=2310
+OUTSIDE_15=1091
+active L2=1013
+raw dynamic rows=9826
+unique dynamic rows=9667
+
+TRAIN      5612 states / 596 episodes / 207 days
+VALIDATION 1959 / 204 / 80
+TEST       2096 / 212 / 73
+```
+
+The six path coordinates were available on the full frozen state sample. Their TRAIN state-weighted structure showed substantial redundancy: `rho(PATH_LENGTH,VISITED_SPAN)=0.9029`; episode-weighted `rho=0.9465`. Path length also correlated materially with both retrace coordinates. This is useful state-geometry information but reduces the amount of independent incremental information available to JOINT6.
+
+TRAIN-only factorized fit:
+
+```text
+HAZARD PATH_LENGTH       beta=-0.209319  odds/1SD=0.811
+HAZARD VISITED_SPAN      beta=+0.461219  odds/1SD=1.586
+HAZARD TURN_RATE         beta=-0.099886  odds/1SD=0.905
+SIDE SIGNED_EFFICIENCY   beta=-0.139144  odds/1SD=0.870
+SIDE FORWARD_RETRACE     beta=-0.015379  odds/1SD=0.985
+SIDE BACK_RETRACE        beta=+0.545116  odds/1SD=1.725
+```
+
+The primary JOINT6 score improved TRAIN, was only weakly positive in Validation, and reversed in TEST:
+
+```text
+TRAIN      Brier gain +0.001564099 | LL gain +0.004486049
+VALIDATION Brier gain +0.000165920 | LL gain +0.001112041
+TEST       Brier gain -0.001014505 | LL gain -0.001854969
+```
+
+Frozen whole-BRT-day STATE_WEIGHTED primary inference:
+
+```text
+VALIDATION Brier   +0.000165920 CI[-0.002574581,+0.002666242]  FAIL
+VALIDATION LogLoss +0.001112041 CI[-0.003997531,+0.006368177]  FAIL
+TEST       Brier   -0.001014505 CI[-0.003461134,+0.001367184]  FAIL
+TEST       LogLoss -0.001854969 CI[-0.006554982,+0.002366650]  FAIL
+```
+
+Therefore:
+
+```text
+EXP39_PRIMARY_FAMILY_STRICT_PASS = FALSE
+IN_CORRIDOR_PATH_DYNAMICS_INCREMENTAL_FAMILY = REJECTED
+HAZARD3_INCREMENT = NOT_TRANSPORTABLE
+SIDE3_INCREMENT = NOT_CONFIRMED
+RUNTIME_PROMOTION = NONE
+EXP27 = UNTOUCHED
+```
+
+Channel diagnostics do not alter the family verdict. HAZARD3 was weakly positive in Validation but negative in TEST. SIDE3 was essentially neutral/slightly negative in Validation and tiny positive in TEST, with all relevant confidence intervals crossing zero.
+
+Univariate and drop-one diagnostics cannot rescue individual coordinates. `TURN_RATE` was actually harmful inside JOINT6 in TEST by the frozen drop-one Brier diagnostic, while `BACK_RETRACE` had the largest TRAIN side coefficient but did not produce stable OOS evidence. `FORWARD_RETRACE` had a tiny Validation drop-one Brier contribution but no coherent Brier+LogLoss / Validation+TEST survival. No subset may be selected post hoc.
+
+AUC provides no hidden ranking rescue: EXIT AUC changed `.8110 -> .8269` in TRAIN, `.7951 -> .8047` in Validation, but `.8021 -> .7986` in TEST; SIDE AUC changed `.9573 -> .9590`, `.9645 -> .9645`, `.9834 -> .9815`. Unlike Exp38, the path family does not even show a consistent TEST ranking improvement.
+
+Scientific interpretation:
+- knowing where the state is (`CorridorPosition`) remains much more important than the detailed realized path used to get there;
+- episode age (`Dwell`) remains the only preserved historical challenger for WHEN EXIT, though strict Exp26 confirmation remains incomplete;
+- cumulative path length, visited span, turning, efficiency and retracement do not provide a stable third coordinate under this frozen episode-to-date formulation;
+- Exp38 + Exp39 jointly strengthen, without proving, the working hypothesis that the CURRENT ACTIVE CORRIDOR is close to a locally sufficient state representation for the one-step problem.
+
+Anti-repeat / closure:
+
+```text
+NO PATH_LENGTH/VISITED_SPAN subset rescue
+NO BACK_RETRACE-only rescue
+NO TURN_RATE removal-and-refit rescue
+NO recent 3/6/12-bar path windows
+NO thresholds/buckets
+NO alternate efficiency/path transforms
+NO body/wick/volume/ATR-energy replacement
+NO D1/Clock/Z/Fib/weekday/Scale/Energy/HMM interaction rescue
+NO Exp38 GAP + Exp39 path combination
+```
+
+The exact one-step additive path-history family is closed. If research continues immediately, the next question should materially change the scientific target/horizon rather than mine another additive coordinate against the repeatedly inspected one-step TEST.
+
 This temporary checkpoint must be folded into `docs/GOLD_DISCOVERY_HISTORY.md` and deleted during the next full canonical-history rewrite.
