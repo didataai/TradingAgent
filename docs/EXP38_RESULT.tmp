@@ -1,98 +1,83 @@
-# Track-D checkpoint — through Exp50
+# Track-D checkpoint — through Exp51
 
 Date 2026-08-14. Historical OOS repeatedly inspected; exploratory only. Runtime promotion NONE. Exp27 untouched; fresh-forward shadow remains >= 2026-08-13 00:00 BRT. Historical cutoff remains < 2026-08-13 00:00 BRT.
 
 Exact guards preserved: events 5209; L1 4786; raw touches 2588; unique touches 2310; OUTSIDE_15 1091; active L2 1013; raw dynamic 9826; unique dynamic 9667. TRAIN 5612 states; VALIDATION 1959; TEST 2096. Any mismatch aborts before score.
 
-Preserved status: Exp40 FULL PASS; Exp41 FULL PASS; Exp44 ROBUST_POSITION_CORE PASS; Exp45 ROBUST_WHICH_SIDE_LAW PASS; Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION PASS. Exp42/43 Dwell transport FAIL; Exp46 Dwell timing FAIL; Exp48 Position exit-clock FAIL.
+Preserved PASS: Exp40, Exp41, Exp44 ROBUST_POSITION_CORE, Exp45 ROBUST_WHICH_SIDE_LAW, Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION. Preserved FAIL: Exp42/43 Dwell transport, Exp46 Dwell timing, Exp48 Position exit clock, Exp49 calibrated symmetric timing geometry.
 
-## Exp49 — Symmetric Boundary-Proximity Timing Family — FAIL
+## Exp50 — Exit-Risk Ranking Transport Decomposition — UNDERPOWERED_RANKING_CELL
 
-Purpose: test the frozen symmetric corridor-boundary timing family for binary EXIT-vs-NO_EXIT using TRAIN-only discrete-time hazards with 24 elapsed-step intercepts.
+Exact frozen Exp49 replay PASS; JOINT4 identifiability PASS; Exp49 formal FAIL preserved. Same frozen JOINT4, same 8 environments, same H={15,30,60,120}. Formal estimand was pooled ROC AUC within each environment×horizon with whole-BRT-day bootstrap; 32 mandatory cells; cell PASS required >=9500/10000 valid day-bootstrap replicates and CI95 lower bound >0.5.
 
-Frozen candidates were:
-T1 EDGE_REL=abs(2*Position-1)
-T2 LOG_NEAR_ATR=log1p(min(d_back_atr,d_forward_atr))
-T3 LOG_FAR_ATR=log1p(max(d_back_atr,d_forward_atr))
-T4 LOG_HARMONIC_ATR=log1p(2*d_back_atr*d_forward_atr/(d_back_atr+d_forward_atr))
+All 32 point AUCs were >0.5 (~0.6970–0.9826), but formal cells passing were 22/32. Several H120 cells were underpowered because resampled days sometimes contained only one class: VAL_EARLY_UP H120 valid_boot=8760; VAL_LATE_DOWN H120=6420; TEST_EARLY_UP H120=8768. In addition, several fully bootstrap-scorable cells still had CI lower bounds crossing 0.5, including VAL_LATE_DOWN H15/H30/H60 and TEST_LATE_UP H30/H60/H120. Therefore universal pooled ranking transport is not established.
 
-All exact upstream/split/eligible-cell/joint-environment guards PASS. All eight EXIT environments scorable. JOINT4 TRAIN design rank=28/28, converged=True, finite=True; EXP49_JOINT4_IDENTIFIABILITY=PASS. TRAIN feature rank=4/4; standardized condition number 19.409. LOG_NEAR_ATR and LOG_HARMONIC_ATR were strongly redundant (r=0.980036), but numerical identifiability was not the reason for failure.
+Formal:
+EXP50_RANKING_CELL_STATUS=UNDERPOWERED_RANKING_CELL
+EXP50_FORMAL_CELLS_PASS=22/32
+GEOMETRY_EXIT_RANKING_TRANSPORT=UNDERPOWERED_RANKING_CELL
+ROBUST_EXIT_URGENCY_ORDERING=UNDERPOWERED_RANKING_CELL
+EXP50_FORMAL_STATUS=UNDERPOWERED_RANKING_CELL
 
-Formal JOINT4_EXIT vs BASE_EXIT, EXIT_STATE_HORIZON_WEIGHTED, whole-BRT-day bootstrap:
-VAL_EARLY_UP Brier +.063545944 CI[+.038281900,+.101323113] PASS; LL +.163310290 CI[+.101588623,+.259531176] PASS.
-VAL_EARLY_DOWN Brier +.039709301 CI[-.003702332,+.091116335] FAIL; LL +.088947452 CI[-.028678103,+.224686388] FAIL.
-VAL_LATE_UP Brier +.069943888 CI[+.030945903,+.110518539] PASS; LL +.169355653 CI[+.074903833,+.269179699] PASS.
-VAL_LATE_DOWN Brier +.077406423 CI[+.036248954,+.117334934] PASS; LL +.193371278 CI[+.101864174,+.290579422] PASS.
-TEST_EARLY_UP Brier +.125532201 CI[+.067713065,+.157237046] PASS; LL +.310607627 CI[+.176528226,+.388664137] PASS.
-TEST_EARLY_DOWN Brier +.092127747 CI[+.050375801,+.144155432] PASS; LL +.226397813 CI[+.119815246,+.357329989] PASS.
-TEST_LATE_UP Brier +.038636157 CI[-.015737434,+.087338104] FAIL; LL +.075348633 CI[-.080261046,+.207232021] FAIL.
-TEST_LATE_DOWN Brier +.036412324 CI[+.010604073,+.065416489] PASS; LL +.089388538 CI[+.024739209,+.160412214] PASS.
+Interpretation: strong point discrimination exists, but whole-day uncertainty shows that the signal may partly reflect day-level regime composition and is not yet a universal pooled ranking law. This is not a PASS and not a rescue of Exp49.
 
-Formal cells passing: 12/16. Therefore:
-EXP49_EXIT_ENVIRONMENT_STATUS=PASS
-EXP49_JOINT4_IDENTIFIABILITY=PASS
-TIMING_GEOMETRY_FAMILY=FAIL
-ROBUST_SYMMETRIC_EXIT_GEOMETRY=FAIL
-EXP49_FORMAL_STATUS=FAIL
+## Exp51 — Within-Day Exit-Risk Geometry Transport — FROZEN BEFORE SCORE
 
-Diagnostics cannot rescue this FAIL. However, all 32 environment×horizon JOINT4 point AUCs were above 0.5, approximately 0.6970–0.9826. Even the two formal loss-failure environments retained substantial discrimination: VALIDATION_EARLY__FULL_DOWN AUC ~0.7485–0.8002 and TEST_LATE__FULL_UP ~0.6970–0.8221. Their principal weakness was absolute probability level/calibration, with frequent overprediction of EXIT probability. This motivates Exp50 as a decomposition test, not a rescue.
+Scientific question: does the exact original TRAIN-fitted Exp49 JOINT4_EXIT geometry model robustly rank EXIT risk among states observed within the same BRT day, after removing between-day regime composition from the ranking estimand?
 
-Drop-one diagnostic: removing LOG_HARMONIC_ATR slightly improved some pooled VALIDATION/TEST losses; LOG_FAR_ATR was near-neutral; LOG_NEAR_ATR carried meaningful incremental information in several pooled comparisons. These are diagnostic facts only and do not redefine Exp49.
-
-Exp49 failure does not erase Exp44/45/47 PASS results. Position remains robust WHICH-SIDE; calibrated universal WHEN/WHETHER remains unestablished.
-
-## Exp50 — Exit-Risk Ranking Transport Decomposition — FROZEN BEFORE SCORE
-
-Scientific question: does the exact original TRAIN-fitted Exp49 JOINT4_EXIT geometry model robustly rank which states are more likely to EXIT by a fixed horizon, even though Exp49 failed strict transport of absolute Brier/LogLoss probabilities?
-
-This is a decomposition of discrimination vs calibration. It is NOT a new predictor search, NOT recalibration, and NOT a rescue of Exp49.
+This is a decomposition of within-day state geometry versus between-day regime effects. It is NOT a new predictor search, NOT recalibration, NOT refit, and NOT a rescue of Exp49 or Exp50.
 
 Frozen model/data:
-- Reuse exact Exp49 JOINT4_EXIT unchanged: same TRAIN-only fit, same four frozen geometry features, same 24 elapsed-step intercepts.
-- Reuse exact Exp41 eligible cells, horizons H={15,30,60,120}m, and exact eight Exp44/45 direction×time environments.
+- Reuse exact Exp49 JOINT4_EXIT unchanged: same TRAIN-only fit, same four geometry features, same 24 elapsed-step intercepts.
+- Reuse exact Exp41 eligible cells, horizons H={15,30,60,120}m, and exact 8 Exp44/45 direction×time environments.
 - Target y_exit=1 for ADVANCE or RECAPTURE by H; 0 for NO_EXIT by H.
-- No Dwell, no signed Position timing feature, no new feature, no refit, no recalibration, no threshold.
+- No Dwell, no signed Position timing feature, no new feature, no feature subset, no refit, no recalibration, no threshold.
 
-Primary estimand:
-- Ranking/discrimination within each fixed environment × fixed horizon.
-- Metric: ROC AUC of p_EXIT_JOINT4 for y_exit.
-- BASE_EXIT is constant across states within a fixed horizon and therefore has AUC=0.5; formal null is AUC=0.5.
-- 8 environments × 4 horizons = 32 mandatory ranking cells.
+Primary within-day estimand:
+- For each environment×horizon, comparisons are allowed only between EXIT and NO_EXIT rows belonging to the SAME BRT day.
+- For each day d, compute U_d = concordant EXIT-vs-NO_EXIT score pairs + 0.5*tied pairs using p_EXIT_JOINT4, and N_d = n_EXIT_d*n_NO_EXIT_d.
+- Days with N_d=0 contribute zero numerator and zero denominator; they are not deleted from the resampling universe.
+- Point WITHIN_DAY_AUC = sum_d U_d / sum_d N_d. This is pair-weighted same-day concordance and exactly removes all cross-day ranking pairs.
+- Formal null is WITHIN_DAY_AUC=0.5.
 
 Cluster inference frozen before score:
 - 10,000 bootstrap replicates.
-- Resample whole contributing BRT days with replacement within each environment×horizon; all rows from a selected day receive its bootstrap multiplicity.
-- Compute weighted ROC AUC including 0.5 credit for tied scores.
-- A bootstrap replicate is valid only when weighted EXIT and NO_EXIT totals are both positive.
-- A cell is scorable only if the original cell has both classes, >=2 contributing BRT days, and >=95% (>=9500/10000) valid bootstrap replicates.
-- Formal cell PASS requires 95% bootstrap CI lower bound for AUC > 0.5.
+- Resample ALL contributing BRT days with replacement within each environment×horizon; preserve selected-day multiplicity.
+- For each replicate, weighted numerator=sum multiplicity_d*U_d and weighted denominator=sum multiplicity_d*N_d.
+- Replicate valid only if weighted denominator>0 (at least one selected mixed-class day).
+- Original cell must have both classes, >=2 contributing BRT days, and >=2 informative/mixed-class days with N_d>0.
+- Bootstrap scorability requires >=9500/10000 valid replicates.
+- Formal cell PASS requires CI95 lower bound of WITHIN_DAY_AUC >0.5.
 
 Formal gate:
-- GEOMETRY_EXIT_RANKING_TRANSPORT=PASS only if all 32 mandatory environment×horizon cells are scorable and all 32 lower CI bounds exceed 0.5.
-- ROBUST_EXIT_URGENCY_ORDERING=PASS only under the same 32/32 gate and exact Exp49 JOINT4 numerical-identifiability reproduction.
-- EXP50_FORMAL_STATUS=PASS only under those conditions.
+- 8 environments × 4 horizons = 32 mandatory cells.
+- WITHIN_DAY_GEOMETRY_RANKING_TRANSPORT=PASS only if all 32 cells are scorable and all 32 CI95 lower bounds exceed 0.5.
+- ROBUST_WITHIN_DAY_EXIT_URGENCY_ORDERING=PASS only under the same 32/32 gate and exact Exp49 JOINT4 identifiability reproduction.
+- EXP51_FORMAL_STATUS=PASS only under those conditions.
 
 Diagnostics only:
-- point AUC and AUC-0.5 margin;
-- observed EXIT rate vs mean JOINT4 probability (calibration gap) per environment×horizon;
-- descriptive AUC heterogeneity across direction/time/horizon.
+- number and fraction of informative/mixed-class days;
+- pooled AUC from Exp50 versus within-day AUC;
+- day-equal mean of per-day AUCs where defined;
+- between-day relationship between daily mean JOINT4 score and daily EXIT rate;
+- descriptive heterogeneity by direction/time/horizon.
 
 Interpretation if PASS:
-- establish only robust relative EXIT-risk/urgency ordering within the repeatedly inspected historical universe;
-- do NOT claim universally calibrated P(EXIT by H), exact timing probability, or Exp49 reversal;
-- Exp49 remains FAIL and Exp47 minimal factorized probability law remains preserved PASS.
+- establish only robust state-level EXIT-urgency ordering within the same BRT day in the repeatedly inspected historical universe;
+- do NOT claim cross-day ranking transport, calibrated P(EXIT), exact timing probability, or reversal of Exp49/Exp50.
 
-Interpretation if FAIL:
-- symmetric geometry is not universally transportable even as an EXIT-risk ranking law under this historical stress.
+Interpretation if FAIL/UNDERPOWERED:
+- symmetric geometry is not established as a universal within-day urgency law; proceed to a genuinely new timing family or wait for fresh-forward evidence rather than rescue this family.
 
 Anti-rescue:
-- no alternate AUC definition after result;
-- no pooled-horizon AUC replacing a failed horizon;
-- no dropped environment/horizon;
+- no alternate within-day AUC definition after result;
+- no day filtering beyond the frozen N_d=0 contribution rule;
+- no pooled-horizon replacement;
+- no dropped horizon/environment;
 - no side/era-specific refit;
 - no recalibration/intercept/threshold;
-- no alternate feature subset or transform;
+- no alternate feature subset/transform;
 - no Validation/TEST refit;
 - no Exp27 scoring/modification.
 
-Historical OOS remains exploratory because it has been repeatedly inspected. Fresh-forward Exp27 remains the decisive anti-overfitting gate before runtime promotion.
+Historical OOS remains exploratory because it has been repeatedly inspected. Fresh-forward Exp27 remains decisive before runtime promotion.
