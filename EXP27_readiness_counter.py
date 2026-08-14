@@ -220,7 +220,13 @@ def append_ledger(new_states: pd.DataFrame) -> tuple[pd.DataFrame, int]:
         raise RuntimeError("Existing readiness ledger missing state_key")
 
     before = len(old)
-    q = pd.concat([old, new_states], ignore_index=True, sort=False)
+    if old.empty:
+        q = new_states.copy()
+    elif new_states.empty:
+        q = old.copy()
+    else:
+        q = pd.concat([old, new_states], ignore_index=True, sort=False)
+
     q = q.drop_duplicates("state_key", keep="first")
     q["state_time"] = pd.to_datetime(q["state_time"], errors="coerce")
     if q["state_time"].isna().any():
