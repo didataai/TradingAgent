@@ -40,6 +40,7 @@ whole_day_bootstrap=ns['whole_day_bootstrap']
 auc_score=ns['auc_score']
 holm_adjust=ns['holm_adjust']
 
+# Exact frozen backbone objects from EXP49.
 dyn=ns['dyn'].copy()
 hazard=ns['hazard'].copy()
 cells=ns['cells'].copy()
@@ -58,6 +59,9 @@ print('EXP47_ROBUST_MINIMAL_CORRIDOR_EQUATION_STATUS = PRESERVED_PASS')
 print('EXP27 = UNTOUCHED')
 print('RUNTIME_PROMOTION = NONE')
 
+# -----------------------------------------------------------------------------
+# Frozen causal BRT-day features. Every quantity uses only M5 bars at/before t.
+# -----------------------------------------------------------------------------
 m=m5q[['available_at_brt','open','high','low','close','ATR']].copy()
 for c in ('open','high','low','close','ATR'):
     m[c]=pd.to_numeric(m[c],errors='coerce')
@@ -77,6 +81,9 @@ m['DAY_PATH_PX']=pd.Series(step_path,index=m.index).groupby(m['brt_date'],sort=F
 m['DAY_RANGE_PX']=cum_high-cum_low
 
 atr=m['ATR'].to_numpy(float)
+if (~np.isfinite(atr)).any() or (atr<=0).any():
+    # Only state rows must have valid ATR; M5 history can contain warmup NaNs.
+    pass
 valid_atr=np.isfinite(atr)&(atr>0)
 m['LOG_DAY_RANGE_ATR']=np.nan
 m['LOG_DAY_PATH_ATR']=np.nan
@@ -93,9 +100,19 @@ m['DAY_EFFICIENCY']=np.clip(eff,0.0,1.0)
 
 FEATURES=('TOD_SIN','TOD_COS','LOG_DAY_RANGE_ATR','LOG_DAY_PATH_ATR','DAY_EFFICIENCY')
 fm=m[['available_at_brt',*FEATURES]].rename(columns={'available_at_brt':'state_time'})
+if not fm['state_time'].is_unique:
+    dup=fm.loc[fm['state_time'].duplicated(keep=False),'state_time'].head().tolist()
+    raise RuntimeError(f'EXP52 M5 feature map state_time is not unique: {dup}')
+
 dyn2=dyn.copy()
 dyn2['state_id']=np.arange(len(dyn2),dtype=int)
-dyn2=dyn2.merge(fm,on='state_time',how='left',validate='one_to_one')
+_n_dyn_before=len(dyn2)
+dyn2=dyn2.merge(fm,on='state_time',how='left',validate='many_to_one')
+if len(dyn2)!=_n_dyn_before or dyn2['state_id'].nunique()!=_n_dyn_before:
+    raise RuntimeError(
+        f'EXP52 state mapping cardinality changed: before={_n_dyn_before} '
+        f'after={len(dyn2)} unique_state_id={dyn2["state_id"].nunique()}'
+    )
 if dyn2[list(FEATURES)].isna().any().any() or not np.isfinite(dyn2[list(FEATURES)].to_numpy(float)).all():
     bad=dyn2.loc[dyn2[list(FEATURES)].isna().any(axis=1),['state_time',*FEATURES]].head()
     raise RuntimeError(f'EXP52 causal feature mapping failed:\n{bad}')
@@ -105,6 +122,8 @@ hazard2=hazard.merge(state_feature_map,on='state_id',how='left',validate='many_t
 cells2=cells.merge(state_feature_map,on='state_id',how='left',validate='many_to_one')
 if hazard2[list(FEATURES)].isna().any().any() or cells2[list(FEATURES)].isna().any().any():
     raise RuntimeError('EXP52 feature join failed')
+
+# Preserve exact frozen joint environments from EXP49.
 if 'joint_env' not in cells2:
     raise RuntimeError('EXP52 missing frozen joint_env')
 
@@ -182,6 +201,7 @@ for name,feats in MODEL_FEATURES.items():
 joint_identifiable=bool(models['JOINT5_EXIT']['converged'] and models['JOINT5_EXIT']['finite'] and models['JOINT5_EXIT']['full_rank'])
 print('\nEXP52_JOINT5_IDENTIFIABILITY =','PASS' if joint_identifiable else 'FAIL')
 
+# Predictions.
 pred={'BASE_EXIT':base_cell_pred.copy()}
 for name,info in models.items():
     if name=='BASE_EXIT': continue
@@ -207,6 +227,7 @@ for env in JOINT_ENVS:
     print(f'{env:<31} cells={len(q):>5} EXIT={ne:>5} NO_EXIT={nn:>5} days={days:>3} SCORABLE={ok}')
 print('\nEXP52_EXIT_ENVIRONMENT_STATUS =','PASS' if all_scorable else 'UNDERPOWERED_EXIT_ENVIRONMENT')
 
+# Marginal frozen block diagnostics + Holm 64 tests.
 print('\n'+'='*132)
 print('EXP52 MARGINAL BLOCK DIAGNOSTICS — HOLM-AWARE, NOT FORMAL')
 print('='*132)
