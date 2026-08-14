@@ -5,6 +5,7 @@ OPERABILITY01 live cycle.
 1) Verify the frozen historical threshold reference.
 2) Refresh GOLD intraday data from MT5 using the existing Base_Dados.py.
 3) Run the frozen OPERABILITY01 shadow classifier.
+4) Run the descriptive shadow monitor (no outcomes, no Exp27 scores).
 
 This wrapper does not score outcomes, does not touch Exp27 and does not promote
 the operability gate to runtime enforcement.
@@ -77,6 +78,12 @@ def main() -> int:
     rc = run(shadow)
     if rc != 0:
         print("OPERABILITY01_LIVE_CYCLE = ABORTED_SHADOW_FAILED")
+        return rc
+
+    monitor = [sys.executable, str(ROOT / "OPERABILITY01_monitor.py")]
+    rc = run(monitor)
+    if rc != 0:
+        print("OPERABILITY01_LIVE_CYCLE = ABORTED_MONITOR_FAILED")
         return rc
 
     print("OPERABILITY01_LIVE_CYCLE = PASS")
