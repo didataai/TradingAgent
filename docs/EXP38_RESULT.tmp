@@ -37,31 +37,33 @@ d_back_atr = bias_sign*(close-back)/ATR > 0
 d_forward_atr = bias_sign*(forward-close)/ATR > 0
 Position = d_back_atr/(d_back_atr+d_forward_atr)
 
-Frozen timing candidates, all fixed before scoring:
-T1 EDGE_REL = abs(2*Position-1). 0=center, 1=near an edge in relative geometry.
-T2 LOG_NEAR_ATR = log1p(min(d_back_atr,d_forward_atr)).
-T3 LOG_FAR_ATR = log1p(max(d_back_atr,d_forward_atr)).
-T4 LOG_HARMONIC_ATR = log1p(2*d_back_atr*d_forward_atr/(d_back_atr+d_forward_atr)).
+Frozen timing candidates:
+T1 EDGE_REL = abs(2*Position-1)
+T2 LOG_NEAR_ATR = log1p(min(d_back_atr,d_forward_atr))
+T3 LOG_FAR_ATR = log1p(max(d_back_atr,d_forward_atr))
+T4 LOG_HARMONIC_ATR = log1p(2*d_back_atr*d_forward_atr/(d_back_atr+d_forward_atr))
 
-Rationale: binary EXIT timing should be symmetric to which side wins. T1 measures relative edge proximity; T2 absolute distance to the nearest escape boundary; T3 far-boundary context; T4 two-sided escape depth. No sign of Position is used as a timing predictor.
+Binary discrete-time EXIT hazard, TRAIN only, same 24 elapsed-step intercepts:
+BASE_EXIT = step intercepts only
+EDGE_EXIT = BASE+T1
+NEAR_EXIT = BASE+T2
+FAR_EXIT = BASE+T3
+HARM_EXIT = BASE+T4
+JOINT4_EXIT = BASE+T1+T2+T3+T4
+Drop-one models remove exactly one frozen T from JOINT4.
 
-Model family: discrete-time binary EXIT hazard on the original person-period table. y_exit_step=1 when current step exits by either ADVANCE or RECAPTURE, else 0 while at risk. All models fit TRAIN only with the same 24 elapsed-step intercepts.
+No hyperparameter tuning, no threshold, no alternate transforms after result. No standardization is used in the frozen runner.
 
-BASE_EXIT = 24 step intercepts only.
-EDGE_EXIT = BASE_EXIT + T1.
-NEAR_EXIT = BASE_EXIT + T2.
-FAR_EXIT = BASE_EXIT + T3.
-HARM_EXIT = BASE_EXIT + T4.
-JOINT4_EXIT = BASE_EXIT + T1+T2+T3+T4.
+Required analysis: marginal diagnostics; TRAIN-only correlation/redundancy; JOINT4; drop-one; horizon 15/30/60/120 cumulative EXIT probabilities; calibration and EXIT AUC; whole-BRT-day bootstrap; multiplicity-aware marginal reporting. TEST may not rescue a failed family result.
 
-No hyperparameter tuning, no threshold, no alternate transforms after result. Standardization, if needed numerically, must use TRAIN mean/std only and be fixed for VAL/TEST.
+Frozen operationalization of numerical identifiability: JOINT4 TRAIN design must have full column rank, the fit must converge, and all fitted coefficients must be finite.
 
-Required analysis is one frozen family analysis: marginal candidate diagnostics; TRAIN-only feature correlation/redundancy report; JOINT4; drop-one from JOINT4; horizon 15/30/60/120 cumulative EXIT probabilities; calibration and EXIT AUC diagnostics; whole-BRT-day bootstrap; multiplicity-aware marginal reporting. TEST may not rescue a failed family result.
+Frozen multiplicity rule for marginal diagnostics: Holm correction across the complete frozen 4 candidates × 8 environments × 2 metrics = 64 marginal tests. Marginal results are diagnostic only and cannot rescue formal inference.
 
-Primary family comparison: JOINT4_EXIT vs BASE_EXIT using binary Brier and LogLoss on EXIT_STATE_HORIZON_WEIGHTED cells within each of the exact 8 environments. Environment must contain EXIT and NO_EXIT and >=2 BRT days. Formal FAMILY PASS requires CI95 lower bound >0 for both metrics in all 8 environments = 16/16.
+Primary family comparison: JOINT4_EXIT vs BASE_EXIT using binary Brier and LogLoss on EXIT_STATE_HORIZON_WEIGHTED cells within each exact environment. Environment must contain EXIT and NO_EXIT and >=2 BRT days. Formal FAMILY PASS requires CI95 lower bound >0 for both metrics in all 8 environments = 16/16.
 
 TIMING_GEOMETRY_FAMILY=PASS only at 16/16 for JOINT4 vs BASE.
-ROBUST_SYMMETRIC_EXIT_GEOMETRY=PASS only if all environments scorable, JOINT4 16/16, and the joint fit is numerically identifiable. Marginal or drop-one diagnostics cannot rescue a JOINT4 formal failure.
+ROBUST_SYMMETRIC_EXIT_GEOMETRY=PASS only if all environments scorable, JOINT4 16/16, and JOINT4 is numerically identifiable under the frozen rule above.
 
 Anti-rescue: no Dwell; no signed Position timing rescue; no alternate EXIT definition; no side conditioning; no horizon subset; no dropped environment; no side/era-specific fit; no direction×time interaction; no recalibration/intercept/threshold rescue; no alternate transforms; no additional feature after result; no Validation/TEST refit; no Exp27 scoring/modification.
 
