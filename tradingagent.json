@@ -6,7 +6,7 @@
   },
   "mt5": {
     "path": "C:\\Program Files\\FBS MetaTrader 5\\terminal64.exe",
-    "account": 6244829,
+    "account": 6262043,
     "server": "ActivTrades-Server",
     "password": "Demoacc2!",
     "broker_timezone": "Etc/GMT-2",
