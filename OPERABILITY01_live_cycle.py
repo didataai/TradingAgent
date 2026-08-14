@@ -6,9 +6,11 @@ OPERABILITY01 live cycle.
 2) Refresh GOLD intraday data from MT5 using the existing Base_Dados.py.
 3) Run the frozen OPERABILITY01 shadow classifier.
 4) Run the descriptive shadow monitor (no outcomes, no Exp27 scores).
+5) Update the sealed Exp27 maturity ledger after exact historical state guards.
 
-This wrapper does not score outcomes, does not touch Exp27 and does not promote
-the operability gate to runtime enforcement.
+This wrapper never computes Exp27 scores and never promotes the operability gate
+or Track-D models to runtime enforcement. Exp27 work here is maturity counting
+only; score opening remains governed by the frozen 60-day AND 1500-state gate.
 """
 from __future__ import annotations
 
@@ -86,7 +88,14 @@ def main() -> int:
         print("OPERABILITY01_LIVE_CYCLE = ABORTED_MONITOR_FAILED")
         return rc
 
+    readiness = [sys.executable, str(ROOT / "EXP27_readiness_counter.py")]
+    rc = run(readiness)
+    if rc != 0:
+        print("OPERABILITY01_LIVE_CYCLE = ABORTED_EXP27_READINESS_FAILED")
+        return rc
+
     print("OPERABILITY01_LIVE_CYCLE = PASS")
+    print("EXP27_SCORE_OPENING = GOVERNED_BY_FROZEN_MATURITY_GATE")
     return 0
 
 
