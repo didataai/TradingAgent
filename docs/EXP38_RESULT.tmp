@@ -1,67 +1,101 @@
-# Track-D checkpoint — through Exp53 freeze
+# Track-D checkpoint — historical timing discovery closed after Exp53
 
 Date 2026-08-14. Historical OOS repeatedly inspected; exploratory only. Runtime promotion NONE. Exp27 untouched; fresh-forward shadow remains >= 2026-08-13 00:00 BRT. Historical cutoff remains < 2026-08-13 00:00 BRT.
 
 Exact guards preserved: events 5209; L1 4786; raw touches 2588; unique touches 2310; OUTSIDE_15 1091; active L2 1013; raw dynamic 9826; unique dynamic 9667. TRAIN 5612 states; VALIDATION 1959; TEST 2096. Any mismatch aborts before score.
 
-Preserved PASS: Exp40 FULL PASS; Exp41 FULL PASS; Exp44 ROBUST_POSITION_CORE PASS; Exp45 ROBUST_WHICH_SIDE_LAW PASS; Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION PASS.
+## Preserved structural results
 
-Preserved non-PASS timing results: Exp42/43 Dwell transport FAIL; Exp46 Dwell timing FAIL; Exp48 Position exit-clock FAIL; Exp49 symmetric timing geometry FAIL; Exp50 pooled geometry ranking UNDERPOWERED_RANKING_CELL 22/32; Exp51 within-day geometry ranking UNDERPOWERED_WITHIN_DAY_CELL 15/32.
+PASS:
+- Exp40 FULL_MULTI_HORIZON_CORRIDOR_DNA = PASS.
+- Exp41 shared competing-risk survival = FULL PASS.
+- Exp44 ROBUST_POSITION_CORE = PASS across joint direction x time environments.
+- Exp45 ROBUST_WHICH_SIDE_LAW = PASS.
+- Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION = PASS: elapsed-time BASE exit clock + Position conditional side law.
 
-## Exp52 — Causal Intraday Regime Timing Family — FAIL
+Non-PASS timing results preserved:
+- Exp42/43 Dwell transport = FAIL.
+- Exp46 Dwell exit-timing increment = FAIL.
+- Exp48 signed Position exit-clock increment = FAIL.
+- Exp49 symmetric boundary-proximity timing family = FAIL, 12/16 formal cells.
+- Exp50 pooled geometry ranking = UNDERPOWERED_RANKING_CELL, 22/32.
+- Exp51 within-day geometry ranking = UNDERPOWERED_WITHIN_DAY_CELL, 15/32.
+- Exp52 causal intraday day/session timing family = FAIL, 0/16.
 
-Purpose: test a genuinely new causal day/session context family for binary EXIT-vs-NO_EXIT, using only information available at state_time. Frozen features were TOD_SIN/TOD_COS, LOG_DAY_RANGE_ATR, LOG_DAY_PATH_ATR, DAY_EFFICIENCY. Same 24 elapsed-step intercepts; TRAIN-only fits; same exact 8 direction×time environments; same H={15,30,60,120}; primary JOINT5_EXIT vs BASE_EXIT on EXIT_STATE_HORIZON_WEIGHTED with whole-BRT-day bootstrap.
+Historical interpretation through Exp52: Position is robust for WHICH SIDE. A universal state-specific WHEN/WHETHER clock beyond the elapsed-time BASE clock has not been established. Geometry showed strong discrimination in some regimes but not universal transport. Day/session context changed sign across environments and is not a universal timing law.
 
-Implementation note before score: initial runner aborted at the state_time feature join because dyn can contain multiple corridor states at one timestamp while the M5 feature map is unique by timestamp. This was corrected from one_to_one to many_to_one with explicit cardinality-preservation guards. No score had been accepted before the correction and no scientific rule changed.
+## Exp53 — Nearest-Edge M5 Impulse Timing Family — FAIL
 
-All environment scorability guards PASS. TRAIN feature rank=5/5; standardized condition number=7.739603; JOINT5 design rank=29/29; convergence=True; finite=True. EXP52_JOINT5_IDENTIFIABILITY=PASS.
-
-Formal JOINT5 vs BASE:
-VAL_EARLY_UP Brier -.000476069 CI[-.005049888,+.004799074] FAIL; LL -.000932630 CI[-.011066765,+.010929457] FAIL.
-VAL_EARLY_DOWN +.004182493 CI[-.002984698,+.011542882] FAIL; LL +.009471187 CI[-.006501926,+.025794464] FAIL.
-VAL_LATE_UP +.001564937 CI[-.003660861,+.007320395] FAIL; LL +.003345191 CI[-.008188284,+.016543114] FAIL.
-VAL_LATE_DOWN -.000919168 CI[-.004513160,+.004811811] FAIL; LL -.002040329 CI[-.010084550,+.010898165] FAIL.
-TEST_EARLY_UP -.008375579 CI[-.016292531,+.005646110] FAIL; LL -.019240945 CI[-.037110336,+.012428058] FAIL.
-TEST_EARLY_DOWN +.003196088 CI[-.001799678,+.009743548] FAIL; LL +.007038035 CI[-.004039359,+.021542619] FAIL.
-TEST_LATE_UP -.002199739 CI[-.005389639,+.001841575] FAIL; LL -.004577717 CI[-.011443634,+.004533998] FAIL.
-TEST_LATE_DOWN -.001255502 CI[-.006960405,+.006098551] FAIL; LL -.002822838 CI[-.015623693,+.013014013] FAIL.
-
-Formal cells passing: 0/16. Therefore EXP52_EXIT_ENVIRONMENT_STATUS=PASS; EXP52_JOINT5_IDENTIFIABILITY=PASS; INTRADAY_REGIME_TIMING_FAMILY=FAIL; ROBUST_INTRADAY_EXIT_CLOCK_CONTEXT=FAIL; EXP52_FORMAL_STATUS=FAIL.
-
-Diagnostics reinforced the failure: AUC direction itself inverted across environments, e.g. TEST_EARLY_UP approximately 0.22–0.35 and VALIDATION_LATE_DOWN approximately 0.39–0.47, while some DOWN environments were above 0.5. Therefore failure is not only calibration. Marginal/drop-one diagnostics cannot rescue.
-
-Interpretation: cumulative day/session context as defined here is not a universal historical EXIT clock. Exp47 remains the minimal robust historical probability law: elapsed-time BASE clock plus Position for conditional side.
-
-## Exp53 — Nearest-Edge M5 Impulse Timing Family — FROZEN BEFORE SCORE
-
-This is the FINAL preregistered historical timing-feature family before the fresh-forward gate. If Exp53 fails or is underpowered, HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP=YES and no Exp54 historical timing-feature search is allowed.
+Exp53 was the final preregistered historical timing-feature family before the fresh-forward gate.
 
 Scientific question: does the local closed-M5 impulse at state_time, oriented toward the nearest fixed corridor boundary, add a robust EXIT-vs-NO_EXIT clock component beyond BASE_EXIT?
 
-Frozen causal features, all computed from the single M5 bar closed at state_time and current frozen corridor:
-- nearest boundary = BACK when |close-back| <= |forward-close|, otherwise FORWARD; this tie rule is frozen.
-- EDGE_BODY_ATR = edge_sign * (M5_close - M5_open) / ATR. Positive means net candle body toward nearest edge.
-- BAR_RANGE_ATR = (M5_high - M5_low) / ATR. Unsigned local M5 range.
-- EDGE_CLOSE_LOC = edge_sign * (2*M5_close - M5_high - M5_low)/(M5_high-M5_low), clipped to [-1,1], and defined 0 for zero-range bars. Positive means close pressure toward nearest edge.
+Frozen causal features:
+- nearest boundary = BACK when |close-back| <= |forward-close|, otherwise FORWARD.
+- EDGE_BODY_ATR = edge_sign * (M5_close - M5_open) / ATR.
+- BAR_RANGE_ATR = (M5_high - M5_low) / ATR.
+- EDGE_CLOSE_LOC = edge_sign * (2*M5_close - M5_high - M5_low)/(M5_high-M5_low), clipped [-1,1], zero for zero-range bars.
 
-Excluded from Exp53: static distance magnitude, Position as timing predictor, Dwell, day/session context, lookback-window search, multiple window lengths, interactions, thresholds, feature subsets chosen after score, OOS refit or recalibration.
+Implementation note before score: the initial runner aborted because dyn does not itself carry raw M5 close/ATR. No Exp53 score had been accepted. The runner was corrected to causally map unique closed-M5 open/high/low/close/ATR to state_time with many-to-one state mapping and explicit cardinality guards. The scientific contract did not change.
 
-Models, TRAIN only, same 24 frozen elapsed-step intercepts:
-BASE_EXIT = frozen intercepts only.
-BODY_EXIT = BASE + EDGE_BODY_ATR.
-RANGE_EXIT = BASE + BAR_RANGE_ATR.
-PRESSURE_EXIT = BASE + EDGE_CLOSE_LOC.
-JOINT3_EXIT = BASE + all three frozen features.
-DROP_BODY / DROP_RANGE / DROP_PRESSURE are diagnostic only.
+All mapping/environment guards PASS: 9667 states mapped; M5 timestamp universe 99999; state cardinality preserved; all eight EXIT environments scorable.
 
-Required analysis: exact EXP52 replay must preserve FAIL before any Exp53 score; causal state-time/OHLC mapping guards; TRAIN-only correlation/rank; JOINT3 identifiability; marginal Holm diagnostics across 3×8×2=48 tests; horizon point gains; drop-one; AUC/calibration; primary whole-BRT-day bootstrap.
+TRAIN diagnostics: feature rank 3/3; standardized condition number 2.793005; JOINT3 design rank 27/27; converged=True; finite=True. EXP53_JOINT3_IDENTIFIABILITY=PASS.
 
-Primary formal comparison: JOINT3_EXIT vs exact BASE_EXIT using binary Brier and LogLoss on EXIT_STATE_HORIZON_WEIGHTED cells within the exact eight direction×time environments. Formal PASS requires CI95 lower bound >0 for both metrics in all 8 environments = 16/16.
+Primary JOINT3_EXIT vs BASE_EXIT, EXIT_STATE_HORIZON_WEIGHTED, whole-BRT-day bootstrap:
+- VAL_EARLY_UP: Brier -0.000505080 CI[-0.002719838,+0.002130634] FAIL; LL -0.000538553 CI[-0.005629971,+0.005473321] FAIL.
+- VAL_EARLY_DOWN: Brier +0.003131745 CI[-0.000083737,+0.007887824] FAIL; LL +0.006694820 CI[-0.001079544,+0.017944098] FAIL.
+- VAL_LATE_UP: Brier +0.002359883 CI[+0.000709387,+0.003962698] PASS; LL +0.005064641 CI[+0.001542466,+0.008447806] PASS.
+- VAL_LATE_DOWN: Brier +0.001336658 CI[-0.000982193,+0.005720108] FAIL; LL +0.002683971 CI[-0.002563891,+0.013816292] FAIL.
+- TEST_EARLY_UP: Brier +0.001577698 CI[-0.001134289,+0.006981391] FAIL; LL +0.003386273 CI[-0.002863699,+0.016119749] FAIL.
+- TEST_EARLY_DOWN: Brier +0.003128051 CI[+0.001219235,+0.006268306] PASS; LL +0.006673129 CI[+0.002374721,+0.013674191] PASS.
+- TEST_LATE_UP: Brier +0.001426422 CI[-0.000951383,+0.004407557] FAIL; LL +0.003658331 CI[-0.002025802,+0.010819043] FAIL.
+- TEST_LATE_DOWN: Brier +0.001719522 CI[-0.000472143,+0.003901661] FAIL; LL +0.004570004 CI[-0.000377836,+0.009328119] FAIL.
 
-LOCAL_EDGE_IMPULSE_TIMING_FAMILY=PASS only at 16/16. ROBUST_LOCAL_EDGE_EXIT_IMPULSE=PASS only with all environments scorable, JOINT3 numerically identifiable, and 16/16 formal cells.
+Formal cells passing = 4/16.
 
-Frozen stop rule: if Exp53 is FAIL or UNDERPOWERED, HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP=YES. Preserve Exp47 baseline timing law and wait for fresh-forward Exp27 before any further timing-family claim. No historical rescue experiment may replace this stop rule.
+Formal verdict:
+EXP53_EXIT_ENVIRONMENT_STATUS = PASS
+EXP53_JOINT3_IDENTIFIABILITY = PASS
+EXP53_FORMAL_CELLS_PASS = 4/16
+LOCAL_EDGE_IMPULSE_TIMING_FAMILY = FAIL
+ROBUST_LOCAL_EDGE_EXIT_IMPULSE = FAIL
+EXP53_FORMAL_STATUS = FAIL
+HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP = YES
+EXP27 = UNTOUCHED
+RUNTIME_PROMOTION = NONE
 
-Anti-rescue: no alternate nearest-edge rule; no candle transform; no added feature; no subset; no horizon/environment drop; no pooled-horizon replacement; no side/era-specific fit; no recalibration/intercept/threshold; no Validation/TEST refit; no Exp27 scoring/modification.
+### Diagnostic interpretation — preserved, not a rescue
 
-Historical OOS remains exploratory. Exp27 untouched. Runtime promotion NONE.
+The local M5 impulse family is NOT a universal EXIT clock. However, it is not classified as useless. Point gains were positive in many environments and BODY_EXIT showed multiplicity-adjusted evidence in TEST_EARLY_DOWN (Holm p=0.0048 for both Brier and LogLoss). RANGE_EXIT also changed sign by environment, including clear degradation in VALIDATION_EARLY_UP. AUCs for JOINT3 were generally only modestly above 0.5. Therefore the correct historical classification is NON-UNIVERSAL / REGIME-CANDIDATE, not ROBUST and not DISCARDED.
+
+No marginal, drop-one, horizon subset, environment subset or event-day exclusion may rescue Exp53 after the result.
+
+## Historical timing feature-discovery stop — ACTIVE
+
+The preregistered stop rule is now active:
+
+HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP = YES
+
+Consequences:
+- No Exp54 historical timing-feature rescue is allowed.
+- No retrospective exclusion of news, war, high-volatility days, Friday close, outliers or adverse environments may be used to turn Exp48-53 into PASS.
+- No subset, alternate transform, threshold, recalibration, side/era fit or OOS refit may redefine these results.
+- Exp47 remains the minimal robust historical probability law for timing: elapsed-time BASE exit clock, with Position reserved for conditional WHICH-SIDE.
+- Exp49/50/51 and Exp53 signals may be retained as NON-UNIVERSAL / REGIME-CANDIDATE diagnostics for future preregistered regime work.
+
+## Next phase — prospective Market Operability layer, not historical rescue
+
+The next scientific phase is NOT another historical timing experiment. A separate Market Operability layer may be designed prospectively before fresh-forward scoring:
+
+TRADEABLE / CAUTION / NO-TRADE
+
+Candidate causal domains to preregister before use include:
+- deterministic calendar/session constraints such as late-Friday / weekly close and known market maintenance/holiday windows;
+- scheduled macro-event windows;
+- causal microstructure stress such as abnormal spread, liquidity disappearance, gaps/slippage or quote instability;
+- causal shock-regime detection for extreme volatility / unscheduled geopolitical or news shocks.
+
+Critical governance rule: these domains must be defined prospectively and cannot be retroactively applied to remove historical failures. Thresholds or event rules must be frozen before evaluation. The operability layer controls whether the strategy participates; it does not rewrite the historical predictor verdicts.
+
+Fresh-forward Exp27 remains the decisive anti-overfitting gate before runtime promotion or any new claim of generalization.
