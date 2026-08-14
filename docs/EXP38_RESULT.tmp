@@ -1,58 +1,67 @@
-# Track-D checkpoint — through Exp52
+# Track-D checkpoint — through Exp53 freeze
 
 Date 2026-08-14. Historical OOS repeatedly inspected; exploratory only. Runtime promotion NONE. Exp27 untouched; fresh-forward shadow remains >= 2026-08-13 00:00 BRT. Historical cutoff remains < 2026-08-13 00:00 BRT.
 
 Exact guards preserved: events 5209; L1 4786; raw touches 2588; unique touches 2310; OUTSIDE_15 1091; active L2 1013; raw dynamic 9826; unique dynamic 9667. TRAIN 5612 states; VALIDATION 1959; TEST 2096. Any mismatch aborts before score.
 
-Preserved PASS: Exp40, Exp41, Exp44 ROBUST_POSITION_CORE, Exp45 ROBUST_WHICH_SIDE_LAW, Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION.
-Preserved non-PASS: Exp42/43 Dwell transport FAIL; Exp46 Dwell timing FAIL; Exp48 Position exit-clock FAIL; Exp49 calibrated symmetric timing geometry FAIL; Exp50 pooled ranking UNDERPOWERED; Exp51 within-day ranking UNDERPOWERED.
+Preserved PASS: Exp40 FULL PASS; Exp41 FULL PASS; Exp44 ROBUST_POSITION_CORE PASS; Exp45 ROBUST_WHICH_SIDE_LAW PASS; Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION PASS.
 
-## Exp51 — Within-Day Exit-Risk Geometry Transport — UNDERPOWERED_WITHIN_DAY_CELL
+Preserved non-PASS timing results: Exp42/43 Dwell transport FAIL; Exp46 Dwell timing FAIL; Exp48 Position exit-clock FAIL; Exp49 symmetric timing geometry FAIL; Exp50 pooled geometry ranking UNDERPOWERED_RANKING_CELL 22/32; Exp51 within-day geometry ranking UNDERPOWERED_WITHIN_DAY_CELL 15/32.
 
-Exact frozen Exp50/Exp49 replay PASS; Exp49 JOINT4 identifiability PASS; Exp27 untouched. Same original TRAIN-fitted JOINT4_EXIT; no refit/recalibration/new feature.
+## Exp52 — Causal Intraday Regime Timing Family — FAIL
 
-Formal target: same-BRT-day EXIT-vs-NO_EXIT concordance only, 8 environments x H={15,30,60,120}=32 cells. Whole-day bootstrap; cell requires both classes overall, >=2 contributing days, >=2 mixed-class days, >=9500/10000 valid replicates, and CI95 lower bound of WITHIN_DAY_AUC >0.5.
+Purpose: test a genuinely new causal day/session context family for binary EXIT-vs-NO_EXIT, using only information available at state_time. Frozen features were TOD_SIN/TOD_COS, LOG_DAY_RANGE_ATR, LOG_DAY_PATH_ATR, DAY_EFFICIENCY. Same 24 elapsed-step intercepts; TRAIN-only fits; same exact 8 direction×time environments; same H={15,30,60,120}; primary JOINT5_EXIT vs BASE_EXIT on EXIT_STATE_HORIZON_WEIGHTED with whole-BRT-day bootstrap.
 
-Formal cells passing: 15/32. Status:
-EXP51_WITHIN_DAY_CELL_STATUS=UNDERPOWERED_WITHIN_DAY_CELL
-EXP51_FORMAL_CELLS_PASS=15/32
-WITHIN_DAY_GEOMETRY_RANKING_TRANSPORT=UNDERPOWERED_WITHIN_DAY_CELL
-ROBUST_WITHIN_DAY_EXIT_URGENCY_ORDERING=UNDERPOWERED_WITHIN_DAY_CELL
-EXP51_FORMAL_STATUS=UNDERPOWERED_WITHIN_DAY_CELL
+Implementation note before score: initial runner aborted at the state_time feature join because dyn can contain multiple corridor states at one timestamp while the M5 feature map is unique by timestamp. This was corrected from one_to_one to many_to_one with explicit cardinality-preservation guards. No score had been accepted before the correction and no scientific rule changed.
 
-Important diagnostics: pooled JOINT4 AUC remained strong, but within-day discrimination degraded materially in several environments/horizons. VALIDATION_EARLY__FULL_DOWN had WITHIN_AUC H60=.392786 and H120=.337430; VALIDATION_LATE__FULL_DOWN H15=.580531 with CI crossing .5 and H120 had only one mixed-class day; TEST_LATE__FULL_UP H30/H60/H120 also failed. Day-regime correlation between daily mean JOINT4 score and daily EXIT rate was often large, roughly +.60 to +.92 in many cells.
+All environment scorability guards PASS. TRAIN feature rank=5/5; standardized condition number=7.739603; JOINT5 design rank=29/29; convergence=True; finite=True. EXP52_JOINT5_IDENTIFIABILITY=PASS.
 
-Interpretation: symmetric corridor geometry is not established as a universal timing or urgency law, even after conditioning comparisons to the same BRT day. The geometry family is CLOSED for further rescue in the historical universe. Do not subset horizons/environments or refit by side/time. Exp49/50/51 diagnostics remain descriptive only.
+Formal JOINT5 vs BASE:
+VAL_EARLY_UP Brier -.000476069 CI[-.005049888,+.004799074] FAIL; LL -.000932630 CI[-.011066765,+.010929457] FAIL.
+VAL_EARLY_DOWN +.004182493 CI[-.002984698,+.011542882] FAIL; LL +.009471187 CI[-.006501926,+.025794464] FAIL.
+VAL_LATE_UP +.001564937 CI[-.003660861,+.007320395] FAIL; LL +.003345191 CI[-.008188284,+.016543114] FAIL.
+VAL_LATE_DOWN -.000919168 CI[-.004513160,+.004811811] FAIL; LL -.002040329 CI[-.010084550,+.010898165] FAIL.
+TEST_EARLY_UP -.008375579 CI[-.016292531,+.005646110] FAIL; LL -.019240945 CI[-.037110336,+.012428058] FAIL.
+TEST_EARLY_DOWN +.003196088 CI[-.001799678,+.009743548] FAIL; LL +.007038035 CI[-.004039359,+.021542619] FAIL.
+TEST_LATE_UP -.002199739 CI[-.005389639,+.001841575] FAIL; LL -.004577717 CI[-.011443634,+.004533998] FAIL.
+TEST_LATE_DOWN -.001255502 CI[-.006960405,+.006098551] FAIL; LL -.002822838 CI[-.015623693,+.013014013] FAIL.
 
-## Exp52 — Causal Intraday Regime Timing Family — FROZEN BEFORE SCORE
+Formal cells passing: 0/16. Therefore EXP52_EXIT_ENVIRONMENT_STATUS=PASS; EXP52_JOINT5_IDENTIFIABILITY=PASS; INTRADAY_REGIME_TIMING_FAMILY=FAIL; ROBUST_INTRADAY_EXIT_CLOCK_CONTEXT=FAIL; EXP52_FORMAL_STATUS=FAIL.
 
-Purpose: test a genuinely new timing family motivated by Exp50/51 evidence that between-day/intraday regime composition carries substantial EXIT timing information. This is not a JOINT4 rescue and uses no corridor-geometry timing predictor.
+Diagnostics reinforced the failure: AUC direction itself inverted across environments, e.g. TEST_EARLY_UP approximately 0.22–0.35 and VALIDATION_LATE_DOWN approximately 0.39–0.47, while some DOWN environments were above 0.5. Therefore failure is not only calibration. Marginal/drop-one diagnostics cannot rescue.
 
-Exact universe remains unchanged: replay exact Exp49 backbone; same historical cutoff; same Exp41 eligible 15/30/60/120m cells; same eight Exp44/45 direction x time environments; same binary EXIT-vs-NO_EXIT target; whole-BRT-day inference; TRAIN-only model fit; Exp27 untouched.
+Interpretation: cumulative day/session context as defined here is not a universal historical EXIT clock. Exp47 remains the minimal robust historical probability law: elapsed-time BASE clock plus Position for conditional side.
 
-All Exp52 state features are computed causally from M5 information available at or before state_time within the same BRT day:
-R1 TOD_SIN = sin(2*pi*minute_of_day/1440).
-R2 TOD_COS = cos(2*pi*minute_of_day/1440).
-R3 LOG_DAY_RANGE_ATR = log1p((cum_high_day - cum_low_day)/ATR_state).
-R4 LOG_DAY_PATH_ATR = log1p(cumulative intraday absolute price path / ATR_state), where first bar contribution is abs(close-open) and later contributions are abs(close_t-close_{t-1}) within the same BRT day.
-R5 DAY_EFFICIENCY = abs(close_state - first_open_day) / cumulative intraday absolute price path, with 0 when path=0; bounded numerically to [0,1].
+## Exp53 — Nearest-Edge M5 Impulse Timing Family — FROZEN BEFORE SCORE
 
-Frozen candidate blocks:
-TOD_EXIT = BASE_EXIT + TOD_SIN + TOD_COS.
-RANGE_EXIT = BASE_EXIT + LOG_DAY_RANGE_ATR.
-PATH_EXIT = BASE_EXIT + LOG_DAY_PATH_ATR.
-EFF_EXIT = BASE_EXIT + DAY_EFFICIENCY.
-JOINT5_EXIT = BASE_EXIT + all five frozen columns.
-Drop-one diagnostics remove exactly one frozen candidate block from JOINT5: DROP_TOD, DROP_RANGE, DROP_PATH, DROP_EFF.
+This is the FINAL preregistered historical timing-feature family before the fresh-forward gate. If Exp53 fails or is underpowered, HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP=YES and no Exp54 historical timing-feature search is allowed.
 
-All models are binary discrete-time EXIT hazards with the same 24 elapsed-future-step intercepts used by Exp49, fit on TRAIN only. BASE_EXIT is the exact original Exp49 baseline. No standardization is used. JOINT5 numerical identifiability requires TRAIN design full column rank, converged fit, and finite coefficients.
+Scientific question: does the local closed-M5 impulse at state_time, oriented toward the nearest fixed corridor boundary, add a robust EXIT-vs-NO_EXIT clock component beyond BASE_EXIT?
 
-Required analysis: TRAIN-only feature correlation/rank/condition; marginal candidate diagnostics with Holm correction across 4 candidate blocks x 8 environments x 2 metrics = 64 tests; JOINT5; drop-one; horizon 15/30/60/120 point gains; EXIT AUC and calibration; whole-BRT-day bootstrap. Marginal/drop-one/AUC/calibration are diagnostic only.
+Frozen causal features, all computed from the single M5 bar closed at state_time and current frozen corridor:
+- nearest boundary = BACK when |close-back| <= |forward-close|, otherwise FORWARD; this tie rule is frozen.
+- EDGE_BODY_ATR = edge_sign * (M5_close - M5_open) / ATR. Positive means net candle body toward nearest edge.
+- BAR_RANGE_ATR = (M5_high - M5_low) / ATR. Unsigned local M5 range.
+- EDGE_CLOSE_LOC = edge_sign * (2*M5_close - M5_high - M5_low)/(M5_high-M5_low), clipped to [-1,1], and defined 0 for zero-range bars. Positive means close pressure toward nearest edge.
 
-Primary formal comparison: JOINT5_EXIT vs exact BASE_EXIT on EXIT_STATE_HORIZON_WEIGHTED cells, pooled over the four frozen horizons within each exact environment. Metrics: binary Brier and LogLoss. Environment must contain EXIT and NO_EXIT and >=2 BRT days.
+Excluded from Exp53: static distance magnitude, Position as timing predictor, Dwell, day/session context, lookback-window search, multiple window lengths, interactions, thresholds, feature subsets chosen after score, OOS refit or recalibration.
 
-Formal gate: INTRADAY_REGIME_TIMING_FAMILY=PASS only if all 8 environments are scorable, JOINT5 is numerically identifiable, and JOINT5 beats BASE with CI95 lower bound >0 for Brier and LogLoss in all 8 environments = 16/16. ROBUST_INTRADAY_EXIT_CLOCK_CONTEXT and EXP52_FORMAL_STATUS use the same 16/16 gate.
+Models, TRAIN only, same 24 frozen elapsed-step intercepts:
+BASE_EXIT = frozen intercepts only.
+BODY_EXIT = BASE + EDGE_BODY_ATR.
+RANGE_EXIT = BASE + BAR_RANGE_ATR.
+PRESSURE_EXIT = BASE + EDGE_CLOSE_LOC.
+JOINT3_EXIT = BASE + all three frozen features.
+DROP_BODY / DROP_RANGE / DROP_PRESSURE are diagnostic only.
 
-Anti-rescue: no corridor geometry timing feature; no Dwell; no signed Position timing predictor; no alternate day boundary; no future/day-complete statistics; no alternate transforms after result; no added feature; no horizon subset; no dropped environment; no side/era-specific fit; no interaction/recalibration/intercept/threshold rescue; no Validation/TEST refit; no Exp27 scoring/modification.
+Required analysis: exact EXP52 replay must preserve FAIL before any Exp53 score; causal state-time/OHLC mapping guards; TRAIN-only correlation/rank; JOINT3 identifiability; marginal Holm diagnostics across 3×8×2=48 tests; horizon point gains; drop-one; AUC/calibration; primary whole-BRT-day bootstrap.
 
-Exp52 failure cannot erase Exp44/45/47 PASS results. Historical OOS remains exploratory; fresh-forward Exp27 remains decisive before runtime promotion.
+Primary formal comparison: JOINT3_EXIT vs exact BASE_EXIT using binary Brier and LogLoss on EXIT_STATE_HORIZON_WEIGHTED cells within the exact eight direction×time environments. Formal PASS requires CI95 lower bound >0 for both metrics in all 8 environments = 16/16.
+
+LOCAL_EDGE_IMPULSE_TIMING_FAMILY=PASS only at 16/16. ROBUST_LOCAL_EDGE_EXIT_IMPULSE=PASS only with all environments scorable, JOINT3 numerically identifiable, and 16/16 formal cells.
+
+Frozen stop rule: if Exp53 is FAIL or UNDERPOWERED, HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP=YES. Preserve Exp47 baseline timing law and wait for fresh-forward Exp27 before any further timing-family claim. No historical rescue experiment may replace this stop rule.
+
+Anti-rescue: no alternate nearest-edge rule; no candle transform; no added feature; no subset; no horizon/environment drop; no pooled-horizon replacement; no side/era-specific fit; no recalibration/intercept/threshold; no Validation/TEST refit; no Exp27 scoring/modification.
+
+Historical OOS remains exploratory. Exp27 untouched. Runtime promotion NONE.
