@@ -1,39 +1,55 @@
-# Track-D checkpoint — through Exp47
+# Track-D checkpoint — through Exp48
 
-Date 2026-08-13. Historical OOS exploratory. Runtime promotion NONE. Exp27 untouched; cutoff remains < 2026-08-13 00:00 BRT.
+Date 2026-08-14. Historical OOS exploratory. Runtime promotion NONE. Exp27 untouched; cutoff remains < 2026-08-13 00:00 BRT.
 
 Exact guards preserved: events 5209; L1 4786; raw touches 2588; unique touches 2310; OUTSIDE_15 1091; active L2 1013; raw dynamic 9826; unique dynamic 9667. TRAIN 5612 states; VAL 1959; TEST 2096. Any mismatch aborts before score.
 
-Preserved status: Exp40 FULL PASS; Exp41 FULL PASS; Exp44 ROBUST_POSITION_CORE PASS; Exp45 ROBUST_WHICH_SIDE_LAW PASS. Exp42/43 Dwell transport FAIL.
+Preserved status: Exp40 FULL PASS; Exp41 FULL PASS; Exp44 ROBUST_POSITION_CORE PASS; Exp45 ROBUST_WHICH_SIDE_LAW PASS; Exp46 Dwell timing FAIL. Exp42/43 Dwell transport FAIL.
 
-## Exp46 result — FAIL
+## Exp47 — Minimal Factorized Corridor Law — FULL PASS
 
-Binary EXIT-vs-NO_EXIT, frozen SEMI_SURV vs POSITION_SURV, same 8 direction-time environments, whole-BRT-day bootstrap. All environments scorable. Formal cells passing: 8/16.
+Frozen equation used no Dwell:
 
-VAL_EARLY_UP: Brier +.024245940 CI[+.003069829,+.053694473] PASS; LL +.058661497 CI[+.009957335,+.127306793] PASS.
-VAL_EARLY_DOWN: +.006694276 CI[-.016609094,+.039112200] FAIL; LL +.002044826 CI[-.052153031,+.079905143] FAIL.
-VAL_LATE_UP: +.015542595 CI[-.009119796,+.042957173] FAIL; LL +.035167400 CI[-.022015721,+.099710082] FAIL.
-VAL_LATE_DOWN: +.036183971 CI[+.016121324,+.065219999] PASS; LL +.077066871 CI[+.037704153,+.153472640] PASS.
-TEST_EARLY_UP: +.061584272 CI[+.018204915,+.087415522] PASS; LL +.146878195 CI[+.042391206,+.208316024] PASS.
-TEST_EARLY_DOWN: +.039341216 CI[+.015927565,+.066975272] PASS; LL +.090388940 CI[+.034126400,+.155745983] PASS.
-TEST_LATE_UP: +.010683156 CI[-.007576579,+.027989567] FAIL; LL +.011449140 CI[-.056352789,+.063228182] FAIL.
-TEST_LATE_DOWN: +.006292019 CI[-.011116169,+.037454011] FAIL; LL +.010901656 CI[-.031084203,+.085447019] FAIL.
+p_exit_base(H)=1-P_no_exit_base(H)
+q_adv_pos(H)=CIF_adv_position(H)/(CIF_adv_position(H)+CIF_rec_position(H))
+P_fact(no_exit)=1-p_exit_base
+P_fact(advance)=p_exit_base*q_adv_pos
+P_fact(recapture)=p_exit_base*(1-q_adv_pos)
 
-Formal: EXP46_EXIT_ENVIRONMENT_STATUS=PASS; EXIT_TIMING_DWELL_TRANSPORT=FAIL; ROBUST_WHEN_WHETHER_EXIT_COMPONENT=FAIL; EXP46_FORMAL_STATUS=FAIL. No rescue. Current state: Position->WHICH SIDE robust; Dwell->universal WHEN/WHETHER EXIT not robust.
+Same 8 direction×time environments, horizons 15/30/60/120m, multiclass Brier+LogLoss, whole-BRT-day bootstrap. All environments scorable and all 16 formal cells PASS.
 
-## Exp47 — Minimal Factorized Corridor Law — FROZEN BEFORE SCORE
+VAL_EARLY_UP Brier +.070574396 CI[+.052367721,+.093595881]; LL +.123990985 CI[+.085097787,+.171898909].
+VAL_EARLY_DOWN +.054191908 CI[+.022400983,+.100895288]; LL +.117921011 CI[+.061246018,+.201198545].
+VAL_LATE_UP +.034496538 CI[+.018454988,+.061241805]; LL +.072230456 CI[+.042046849,+.121652904].
+VAL_LATE_DOWN +.032443691 CI[+.005972646,+.085787025]; LL +.066858212 CI[+.019446464,+.165242692].
+TEST_EARLY_UP +.070429485 CI[+.043674083,+.126433250]; LL +.148857158 CI[+.104094758,+.246712877].
+TEST_EARLY_DOWN +.045743026 CI[+.020571746,+.090415185]; LL +.104859289 CI[+.066753991,+.178020720].
+TEST_LATE_UP +.064527674 CI[+.034088096,+.103007995]; LL +.126250897 CI[+.068185453,+.197033171].
+TEST_LATE_DOWN +.029337482 CI[+.003504587,+.069942457]; LL +.067084120 CI[+.019551872,+.143088635].
 
-Question: can robust components form a minimal 3-outcome law without Dwell?
+Formal: EXP47_ENVIRONMENT_STATUS=PASS; MINIMAL_FACTORIZED_CORRIDOR_LAW=PASS; ROBUST_MINIMAL_CORRIDOR_EQUATION=PASS; EXP47_FORMAL_STATUS=PASS.
 
-Frozen formulas from original Exp41 TRAIN predictions:
-p_exit_base(H)=1-P_no_exit_base(H).
-q_adv_pos(H)=CIF_adv_position(H)/(CIF_adv_position(H)+CIF_rec_position(H)).
-P_fact(no_exit)=1-p_exit_base.
-P_fact(advance)=p_exit_base*q_adv_pos.
-P_fact(recapture)=p_exit_base*(1-q_adv_pos).
+Diagnostics: factorized probability-sum error 1.11e-16. EXIT_AUC remains 0.5000->0.5000 by construction while SIDE_AUC improves strongly (~0.68–0.98). Interpretation: elapsed-time baseline clock + robust Position side law is sufficient for a robust minimal 3-outcome historical equation.
 
-Reuse exact Exp41 eligible horizons 15/30/60/120 and exact 8 Exp44/45 environments. Primary comparison FACTOR_POSITION vs BASE_SURV using multiclass Brier and LogLoss, state-horizon weighted, whole-BRT-day bootstrap. Require >=70% coverage and all 3 classes per environment. Formal PASS requires lower 95% CI >0 for both metrics in all 8 environments: 16/16.
+## Exp48 — Position Exit-Clock Orthogonality Test — FROZEN BEFORE SCORE
 
-MINIMAL_FACTORIZED_CORRIDOR_LAW=PASS only at 16/16. ROBUST_MINIMAL_CORRIDOR_EQUATION=PASS only if all environments scorable and 16/16.
+Scientific question: beyond its already-proven WHICH-SIDE role, does the exact original TRAIN-fitted POSITION_SURV also improve binary EXIT-vs-NO_EXIT prediction relative to BASE_SURV across all eight frozen direction×time environments, without refit, recalibration, Dwell, threshold, alternate Position transform, or new feature?
 
-No Dwell, alternate timing clock, alternate side formula, horizon subset, dropped environment, refit, interaction, recalibration, threshold, new feature, or Exp27 scoring/modification.
+Frozen target/predictions:
+
+y_exit=1 if observed ADVANCE or RECAPTURE by H; y_exit=0 for NO_EXIT by H.
+p_exit_base(H)=1-P_NO_EXIT_BASE(H).
+p_exit_pos(H)=1-P_NO_EXIT_POSITION(H).
+
+Reuse exact Exp41 eligible cells at 15/30/60/120m and exact Exp44/45 joint environments. Primary estimand EXIT_STATE_HORIZON_WEIGHTED pooled over four horizons. Whole-BRT-day bootstrap preserving all eligible cells by environment/day. Environment must contain EXIT and NO_EXIT and >=2 contributing BRT days, otherwise UNDERPOWERED_EXIT_ENVIRONMENT.
+
+Formal comparison: POSITION_SURV vs BASE_SURV using binary Brier and LogLoss. gain=loss(BASE)-loss(POSITION). Require CI95 lower bound >0 for both metrics in all 8 environments = 16/16.
+
+POSITION_EXIT_CLOCK_TRANSPORT=PASS only at 16/16.
+ROBUST_POSITION_EXIT_CLOCK_COMPONENT=PASS only if all environments are scorable and all 16 cells pass.
+
+Diagnostics only: horizon point gains, EXIT AUC BASE->POSITION, calibration, UP-DOWN and EARLY-LATE differences. Diagnostics cannot rescue.
+
+Anti-rescue: no Dwell; no alternate EXIT definition; no conditioning on side; no horizon subset; no dropped environment; no side/era fit; no direction×time interaction; no recalibration/intercept/threshold; no alternate Position transform; no new feature; no Validation/TEST refit; no Exp27 scoring/modification.
+
+Exp48 failure cannot erase Exp44 ROBUST_POSITION_CORE, Exp45 ROBUST_WHICH_SIDE_LAW, or Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION. Historical OOS remains exploratory; runtime promotion NONE.
