@@ -297,3 +297,93 @@ EXP27 = UNTOUCHED / SCORES_SEALED
 HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP = PRESERVED_YES
 RUNTIME_PROMOTION = NONE
 ```
+
+## 2026-08-14 18:23 BRT — Decision Layer 01 result: FAIL 0/16
+
+All pre-score reproduction guards passed exactly before any DL01 result was accepted. Historical dynamic universe reproduced `9826 raw -> 9667 unique`, with TRAIN/VALIDATION/TEST `5612/1959/2096`; Exp47 state-horizon cells reproduced `21681/7577/8008`; TRAIN person-period hazard table reproduced `67550` rows with `STAY=63795`, `ADVANCE=1559`, `RECAPTURE=2196`.
+
+The deterministic Exp41 model reproduction also passed before score:
+
+```text
+POSITION_SURV beta_ADV_geo = +0.48459159
+POSITION_SURV beta_REC_geo = -0.46233758
+BASE 5m   hazard = STAY .899679 ADV .038667 REC .061654
+BASE 30m  hazard = STAY .942085 ADV .024545 REC .033370
+BASE 60m  hazard = STAY .957741 ADV .016588 REC .025671
+BASE 120m hazard = STAY .970199 ADV .013907 REC .015894
+```
+
+Algebra/mapping guards passed to floating-point precision:
+
+```text
+max probability-sum error = 2.220e-16
+max geometry identity err = 1.110e-16
+max EV identity error     = 1.166e-15
+```
+
+Therefore the result is not attributed to a failed historical replay, a Position/distance orientation mismatch, or an algebraic implementation error.
+
+Primary `STATE_HORIZON_WEIGHTED`, whole-BRT-day bootstrap, pooled H=15/30/60/120 within each frozen environment:
+
+```text
+VAL_EARLY_UP    MSE_GAIN -0.035230224 CI[-0.066161488,-0.009713725] FAIL | POLICY -0.246183005 CI[-0.467205162,-0.030847981] FAIL
+VAL_EARLY_DOWN  MSE_GAIN -0.012674858 CI[-0.044145663,+0.017185018] FAIL | POLICY -0.065707634 CI[-0.332073819,+0.211498026] FAIL
+VAL_LATE_UP     MSE_GAIN -0.037301945 CI[-0.078175534,-0.003605794] FAIL | POLICY -0.125767947 CI[-0.282150145,+0.036126315] FAIL
+VAL_LATE_DOWN   MSE_GAIN -0.005229923 CI[-0.020506223,+0.018830638] FAIL | POLICY +0.036042037 CI[-0.141225097,+0.321058330] FAIL
+TEST_EARLY_UP   MSE_GAIN -0.024823132 CI[-0.051410000,-0.000124209] FAIL | POLICY -0.135398229 CI[-0.389463856,+0.110208622] FAIL
+TEST_EARLY_DOWN MSE_GAIN -0.031635597 CI[-0.063889043,-0.001645816] FAIL | POLICY -0.118204867 CI[-0.248597781,+0.034342555] FAIL
+TEST_LATE_UP    MSE_GAIN -0.014922564 CI[-0.060440624,+0.011263603] FAIL | POLICY -0.039613391 CI[-0.250024066,+0.111238577] FAIL
+TEST_LATE_DOWN  MSE_GAIN -0.008571609 CI[-0.023875931,+0.011746940] FAIL | POLICY -0.078448422 CI[-0.257876358,+0.123717718] FAIL
+```
+
+Formal verdict:
+
+```text
+DL01_FORMAL_METRIC_CELLS_PASS = 0/16
+DL01_ENVIRONMENTS_FULL_PASS   = 0/8
+ROBUST_STRUCTURAL_DECISION_EDGE = FAIL
+DECISION_LAYER_01_FORMAL_STATUS = FAIL
+EXP27 = UNTOUCHED / SCORES_SEALED
+RUNTIME_PROMOTION = NONE
+```
+
+Horizon diagnostics were negative at every frozen horizon:
+
+```text
+15m  MSE_GAIN=-0.003631086 POLICY=-0.066322277
+30m  MSE_GAIN=-0.013734187 POLICY=-0.086002582
+60m  MSE_GAIN=-0.026353276 POLICY=-0.128409392
+120m MSE_GAIN=-0.053606446 POLICY=-0.141792491
+```
+
+The predicted structural edge was positively biased toward ADVANCE in every environment: mean `EDGE_PROB` roughly +0.0104 to +0.0136, and the zero-threshold policy chose ADVANCE in about 79%-89% of cells. Yet Pearson and Spearman association between predicted `STRUCTURAL_EDGE_ATR` and realized `Y_ADV_ATR` were negative in all eight environments (Pearson about -0.04 to -0.46; Spearman about -0.13 to -0.45).
+
+### Scientific interpretation — no rescue
+
+DL01 cleanly rejects the proposition that `q_ADV_POSITION - CorridorPosition` is a robust economic mispricing signal for the fixed corridor payoff. The already-proven Exp47 probability law remains intact: a probability model can improve Brier/LogLoss and conditional exit-side ranking while still being insufficiently calibrated in absolute probability space for reward/risk break-even decisions.
+
+This establishes an important separation:
+
+```text
+ROBUST WHICH-SIDE RANKING / PROBABILITY IMPROVEMENT
+!=
+ROBUST ECONOMIC FAIR-PROBABILITY / ENTRY EDGE
+```
+
+`CorridorPosition = B/(B+F)` is algebraically the correct break-even probability for the frozen +F/-B payoff, and the implementation reproduced that identity exactly. Therefore the failure is not repaired by changing the geometry formula.
+
+The negative edge-payoff association is diagnostic only. It does NOT authorize inverting the sign, selecting only negative-edge states, searching an edge threshold, dropping horizons/environments, or applying retrospective Operability filters. Any such action would be a post-hoc rescue of the repeatedly inspected historical sample.
+
+Preserved status after DL01:
+
+```text
+EXP47_ROBUST_MINIMAL_CORRIDOR_EQUATION = PRESERVED_PASS
+EXP45_ROBUST_WHICH_SIDE_LAW = PRESERVED_PASS
+DL01_GEOMETRY_BREAK_EVEN_DECISION_RULE = REJECTED
+ROBUST_STRUCTURAL_DECISION_EDGE = FAIL
+HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP = PRESERVED_YES
+EXP27 = UNTOUCHED / SCORES_SEALED
+RUNTIME_PROMOTION = NONE
+```
+
+Next permitted work should be mechanism/audit work that does not manufacture a new historical trading policy: characterize absolute calibration versus ranking, preserve the DL01 failure, and keep any future decision rule separately preregistered. A direct sign inversion or threshold search is explicitly prohibited as the next step.
