@@ -3,17 +3,21 @@
 OPERABILITY01 — Prospective GOLD Market Operability Shadow Gate
 
 This is NOT Exp54 timing-feature research and it never rescues Exp48–Exp53.
-It calibrates only causal shock thresholds on the frozen TRAIN reference
-and classifies only fresh-forward rows >= 2026-08-13 00:00 BRT.
 
-Outputs:
-    TRADEABLE / CAUTION / NO_TRADE
-for NEW ENTRIES only. Risk-management actions remain allowed.
+Two-source architecture:
+- REFERENCE_M5: large historical research parquet, used ONLY to estimate the
+  frozen TRAIN q0.990/q0.995 shock thresholds.
+- LIVE_M5: data/GOLD_M5.parquet produced by Base_Dados.py, used ONLY to
+  classify prospective closed M5 rows >= 2026-08-13 00:00 BRT.
 
-No future outcome, no PnL, no EXIT label and no Exp27 score is read.
+The shadow CSV is append-only by decision timestamp: once a timestamp has been
+classified, later runs never rewrite that historical classification.
+
+No future outcome, PnL, EXIT label, trade result or Exp27 score is read.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
@@ -27,7 +31,8 @@ if str(ROOT) not in sys.path:
 from tools.study_d1_mtf_filter import load_json, prepare, in_window
 
 RULES_PATH = ROOT / "config" / "market_intelligence" / "GOLD_d1_intraday_rules.json"
-TF_DIR = ROOT / "data" / "market_chronos" / "candle_base" / "timeframes"
+REFERENCE_TF_DIR = ROOT / "data" / "market_chronos" / "candle_base" / "timeframes"
+LIVE_M5_PATH = ROOT / "data" / "GOLD_M5.parquet"
 EVENTS_PATH = ROOT / "config" / "market_intelligence" / "GOLD_operability_events.csv"
 OUT_DIR = ROOT / "data" / "market_chronos" / "operability"
 OUT_PATH = OUT_DIR / "GOLD_operability_shadow.csv"
@@ -37,6 +42,7 @@ FRESH_START = pd.Timestamp("2026-08-13 00:00:00")
 
 Q_CAUTION = 0.990
 Q_NO_TRADE = 0.995
+EXPECTED_TRAIN_METRIC_N = 22631
 
 FRIDAY_CAUTION_MINUTES_TO_END = 60
 FRIDAY_NO_TRADE_MINUTES_TO_END = 30
@@ -47,24 +53,31 @@ HIGH_EVENT_NO_TRADE_MINUTES = 15
 METRICS = ("RANGE_ATR", "ABS_RET_ATR", "GAP_ATR")
 
 
-def find_m5_parquet() -> Path:
+def find_reference_m5_parquet() -> Path:
     preferred = [
-        TF_DIR / "GOLD_M5.parquet",
-        TF_DIR / "gold_m5.parquet",
+        REFERENCE_TF_DIR / "GOLD_M5_candle_research.parquet",
+        REFERENCE_TF_DIR / "GOLD_M5.parquet",
+        REFERENCE_TF_DIR / "gold_m5_candle_research.parquet",
+        REFERENCE_TF_DIR / "gold_m5.parquet",
     ]
     for p in preferred:
         if p.exists():
             return p
-    if not TF_DIR.exists():
-        raise FileNotFoundError(f"Timeframe directory not found: {TF_DIR}")
+    if not REFERENCE_TF_DIR.exists():
+        raise FileNotFoundError(
+            f"Historical reference timeframe directory not found: {REFERENCE_TF_DIR}"
+        )
     cands = sorted(
-        p for p in TF_DIR.glob("*.parquet")
+        p for p in REFERENCE_TF_DIR.glob("*.parquet")
         if "GOLD" in p.name.upper() and "M5" in p.name.upper()
     )
     if len(cands) == 1:
         return cands[0]
+    research = [p for p in cands if "RESEARCH" in p.name.upper()]
+    if len(research) == 1:
+        return research[0]
     raise RuntimeError(
-        "Could not resolve a unique GOLD M5 parquet. "
+        "Could not resolve a unique historical GOLD M5 reference parquet. "
         f"Candidates={[p.name for p in cands]}"
     )
 
@@ -89,8 +102,11 @@ def load_scheduled_high_events() -> pd.DataFrame:
     e["impact"] = e["impact"].astype(str).str.upper().str.strip()
     e["label"] = e["label"].astype(str)
     e = e.dropna(subset=["event_time_brt"])
-    e = e.loc[e["impact"].eq("HIGH")].sort_values("event_time_brt").reset_index(drop=True)
-    return e
+    return (
+        e.loc[e["impact"].eq("HIGH")]
+        .sort_values("event_time_brt")
+        .reset_index(drop=True)
+    )
 
 
 def nearest_event_distance_minutes(ts: pd.Series, events: pd.DataFrame) -> np.ndarray:
@@ -104,28 +120,29 @@ def nearest_event_distance_minutes(ts: pd.Series, events: pd.DataFrame) -> np.nd
 
 
 def add_reason(reason_lists: list[list[str]], mask: np.ndarray, reason: str) -> None:
-    idx = np.flatnonzero(mask)
-    for i in idx:
+    for i in np.flatnonzero(mask):
         reason_lists[i].append(reason)
 
 
-def main() -> None:
-    rules = load_json(RULES_PATH)
-    m5_path = find_m5_parquet()
-    m = prepare(m5_path, "M5", rules).copy()
-
+def prepare_operability_m5(path: Path, rules: dict) -> pd.DataFrame:
+    m = prepare(path, "M5", rules).copy()
     required = {"available_at_brt", "open", "high", "low", "close", "ATR"}
     missing = sorted(required - set(m.columns))
     if missing:
         raise RuntimeError(
-            f"OPERABILITY01 requires the frozen M5 causal fields {missing}. "
-            "No ATR fallback is allowed because that would change the policy definition."
+            f"{path}: OPERABILITY01 requires frozen M5 causal fields {missing}. "
+            "No ATR fallback is allowed because that would change the policy."
         )
 
     for c in ("open", "high", "low", "close", "ATR"):
         m[c] = pd.to_numeric(m[c], errors="coerce")
     m["available_at_brt"] = pd.to_datetime(m["available_at_brt"], errors="coerce")
-    m = m.sort_values("available_at_brt").drop_duplicates("available_at_brt", keep="last").reset_index(drop=True)
+    m = (
+        m.dropna(subset=["available_at_brt"])
+        .sort_values("available_at_brt")
+        .drop_duplicates("available_at_brt", keep="last")
+        .reset_index(drop=True)
+    )
 
     prev_close = m["close"].shift(1)
     m["M5_DELTA_MIN"] = m["available_at_brt"].diff().dt.total_seconds().div(60.0)
@@ -135,6 +152,7 @@ def main() -> None:
     m["RANGE_ATR"] = np.nan
     m["ABS_RET_ATR"] = np.nan
     m["GAP_ATR"] = np.nan
+
     m.loc[valid_atr, "RANGE_ATR"] = (
         (m.loc[valid_atr, "high"] - m.loc[valid_atr, "low"]).to_numpy(float)
         / atr[valid_atr]
@@ -147,33 +165,63 @@ def main() -> None:
         (m.loc[valid_atr, "open"] - prev_close.loc[valid_atr]).abs().to_numpy(float)
         / atr[valid_atr]
     )
+    return m
 
-    op_mask = in_window(m["available_at_brt"], rules)
-    train = m.loc[
-        m["available_at_brt"].lt(TRAIN_END)
+
+def compute_thresholds(reference: pd.DataFrame, rules: dict) -> dict[str, dict[str, float]]:
+    op_mask = in_window(reference["available_at_brt"], rules)
+    train = reference.loc[
+        reference["available_at_brt"].lt(TRAIN_END)
         & op_mask
-        & m["available_at_brt"].dt.weekday.lt(5)
+        & reference["available_at_brt"].dt.weekday.lt(5)
     ].copy()
 
     thresholds: dict[str, dict[str, float]] = {}
     for metric in METRICS:
         vals = train[metric].replace([np.inf, -np.inf], np.nan).dropna()
-        if len(vals) < 1000:
+        if len(vals) != EXPECTED_TRAIN_METRIC_N:
             raise RuntimeError(
-                f"Insufficient TRAIN reference for {metric}: n={len(vals)}"
+                f"OPERABILITY01 reference guard failed for {metric}: "
+                f"expected n={EXPECTED_TRAIN_METRIC_N}, got n={len(vals)}. "
+                "Abort before fresh-forward classification."
             )
         thresholds[metric] = {
             "q_caution": float(vals.quantile(Q_CAUTION)),
             "q_no_trade": float(vals.quantile(Q_NO_TRADE)),
             "n_train": int(len(vals)),
         }
+    return thresholds
 
-    fresh = m.loc[m["available_at_brt"].ge(FRESH_START)].copy().reset_index(drop=True)
+
+def read_existing_shadow() -> pd.DataFrame:
+    if not OUT_PATH.exists():
+        return pd.DataFrame()
+    old = pd.read_csv(OUT_PATH)
+    if "available_at_brt" not in old.columns:
+        raise RuntimeError(
+            f"Existing shadow log has no available_at_brt column: {OUT_PATH}"
+        )
+    old["available_at_brt"] = pd.to_datetime(old["available_at_brt"], errors="coerce")
+    old = (
+        old.dropna(subset=["available_at_brt"])
+        .sort_values("available_at_brt")
+        .drop_duplicates("available_at_brt", keep="first")
+        .reset_index(drop=True)
+    )
+    return old
+
+
+def main() -> None:
+    rules = load_json(RULES_PATH)
+    reference_path = find_reference_m5_parquet()
+    reference = prepare_operability_m5(reference_path, rules)
+    thresholds = compute_thresholds(reference, rules)
 
     print("=" * 132)
     print("OPERABILITY01 — PROSPECTIVE GOLD MARKET OPERABILITY SHADOW GATE")
     print("=" * 132)
-    print(f"M5 source                 = {m5_path}")
+    print(f"REFERENCE_M5 source       = {reference_path}")
+    print(f"LIVE_M5 source            = {LIVE_M5_PATH}")
     print(f"TRAIN threshold reference = < {TRAIN_END} BRT | operational window only")
     print(f"Fresh-forward start       = >= {FRESH_START} BRT")
     print("Historical timing rescue  = PROHIBITED")
@@ -187,10 +235,42 @@ def main() -> None:
             f"NO_TRADE q{Q_NO_TRADE:.3f}={t['q_no_trade']:.6f} n={t['n_train']}"
         )
 
-    if fresh.empty:
+    if not LIVE_M5_PATH.exists():
+        print()
+        print("OPERABILITY01_STATUS = WAITING_FOR_LIVE_M5")
+        print(f"Live M5 parquet not found: {LIVE_M5_PATH}")
+        print("Run Base_Dados.py --mode intraday_refresh --symbol GOLD first.")
+        return
+
+    live = prepare_operability_m5(LIVE_M5_PATH, rules)
+    fresh_all = (
+        live.loc[live["available_at_brt"].ge(FRESH_START)]
+        .copy()
+        .reset_index(drop=True)
+    )
+
+    if fresh_all.empty:
+        latest = live["available_at_brt"].max() if len(live) else pd.NaT
         print()
         print("OPERABILITY01_STATUS = WAITING_FOR_FRESH_FORWARD_DATA")
-        print("No row >= 2026-08-13 00:00 BRT exists in the local M5 parquet.")
+        print(f"Latest closed LIVE M5 available_at_brt = {latest}")
+        print("No live row >= 2026-08-13 00:00 BRT exists yet.")
+        return
+
+    existing = read_existing_shadow()
+    if existing.empty:
+        fresh = fresh_all.copy()
+    else:
+        fresh = fresh_all.loc[
+            ~fresh_all["available_at_brt"].isin(existing["available_at_brt"])
+        ].copy().reset_index(drop=True)
+
+    if fresh.empty:
+        print()
+        print("OPERABILITY01_STATUS = SHADOW_UP_TO_DATE")
+        print(f"Existing shadow rows = {len(existing)}")
+        print(f"Latest logged M5     = {existing['available_at_brt'].max()}")
+        print("No new closed fresh-forward M5 row to append.")
         return
 
     cfg = rules.get("operational_window_brt", {}) or {}
@@ -219,9 +299,10 @@ def main() -> None:
     reasons: list[list[str]] = [[] for _ in range(n)]
     severity = np.zeros(n, dtype=np.int8)
 
-    invalid_ohlc = ~np.isfinite(
-        fresh[["open", "high", "low", "close", "ATR"]].to_numpy(float)
-    ).all(axis=1) | (fresh["ATR"].to_numpy(float) <= 0)
+    invalid_ohlc = (
+        ~np.isfinite(fresh[["open", "high", "low", "close", "ATR"]].to_numpy(float)).all(axis=1)
+        | (fresh["ATR"].to_numpy(float) <= 0)
+    )
     data_gap = fresh["M5_DELTA_MIN"].notna().to_numpy(bool) & ~np.isclose(
         fresh["M5_DELTA_MIN"].fillna(5.0).to_numpy(float), 5.0, atol=1e-9
     )
@@ -275,29 +356,29 @@ def main() -> None:
     severity[no_trade_shock | multi_caution] = 2
     add_reason(reasons, multi_caution, "MULTIPLE_SHOCK_WARNINGS")
 
-    label = np.where(severity == 2, "NO_TRADE", np.where(severity == 1, "CAUTION", "TRADEABLE"))
-    fresh["OPERABILITY"] = label
+    fresh["OPERABILITY"] = np.where(
+        severity == 2, "NO_TRADE", np.where(severity == 1, "CAUTION", "TRADEABLE")
+    )
     fresh["NEW_ENTRY_POLICY"] = np.where(
-        severity == 2, "BLOCKED",
-        np.where(severity == 1, "REVIEW_REQUIRED", "ALLOWED")
+        severity == 2, "BLOCKED", np.where(severity == 1, "REVIEW_REQUIRED", "ALLOWED")
     )
     fresh["RISK_MANAGEMENT_POLICY"] = "ALLOWED"
     fresh["OPERABILITY_REASONS"] = [
-        ";".join(dict.fromkeys(r)) if r else "NONE"
-        for r in reasons
+        ";".join(dict.fromkeys(r)) if r else "NONE" for r in reasons
     ]
+    fresh["SHADOW_FIRST_CLASSIFIED_AT_UTC"] = datetime.now(timezone.utc).isoformat()
 
     print()
     print("Scheduled HIGH-impact event feed:")
     if events.empty:
         print(f"  INACTIVE — no file at {EVENTS_PATH}")
         print("  Expected CSV columns: event_time_brt,impact,label")
-        print("  Only events supplied prospectively may affect this gate.")
+        print("  Only prospectively supplied events may affect this gate.")
     else:
         print(f"  ACTIVE — {len(events)} HIGH events loaded from {EVENTS_PATH}")
 
     print()
-    print("Fresh-forward operability counts (NO OUTCOME SCORE):")
+    print("New fresh-forward rows classified this run (NO OUTCOME SCORE):")
     counts = fresh["OPERABILITY"].value_counts(dropna=False)
     for k in ("TRADEABLE", "CAUTION", "NO_TRADE"):
         print(f"  {k:<10} = {int(counts.get(k, 0))}")
@@ -308,22 +389,36 @@ def main() -> None:
         "IN_OPERATIONAL_WINDOW", "IS_FRIDAY", "MINUTES_TO_WINDOW_END",
         "HIGH_EVENT_DISTANCE_MIN", "OPERABILITY", "NEW_ENTRY_POLICY",
         "RISK_MANAGEMENT_POLICY", "OPERABILITY_REASONS",
+        "SHADOW_FIRST_CLASSIFIED_AT_UTC",
     ]
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    fresh[out_cols].to_csv(OUT_PATH, index=False)
 
-    print()
-    print(f"Shadow log written = {OUT_PATH}")
-    print()
-    print("Latest fresh-forward rows:")
-    print(
-        fresh[out_cols].tail(30).to_string(
-            index=False,
-            float_format=lambda v: f"{v:.5f}"
-        )
+    new_log = fresh[out_cols].copy()
+    if existing.empty:
+        combined = new_log
+    else:
+        for col in out_cols:
+            if col not in existing.columns:
+                existing[col] = np.nan
+        combined = pd.concat([existing[out_cols], new_log], ignore_index=True, sort=False)
+    combined = (
+        combined.sort_values("available_at_brt")
+        .drop_duplicates("available_at_brt", keep="first")
+        .reset_index(drop=True)
     )
 
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    combined.to_csv(OUT_PATH, index=False)
+
     print()
+    print(f"Shadow log written/appended = {OUT_PATH}")
+    print(f"New rows appended           = {len(new_log)}")
+    print(f"Total persistent rows       = {len(combined)}")
+    print()
+    print("Latest newly classified rows:")
+    print(new_log.tail(30).to_string(index=False, float_format=lambda v: f"{v:.5f}"))
+
+    print()
+    print("OPERABILITY01_STATUS = SHADOW_APPENDED")
     print("OPERABILITY01_POLICY_STATUS = FROZEN")
     print("OPERABILITY01_MODE = SHADOW_ONLY")
     print("HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP = PRESERVED_YES")
