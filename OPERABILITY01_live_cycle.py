@@ -2,8 +2,9 @@
 """
 OPERABILITY01 live cycle.
 
-1) Refresh GOLD intraday data from MT5 using the existing Base_Dados.py.
-2) Run the frozen OPERABILITY01 shadow classifier.
+1) Verify the frozen historical threshold reference.
+2) Refresh GOLD intraday data from MT5 using the existing Base_Dados.py.
+3) Run the frozen OPERABILITY01 shadow classifier.
 
 This wrapper does not score outcomes, does not touch Exp27 and does not promote
 the operability gate to runtime enforcement.
@@ -15,6 +16,16 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import OPERABILITY01_shadow_gate as gate
+
+EXPECTED_THRESHOLD_6DP = {
+    "RANGE_ATR": (2.431744, 2.824153),
+    "ABS_RET_ATR": (1.851113, 2.154342),
+    "GAP_ATR": (0.086353, 0.109370),
+}
 
 
 def run(cmd: list[str]) -> int:
@@ -23,7 +34,32 @@ def run(cmd: list[str]) -> int:
     return int(proc.returncode)
 
 
+def verify_frozen_reference() -> None:
+    rules = gate.load_json(gate.RULES_PATH)
+    reference_path = gate.find_reference_m5_parquet()
+    reference = gate.prepare_operability_m5(reference_path, rules)
+    thresholds = gate.compute_thresholds(reference, rules)
+
+    for metric, (exp_ca, exp_nt) in EXPECTED_THRESHOLD_6DP.items():
+        got_ca = float(thresholds[metric]["q_caution"])
+        got_nt = float(thresholds[metric]["q_no_trade"])
+        if round(got_ca, 6) != exp_ca or round(got_nt, 6) != exp_nt:
+            raise RuntimeError(
+                f"Frozen threshold guard failed for {metric}: "
+                f"got ({got_ca:.6f}, {got_nt:.6f}), "
+                f"expected ({exp_ca:.6f}, {exp_nt:.6f})."
+            )
+
+    print("OPERABILITY01_FROZEN_REFERENCE_GUARD = PASS")
+
+
 def main() -> int:
+    try:
+        verify_frozen_reference()
+    except Exception as exc:
+        print(f"OPERABILITY01_LIVE_CYCLE = ABORTED_REFERENCE_GUARD | {type(exc).__name__}: {exc}")
+        return 2
+
     refresh = [
         sys.executable,
         str(ROOT / "Base_Dados.py"),
@@ -37,10 +73,7 @@ def main() -> int:
         print("OPERABILITY01_LIVE_CYCLE = ABORTED_BASE_DADOS_FAILED")
         return rc
 
-    shadow = [
-        sys.executable,
-        str(ROOT / "OPERABILITY01_shadow_gate.py"),
-    ]
+    shadow = [sys.executable, str(ROOT / "OPERABILITY01_shadow_gate.py")]
     rc = run(shadow)
     if rc != 0:
         print("OPERABILITY01_LIVE_CYCLE = ABORTED_SHADOW_FAILED")
