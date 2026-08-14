@@ -1,83 +1,58 @@
-# Track-D checkpoint — through Exp51
+# Track-D checkpoint — through Exp52
 
 Date 2026-08-14. Historical OOS repeatedly inspected; exploratory only. Runtime promotion NONE. Exp27 untouched; fresh-forward shadow remains >= 2026-08-13 00:00 BRT. Historical cutoff remains < 2026-08-13 00:00 BRT.
 
 Exact guards preserved: events 5209; L1 4786; raw touches 2588; unique touches 2310; OUTSIDE_15 1091; active L2 1013; raw dynamic 9826; unique dynamic 9667. TRAIN 5612 states; VALIDATION 1959; TEST 2096. Any mismatch aborts before score.
 
-Preserved PASS: Exp40, Exp41, Exp44 ROBUST_POSITION_CORE, Exp45 ROBUST_WHICH_SIDE_LAW, Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION. Preserved FAIL: Exp42/43 Dwell transport, Exp46 Dwell timing, Exp48 Position exit clock, Exp49 calibrated symmetric timing geometry.
+Preserved PASS: Exp40, Exp41, Exp44 ROBUST_POSITION_CORE, Exp45 ROBUST_WHICH_SIDE_LAW, Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION.
+Preserved non-PASS: Exp42/43 Dwell transport FAIL; Exp46 Dwell timing FAIL; Exp48 Position exit-clock FAIL; Exp49 calibrated symmetric timing geometry FAIL; Exp50 pooled ranking UNDERPOWERED; Exp51 within-day ranking UNDERPOWERED.
 
-## Exp50 — Exit-Risk Ranking Transport Decomposition — UNDERPOWERED_RANKING_CELL
+## Exp51 — Within-Day Exit-Risk Geometry Transport — UNDERPOWERED_WITHIN_DAY_CELL
 
-Exact frozen Exp49 replay PASS; JOINT4 identifiability PASS; Exp49 formal FAIL preserved. Same frozen JOINT4, same 8 environments, same H={15,30,60,120}. Formal estimand was pooled ROC AUC within each environment×horizon with whole-BRT-day bootstrap; 32 mandatory cells; cell PASS required >=9500/10000 valid day-bootstrap replicates and CI95 lower bound >0.5.
+Exact frozen Exp50/Exp49 replay PASS; Exp49 JOINT4 identifiability PASS; Exp27 untouched. Same original TRAIN-fitted JOINT4_EXIT; no refit/recalibration/new feature.
 
-All 32 point AUCs were >0.5 (~0.6970–0.9826), but formal cells passing were 22/32. Several H120 cells were underpowered because resampled days sometimes contained only one class: VAL_EARLY_UP H120 valid_boot=8760; VAL_LATE_DOWN H120=6420; TEST_EARLY_UP H120=8768. In addition, several fully bootstrap-scorable cells still had CI lower bounds crossing 0.5, including VAL_LATE_DOWN H15/H30/H60 and TEST_LATE_UP H30/H60/H120. Therefore universal pooled ranking transport is not established.
+Formal target: same-BRT-day EXIT-vs-NO_EXIT concordance only, 8 environments x H={15,30,60,120}=32 cells. Whole-day bootstrap; cell requires both classes overall, >=2 contributing days, >=2 mixed-class days, >=9500/10000 valid replicates, and CI95 lower bound of WITHIN_DAY_AUC >0.5.
 
-Formal:
-EXP50_RANKING_CELL_STATUS=UNDERPOWERED_RANKING_CELL
-EXP50_FORMAL_CELLS_PASS=22/32
-GEOMETRY_EXIT_RANKING_TRANSPORT=UNDERPOWERED_RANKING_CELL
-ROBUST_EXIT_URGENCY_ORDERING=UNDERPOWERED_RANKING_CELL
-EXP50_FORMAL_STATUS=UNDERPOWERED_RANKING_CELL
+Formal cells passing: 15/32. Status:
+EXP51_WITHIN_DAY_CELL_STATUS=UNDERPOWERED_WITHIN_DAY_CELL
+EXP51_FORMAL_CELLS_PASS=15/32
+WITHIN_DAY_GEOMETRY_RANKING_TRANSPORT=UNDERPOWERED_WITHIN_DAY_CELL
+ROBUST_WITHIN_DAY_EXIT_URGENCY_ORDERING=UNDERPOWERED_WITHIN_DAY_CELL
+EXP51_FORMAL_STATUS=UNDERPOWERED_WITHIN_DAY_CELL
 
-Interpretation: strong point discrimination exists, but whole-day uncertainty shows that the signal may partly reflect day-level regime composition and is not yet a universal pooled ranking law. This is not a PASS and not a rescue of Exp49.
+Important diagnostics: pooled JOINT4 AUC remained strong, but within-day discrimination degraded materially in several environments/horizons. VALIDATION_EARLY__FULL_DOWN had WITHIN_AUC H60=.392786 and H120=.337430; VALIDATION_LATE__FULL_DOWN H15=.580531 with CI crossing .5 and H120 had only one mixed-class day; TEST_LATE__FULL_UP H30/H60/H120 also failed. Day-regime correlation between daily mean JOINT4 score and daily EXIT rate was often large, roughly +.60 to +.92 in many cells.
 
-## Exp51 — Within-Day Exit-Risk Geometry Transport — FROZEN BEFORE SCORE
+Interpretation: symmetric corridor geometry is not established as a universal timing or urgency law, even after conditioning comparisons to the same BRT day. The geometry family is CLOSED for further rescue in the historical universe. Do not subset horizons/environments or refit by side/time. Exp49/50/51 diagnostics remain descriptive only.
 
-Scientific question: does the exact original TRAIN-fitted Exp49 JOINT4_EXIT geometry model robustly rank EXIT risk among states observed within the same BRT day, after removing between-day regime composition from the ranking estimand?
+## Exp52 — Causal Intraday Regime Timing Family — FROZEN BEFORE SCORE
 
-This is a decomposition of within-day state geometry versus between-day regime effects. It is NOT a new predictor search, NOT recalibration, NOT refit, and NOT a rescue of Exp49 or Exp50.
+Purpose: test a genuinely new timing family motivated by Exp50/51 evidence that between-day/intraday regime composition carries substantial EXIT timing information. This is not a JOINT4 rescue and uses no corridor-geometry timing predictor.
 
-Frozen model/data:
-- Reuse exact Exp49 JOINT4_EXIT unchanged: same TRAIN-only fit, same four geometry features, same 24 elapsed-step intercepts.
-- Reuse exact Exp41 eligible cells, horizons H={15,30,60,120}m, and exact 8 Exp44/45 direction×time environments.
-- Target y_exit=1 for ADVANCE or RECAPTURE by H; 0 for NO_EXIT by H.
-- No Dwell, no signed Position timing feature, no new feature, no feature subset, no refit, no recalibration, no threshold.
+Exact universe remains unchanged: replay exact Exp49 backbone; same historical cutoff; same Exp41 eligible 15/30/60/120m cells; same eight Exp44/45 direction x time environments; same binary EXIT-vs-NO_EXIT target; whole-BRT-day inference; TRAIN-only model fit; Exp27 untouched.
 
-Primary within-day estimand:
-- For each environment×horizon, comparisons are allowed only between EXIT and NO_EXIT rows belonging to the SAME BRT day.
-- For each day d, compute U_d = concordant EXIT-vs-NO_EXIT score pairs + 0.5*tied pairs using p_EXIT_JOINT4, and N_d = n_EXIT_d*n_NO_EXIT_d.
-- Days with N_d=0 contribute zero numerator and zero denominator; they are not deleted from the resampling universe.
-- Point WITHIN_DAY_AUC = sum_d U_d / sum_d N_d. This is pair-weighted same-day concordance and exactly removes all cross-day ranking pairs.
-- Formal null is WITHIN_DAY_AUC=0.5.
+All Exp52 state features are computed causally from M5 information available at or before state_time within the same BRT day:
+R1 TOD_SIN = sin(2*pi*minute_of_day/1440).
+R2 TOD_COS = cos(2*pi*minute_of_day/1440).
+R3 LOG_DAY_RANGE_ATR = log1p((cum_high_day - cum_low_day)/ATR_state).
+R4 LOG_DAY_PATH_ATR = log1p(cumulative intraday absolute price path / ATR_state), where first bar contribution is abs(close-open) and later contributions are abs(close_t-close_{t-1}) within the same BRT day.
+R5 DAY_EFFICIENCY = abs(close_state - first_open_day) / cumulative intraday absolute price path, with 0 when path=0; bounded numerically to [0,1].
 
-Cluster inference frozen before score:
-- 10,000 bootstrap replicates.
-- Resample ALL contributing BRT days with replacement within each environment×horizon; preserve selected-day multiplicity.
-- For each replicate, weighted numerator=sum multiplicity_d*U_d and weighted denominator=sum multiplicity_d*N_d.
-- Replicate valid only if weighted denominator>0 (at least one selected mixed-class day).
-- Original cell must have both classes, >=2 contributing BRT days, and >=2 informative/mixed-class days with N_d>0.
-- Bootstrap scorability requires >=9500/10000 valid replicates.
-- Formal cell PASS requires CI95 lower bound of WITHIN_DAY_AUC >0.5.
+Frozen candidate blocks:
+TOD_EXIT = BASE_EXIT + TOD_SIN + TOD_COS.
+RANGE_EXIT = BASE_EXIT + LOG_DAY_RANGE_ATR.
+PATH_EXIT = BASE_EXIT + LOG_DAY_PATH_ATR.
+EFF_EXIT = BASE_EXIT + DAY_EFFICIENCY.
+JOINT5_EXIT = BASE_EXIT + all five frozen columns.
+Drop-one diagnostics remove exactly one frozen candidate block from JOINT5: DROP_TOD, DROP_RANGE, DROP_PATH, DROP_EFF.
 
-Formal gate:
-- 8 environments × 4 horizons = 32 mandatory cells.
-- WITHIN_DAY_GEOMETRY_RANKING_TRANSPORT=PASS only if all 32 cells are scorable and all 32 CI95 lower bounds exceed 0.5.
-- ROBUST_WITHIN_DAY_EXIT_URGENCY_ORDERING=PASS only under the same 32/32 gate and exact Exp49 JOINT4 identifiability reproduction.
-- EXP51_FORMAL_STATUS=PASS only under those conditions.
+All models are binary discrete-time EXIT hazards with the same 24 elapsed-future-step intercepts used by Exp49, fit on TRAIN only. BASE_EXIT is the exact original Exp49 baseline. No standardization is used. JOINT5 numerical identifiability requires TRAIN design full column rank, converged fit, and finite coefficients.
 
-Diagnostics only:
-- number and fraction of informative/mixed-class days;
-- pooled AUC from Exp50 versus within-day AUC;
-- day-equal mean of per-day AUCs where defined;
-- between-day relationship between daily mean JOINT4 score and daily EXIT rate;
-- descriptive heterogeneity by direction/time/horizon.
+Required analysis: TRAIN-only feature correlation/rank/condition; marginal candidate diagnostics with Holm correction across 4 candidate blocks x 8 environments x 2 metrics = 64 tests; JOINT5; drop-one; horizon 15/30/60/120 point gains; EXIT AUC and calibration; whole-BRT-day bootstrap. Marginal/drop-one/AUC/calibration are diagnostic only.
 
-Interpretation if PASS:
-- establish only robust state-level EXIT-urgency ordering within the same BRT day in the repeatedly inspected historical universe;
-- do NOT claim cross-day ranking transport, calibrated P(EXIT), exact timing probability, or reversal of Exp49/Exp50.
+Primary formal comparison: JOINT5_EXIT vs exact BASE_EXIT on EXIT_STATE_HORIZON_WEIGHTED cells, pooled over the four frozen horizons within each exact environment. Metrics: binary Brier and LogLoss. Environment must contain EXIT and NO_EXIT and >=2 BRT days.
 
-Interpretation if FAIL/UNDERPOWERED:
-- symmetric geometry is not established as a universal within-day urgency law; proceed to a genuinely new timing family or wait for fresh-forward evidence rather than rescue this family.
+Formal gate: INTRADAY_REGIME_TIMING_FAMILY=PASS only if all 8 environments are scorable, JOINT5 is numerically identifiable, and JOINT5 beats BASE with CI95 lower bound >0 for Brier and LogLoss in all 8 environments = 16/16. ROBUST_INTRADAY_EXIT_CLOCK_CONTEXT and EXP52_FORMAL_STATUS use the same 16/16 gate.
 
-Anti-rescue:
-- no alternate within-day AUC definition after result;
-- no day filtering beyond the frozen N_d=0 contribution rule;
-- no pooled-horizon replacement;
-- no dropped horizon/environment;
-- no side/era-specific refit;
-- no recalibration/intercept/threshold;
-- no alternate feature subset/transform;
-- no Validation/TEST refit;
-- no Exp27 scoring/modification.
+Anti-rescue: no corridor geometry timing feature; no Dwell; no signed Position timing predictor; no alternate day boundary; no future/day-complete statistics; no alternate transforms after result; no added feature; no horizon subset; no dropped environment; no side/era-specific fit; no interaction/recalibration/intercept/threshold rescue; no Validation/TEST refit; no Exp27 scoring/modification.
 
-Historical OOS remains exploratory because it has been repeatedly inspected. Fresh-forward Exp27 remains decisive before runtime promotion.
+Exp52 failure cannot erase Exp44/45/47 PASS results. Historical OOS remains exploratory; fresh-forward Exp27 remains decisive before runtime promotion.
