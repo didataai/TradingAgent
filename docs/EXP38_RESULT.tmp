@@ -1,55 +1,68 @@
-# Track-D checkpoint — through Exp48
+# Track-D checkpoint — through Exp49
 
 Date 2026-08-14. Historical OOS exploratory. Runtime promotion NONE. Exp27 untouched; cutoff remains < 2026-08-13 00:00 BRT.
 
 Exact guards preserved: events 5209; L1 4786; raw touches 2588; unique touches 2310; OUTSIDE_15 1091; active L2 1013; raw dynamic 9826; unique dynamic 9667. TRAIN 5612 states; VAL 1959; TEST 2096. Any mismatch aborts before score.
 
-Preserved status: Exp40 FULL PASS; Exp41 FULL PASS; Exp44 ROBUST_POSITION_CORE PASS; Exp45 ROBUST_WHICH_SIDE_LAW PASS; Exp46 Dwell timing FAIL. Exp42/43 Dwell transport FAIL.
+Preserved status: Exp40 FULL PASS; Exp41 FULL PASS; Exp44 ROBUST_POSITION_CORE PASS; Exp45 ROBUST_WHICH_SIDE_LAW PASS; Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION PASS. Exp42/43 Dwell transport FAIL; Exp46 Dwell timing FAIL.
 
-## Exp47 — Minimal Factorized Corridor Law — FULL PASS
+## Exp48 — Position Exit-Clock Orthogonality Test — FAIL
 
-Frozen equation used no Dwell:
+Question: does original TRAIN-fitted POSITION_SURV improve binary EXIT-vs-NO_EXIT over BASE_SURV across the exact 8 frozen direction×time environments?
 
-p_exit_base(H)=1-P_no_exit_base(H)
-q_adv_pos(H)=CIF_adv_position(H)/(CIF_adv_position(H)+CIF_rec_position(H))
-P_fact(no_exit)=1-p_exit_base
-P_fact(advance)=p_exit_base*q_adv_pos
-P_fact(recapture)=p_exit_base*(1-q_adv_pos)
+All reproduction guards and all 8 environment scorability guards passed. Formal gate required Brier+LogLoss CI95 lower bound >0 in all 8 environments = 16/16. Only 4/16 formal cells passed.
 
-Same 8 direction×time environments, horizons 15/30/60/120m, multiclass Brier+LogLoss, whole-BRT-day bootstrap. All environments scorable and all 16 formal cells PASS.
+VAL_EARLY_UP: Brier +.002188308 CI[-.003444948,+.007606442] FAIL; LL +.007381926 CI[-.005913614,+.019768248] FAIL.
+VAL_EARLY_DOWN: +.006550206 CI[-.004665871,+.016517850] FAIL; LL +.015281261 CI[-.010141110,+.037294276] FAIL.
+VAL_LATE_UP: +.019793509 CI[+.010751193,+.027571502] PASS; LL +.044626549 CI[+.024398123,+.062206859] PASS.
+VAL_LATE_DOWN: +.005776379 CI[-.008469340,+.016439101] FAIL; LL +.010394783 CI[-.016381699,+.029717575] FAIL.
+TEST_EARLY_UP: +.009304012 CI[-.006864630,+.017875657] FAIL; LL +.020680397 CI[-.013467046,+.038687656] FAIL.
+TEST_EARLY_DOWN: +.012569007 CI[+.005396963,+.022379776] PASS; LL +.027505560 CI[+.010433933,+.051697516] PASS.
+TEST_LATE_UP: +.009115512 CI[-.010181438,+.025020983] FAIL; LL +.014288165 CI[-.038473894,+.055581610] FAIL.
+TEST_LATE_DOWN: +.000932811 CI[-.011511491,+.010819618] FAIL; LL +.001589697 CI[-.028853012,+.025544830] FAIL.
 
-VAL_EARLY_UP Brier +.070574396 CI[+.052367721,+.093595881]; LL +.123990985 CI[+.085097787,+.171898909].
-VAL_EARLY_DOWN +.054191908 CI[+.022400983,+.100895288]; LL +.117921011 CI[+.061246018,+.201198545].
-VAL_LATE_UP +.034496538 CI[+.018454988,+.061241805]; LL +.072230456 CI[+.042046849,+.121652904].
-VAL_LATE_DOWN +.032443691 CI[+.005972646,+.085787025]; LL +.066858212 CI[+.019446464,+.165242692].
-TEST_EARLY_UP +.070429485 CI[+.043674083,+.126433250]; LL +.148857158 CI[+.104094758,+.246712877].
-TEST_EARLY_DOWN +.045743026 CI[+.020571746,+.090415185]; LL +.104859289 CI[+.066753991,+.178020720].
-TEST_LATE_UP +.064527674 CI[+.034088096,+.103007995]; LL +.126250897 CI[+.068185453,+.197033171].
-TEST_LATE_DOWN +.029337482 CI[+.003504587,+.069942457]; LL +.067084120 CI[+.019551872,+.143088635].
+Formal: EXP48_EXIT_ENVIRONMENT_STATUS=PASS; POSITION_EXIT_CLOCK_TRANSPORT=FAIL; ROBUST_POSITION_EXIT_CLOCK_COMPONENT=FAIL; EXP48_FORMAL_STATUS=FAIL.
 
-Formal: EXP47_ENVIRONMENT_STATUS=PASS; MINIMAL_FACTORIZED_CORRIDOR_LAW=PASS; ROBUST_MINIMAL_CORRIDOR_EQUATION=PASS; EXP47_FORMAL_STATUS=PASS.
+Interpretation: Position has robust WHICH-SIDE information, but signed Position is not a universal EXIT clock. Exp47 remains valid because it deliberately uses the elapsed-time BASE clock plus Position only for conditional side.
 
-Diagnostics: factorized probability-sum error 1.11e-16. EXIT_AUC remains 0.5000->0.5000 by construction while SIDE_AUC improves strongly (~0.68–0.98). Interpretation: elapsed-time baseline clock + robust Position side law is sufficient for a robust minimal 3-outcome historical equation.
+## Exp49 — Symmetric Boundary-Proximity Timing Family — FROZEN BEFORE SCORE
 
-## Exp48 — Position Exit-Clock Orthogonality Test — FROZEN BEFORE SCORE
+Purpose: test a mechanistically defined timing family for EXIT-vs-NO_EXIT. This is not indicator search. The causal universe is distance/proximity to the two fixed active corridor boundaries at state_time.
 
-Scientific question: beyond its already-proven WHICH-SIDE role, does the exact original TRAIN-fitted POSITION_SURV also improve binary EXIT-vs-NO_EXIT prediction relative to BASE_SURV across all eight frozen direction×time environments, without refit, recalibration, Dwell, threshold, alternate Position transform, or new feature?
+Exact universe remains unchanged: same historical cutoff, exact dynamic states, exact Exp41 eligible 15/30/60/120m cells, exact 8 Exp44/45 direction×time environments, whole-BRT-day inference, no Exp27 access.
 
-Frozen target/predictions:
+At each state_time compute with the already-frozen corridor and current ATR:
 
-y_exit=1 if observed ADVANCE or RECAPTURE by H; y_exit=0 for NO_EXIT by H.
-p_exit_base(H)=1-P_NO_EXIT_BASE(H).
-p_exit_pos(H)=1-P_NO_EXIT_POSITION(H).
+d_back_atr = bias_sign*(close-back)/ATR > 0
+d_forward_atr = bias_sign*(forward-close)/ATR > 0
+Position = d_back_atr/(d_back_atr+d_forward_atr)
 
-Reuse exact Exp41 eligible cells at 15/30/60/120m and exact Exp44/45 joint environments. Primary estimand EXIT_STATE_HORIZON_WEIGHTED pooled over four horizons. Whole-BRT-day bootstrap preserving all eligible cells by environment/day. Environment must contain EXIT and NO_EXIT and >=2 contributing BRT days, otherwise UNDERPOWERED_EXIT_ENVIRONMENT.
+Frozen timing candidates, all fixed before scoring:
+T1 EDGE_REL = abs(2*Position-1). 0=center, 1=near an edge in relative geometry.
+T2 LOG_NEAR_ATR = log1p(min(d_back_atr,d_forward_atr)).
+T3 LOG_FAR_ATR = log1p(max(d_back_atr,d_forward_atr)).
+T4 LOG_HARMONIC_ATR = log1p(2*d_back_atr*d_forward_atr/(d_back_atr+d_forward_atr)).
 
-Formal comparison: POSITION_SURV vs BASE_SURV using binary Brier and LogLoss. gain=loss(BASE)-loss(POSITION). Require CI95 lower bound >0 for both metrics in all 8 environments = 16/16.
+Rationale: binary EXIT timing should be symmetric to which side wins. T1 measures relative edge proximity; T2 absolute distance to the nearest escape boundary; T3 far-boundary context; T4 two-sided escape depth. No sign of Position is used as a timing predictor.
 
-POSITION_EXIT_CLOCK_TRANSPORT=PASS only at 16/16.
-ROBUST_POSITION_EXIT_CLOCK_COMPONENT=PASS only if all environments are scorable and all 16 cells pass.
+Model family: discrete-time binary EXIT hazard on the original person-period table. y_exit_step=1 when current step exits by either ADVANCE or RECAPTURE, else 0 while at risk. All models fit TRAIN only with the same 24 elapsed-step intercepts.
 
-Diagnostics only: horizon point gains, EXIT AUC BASE->POSITION, calibration, UP-DOWN and EARLY-LATE differences. Diagnostics cannot rescue.
+BASE_EXIT = 24 step intercepts only.
+EDGE_EXIT = BASE_EXIT + T1.
+NEAR_EXIT = BASE_EXIT + T2.
+FAR_EXIT = BASE_EXIT + T3.
+HARM_EXIT = BASE_EXIT + T4.
+JOINT4_EXIT = BASE_EXIT + T1+T2+T3+T4.
 
-Anti-rescue: no Dwell; no alternate EXIT definition; no conditioning on side; no horizon subset; no dropped environment; no side/era fit; no direction×time interaction; no recalibration/intercept/threshold; no alternate Position transform; no new feature; no Validation/TEST refit; no Exp27 scoring/modification.
+No hyperparameter tuning, no threshold, no alternate transforms after result. Standardization, if needed numerically, must use TRAIN mean/std only and be fixed for VAL/TEST.
 
-Exp48 failure cannot erase Exp44 ROBUST_POSITION_CORE, Exp45 ROBUST_WHICH_SIDE_LAW, or Exp47 ROBUST_MINIMAL_CORRIDOR_EQUATION. Historical OOS remains exploratory; runtime promotion NONE.
+Required analysis is one frozen family analysis: marginal candidate diagnostics; TRAIN-only feature correlation/redundancy report; JOINT4; drop-one from JOINT4; horizon 15/30/60/120 cumulative EXIT probabilities; calibration and EXIT AUC diagnostics; whole-BRT-day bootstrap; multiplicity-aware marginal reporting. TEST may not rescue a failed family result.
+
+Primary family comparison: JOINT4_EXIT vs BASE_EXIT using binary Brier and LogLoss on EXIT_STATE_HORIZON_WEIGHTED cells within each of the exact 8 environments. Environment must contain EXIT and NO_EXIT and >=2 BRT days. Formal FAMILY PASS requires CI95 lower bound >0 for both metrics in all 8 environments = 16/16.
+
+TIMING_GEOMETRY_FAMILY=PASS only at 16/16 for JOINT4 vs BASE.
+ROBUST_SYMMETRIC_EXIT_GEOMETRY=PASS only if all environments scorable, JOINT4 16/16, and the joint fit is numerically identifiable. Marginal or drop-one diagnostics cannot rescue a JOINT4 formal failure.
+
+Anti-rescue: no Dwell; no signed Position timing rescue; no alternate EXIT definition; no side conditioning; no horizon subset; no dropped environment; no side/era-specific fit; no direction×time interaction; no recalibration/intercept/threshold rescue; no alternate transforms; no additional feature after result; no Validation/TEST refit; no Exp27 scoring/modification.
+
+Exp49 failure cannot erase Exp44/45/47 PASS results. Historical OOS remains exploratory; runtime promotion NONE.
