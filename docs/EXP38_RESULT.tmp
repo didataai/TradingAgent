@@ -99,3 +99,201 @@ Candidate causal domains to preregister before use include:
 Critical governance rule: these domains must be defined prospectively and cannot be retroactively applied to remove historical failures. Thresholds or event rules must be frozen before evaluation. The operability layer controls whether the strategy participates; it does not rewrite the historical predictor verdicts.
 
 Fresh-forward Exp27 remains the decisive anti-overfitting gate before runtime promotion or any new claim of generalization.
+
+## 2026-08-14 18:12 BRT — Decision Layer 01 frozen: STRUCTURAL EDGE / GEOMETRY BREAK-EVEN
+
+This is a downstream decision-layer experiment, NOT Exp54 and NOT a reopening of historical timing-feature discovery. It adds no market feature and does not alter Exp27. Historical Validation/Test are repeatedly inspected and remain exploratory; this experiment can establish historical structural/economic coherence only, never runtime promotion.
+
+### Scientific question
+
+Does the already-frozen Exp47 minimal factorized corridor law translate into a stable economic expectancy when the model probability of the exit side is compared with the break-even probability implied by the current corridor geometry?
+
+The key identity is derived without fitting a new parameter.
+
+For a current structural state let:
+
+```text
+B = oriented distance from current close to BACK boundary
+F = oriented distance from current close to FORWARD boundary
+W = B + F
+P = CorridorPosition = B / W
+```
+
+For horizon H, reuse only the frozen Exp47 components:
+
+```text
+e(H) = P(EXIT by H) from the elapsed-time BASE survival clock
+q(H) = P(ADVANCE | EXIT by H, Position) from the frozen POSITION side law
+```
+
+The Exp47 factorization is:
+
+```text
+P(ADVANCE by H) = e(H) * q(H)
+P(RECAPTURE by H) = e(H) * (1-q(H))
+P(NO_EXIT by H) = 1-e(H)
+```
+
+For an ADVANCE-side corridor-resolution payoff of +F on ADVANCE, -B on RECAPTURE and 0 on NO_EXIT:
+
+```text
+EV_ADV(H)
+= e(H) * [q(H)*F - (1-q(H))*B]
+= e(H) * W * [q(H) - P]
+```
+
+Therefore the frozen probability edge is:
+
+```text
+EDGE_PROB(H) = q(H) - CorridorPosition
+```
+
+and the scale-normalized structural expectancy is:
+
+```text
+STRUCTURAL_EDGE_ATR(H)
+= e(H) * CorridorWidthATR * EDGE_PROB(H)
+```
+
+This is an algebraic consequence of the already-frozen probability law plus the already-observed corridor geometry. No coefficient, threshold, bucket, interaction or new feature is fitted.
+
+### Frozen realized payoff target
+
+Use the exact Exp47 eligible state-horizon cells at H = 15/30/60/120 minutes and the exact first-passage labels/censoring already used by Exp47.
+
+At each eligible state-horizon cell, distances are frozen at state_time and normalized by the same causal state ATR:
+
+```text
+B_ATR = B / ATR_state
+F_ATR = F / ATR_state
+```
+
+Define the ADVANCE-side realized corridor-resolution payoff:
+
+```text
+Y_ADV_ATR(H) =
+    +F_ATR   if ADVANCE occurs first by H
+    -B_ATR   if RECAPTURE occurs first by H
+     0       if NO_EXIT by H
+```
+
+Censored cells remain excluded exactly as in Exp47. No mark-to-market value is invented for censored cells.
+
+The zero-threshold policy is frozen before score:
+
+```text
+if EDGE_PROB(H) > 0: choose ADVANCE
+if EDGE_PROB(H) < 0: choose RECAPTURE
+if EDGE_PROB(H) = 0: WAIT
+```
+
+The corresponding realized policy payoff is:
+
+```text
+Y_POLICY_ATR(H) = sign(EDGE_PROB(H)) * Y_ADV_ATR(H)
+```
+
+and predicted policy expectancy is:
+
+```text
+PRED_POLICY_EV_ATR(H) = abs(STRUCTURAL_EDGE_ATR(H))
+```
+
+No minimum edge threshold is allowed in DL01.
+
+### Frozen evaluation universe
+
+Reuse the exact Exp47 historical OOS universe:
+- same dynamic states and exact guards;
+- same eligible horizons 15/30/60/120;
+- same eight joint Direction x Time environments from Exp44/45/47;
+- same historical cutoff < 2026-08-13 00:00:00 BRT;
+- no fresh-forward Exp27 row;
+- no retrospective OPERABILITY01 filtering.
+
+In particular, do NOT remove Friday close, scheduled-news periods, high-volatility rows, outliers or any historically adverse environment. Operability remains a separate prospective participation layer.
+
+### Primary estimand and dependence control
+
+Primary estimand = STATE_HORIZON_WEIGHTED within each frozen environment, matching Exp47. Dependence-aware inference = whole-BRT-day bootstrap preserving all state-horizon cells from each sampled day and computing total statistic / total sampled cells.
+
+Two primary formal tests are frozen per environment:
+
+A) EXPECTANCY CALIBRATION VALUE
+
+Compare continuous predicted `STRUCTURAL_EDGE_ATR` against the realized `Y_ADV_ATR` using squared-error gain over a zero-EV baseline:
+
+```text
+MSE_GAIN = MSE(0, Y_ADV_ATR) - MSE(STRUCTURAL_EDGE_ATR, Y_ADV_ATR)
+```
+
+Positive means the factorized structural expectancy estimates realized corridor payoff better than assuming zero expectancy everywhere.
+
+B) ZERO-THRESHOLD POLICY PAYOFF
+
+```text
+MEAN_POLICY_PAYOFF_ATR = mean(Y_POLICY_ATR)
+```
+
+Positive means the sign of the structural edge selects the higher-value corridor side on average without tuning a threshold.
+
+Formal historical PASS requires, in all eight environments:
+- MSE_GAIN point estimate > 0 and whole-day bootstrap CI95 lower bound > 0; AND
+- MEAN_POLICY_PAYOFF_ATR point estimate > 0 and whole-day bootstrap CI95 lower bound > 0.
+
+Thus the universal formal gate is 16/16 cells. Any environment failing either criterion means `ROBUST_STRUCTURAL_DECISION_EDGE = FAIL` under DL01.
+
+### Frozen diagnostics only
+
+Report without rescue authority:
+- results by individual horizon 15/30/60/120;
+- mean/median `EDGE_PROB`, `abs(EDGE_PROB)` and predicted structural EV;
+- ADVANCE/RECAPTURE policy-side fractions and exact-zero WAIT fraction;
+- Spearman/Pearson association between predicted `STRUCTURAL_EDGE_ATR` and `Y_ADV_ATR`;
+- realized payoff conditional on observed ADVANCE/RECAPTURE/NO_EXIT;
+- probability-sum and algebraic identity errors;
+- coverage, days and class counts per environment.
+
+Diagnostics cannot create thresholds, slices or interactions after score.
+
+### Explicitly excluded from DL01
+
+DL01 is a structural gross-expectancy test, not a deployable trading backtest. Therefore it deliberately excludes:
+- spread;
+- slippage;
+- commission;
+- financing/swap;
+- order latency;
+- fill uncertainty;
+- position sizing;
+- stop/TP engineering outside the fixed corridor boundaries;
+- overlapping-position portfolio accounting;
+- OPERABILITY01 historical filtering.
+
+If DL01 passes, the next separately frozen Decision Layer experiment may add realistic execution costs and a non-overlapping execution policy. Costs may reduce or eliminate the edge; they cannot be tuned to rescue DL01.
+
+### Anti-rescue / governance
+
+After DL01 is scored:
+- no `EDGE > x` threshold search;
+- no top-decile/top-quartile edge subset;
+- no horizon deletion;
+- no environment deletion;
+- no direction-specific recalibration;
+- no day/session/news/Friday exclusion;
+- no alternate payoff after seeing results;
+- no new feature or refit;
+- no use of Exp27 fresh-forward data;
+- no runtime promotion.
+
+Failure rejects the universal historical decision-edge claim but does not erase Exp47 probability-law PASS. Success establishes only historical gross structural expectancy and still requires fresh-forward validation plus costs/execution before any runtime trading claim.
+
+Status before score:
+
+```text
+DECISION_LAYER_01 = FROZEN_BEFORE_SCORE
+ROBUST_STRUCTURAL_DECISION_EDGE = UNTESTED
+EXP27 = UNTOUCHED / SCORES_SEALED
+HISTORICAL_TIMING_FEATURE_DISCOVERY_STOP = PRESERVED_YES
+RUNTIME_PROMOTION = NONE
+```
