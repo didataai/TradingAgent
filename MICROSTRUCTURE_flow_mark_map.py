@@ -4,12 +4,14 @@
 Scientific contract:
     docs/MICROSTRUCTURE_FLOW_MARK_MAP01.md
 
-Separate historical exploratory line:
+Implementation-optimized historical exploratory runner:
+- scientific event/lifecycle contract unchanged;
 - no candle color;
 - no M5/M15 level in mark birth;
 - no fitted spread/tick threshold;
 - BID/ASK + time_msc only;
 - full BRT-day path, reset at BRT day boundary;
+- indexed failure->prior-mark lookup (same frozen nearest-price rule);
 - no Exp27 / Decision Calibration inspection or runtime promotion.
 """
 from __future__ import annotations
@@ -28,7 +30,6 @@ try:
     import MetaTrader5 as mt5
 except ImportError as exc:
     raise SystemExit("MetaTrader5 not installed. Run: pip install MetaTrader5") from exc
-
 
 ROOT = Path(__file__).resolve().parent
 OUT_DIR = ROOT / "data" / "market_chronos" / "microstructure"
@@ -61,6 +62,10 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--start", default=DEFAULT_START, help="BRT YYYY-MM-DD inclusive")
     p.add_argument("--end", default=DEFAULT_END, help="BRT YYYY-MM-DD inclusive")
     return p.parse_args()
+
+
+def _phase(day_no: int, total_days: int, day: date, text: str) -> None:
+    print(f"DAY {day_no:>3}/{total_days} {day} | {text}", flush=True)
 
 
 def _brt_local(d: date, t: time) -> datetime:
@@ -104,7 +109,6 @@ def _valid_ticks(raw: np.ndarray | None) -> np.ndarray:
     q = raw[good]
     if len(q) <= 1:
         return q
-
     order = np.argsort(q["time_msc"], kind="stable")
     return q[order]
 
@@ -115,13 +119,10 @@ def _spread_baseline_by_tick(ms: np.ndarray, spread: np.ndarray) -> np.ndarray:
     s = pd.DataFrame({"sec": sec, "spread": spread}).groupby(
         "sec", sort=True, observed=True
     )["spread"].median()
-
     first_sec = int(s.index.min())
     last_sec = int(s.index.max())
     full_idx = np.arange(first_sec, last_sec + 1, dtype=np.int64)
     full = s.reindex(full_idx)
-
-    # Exact 30 completed clock seconds. Any missing second => baseline unavailable.
     baseline_full = (
         full.rolling(BASELINE_SECONDS, min_periods=BASELINE_SECONDS)
         .median()
@@ -147,7 +148,6 @@ def _event_signature(
     mid = (bid + ask) / 2.0
     spread = ask - bid
     t0 = int(ms[i])
-
     out: dict[str, float | int | bool] = {
         "event_bid": float(bid[i]),
         "event_ask": float(ask[i]),
@@ -169,15 +169,10 @@ def _event_signature(
         lo = int(np.searchsorted(ms, t0 - window_ms, side="left"))
         rate = float(i - lo + 1) / (window_ms / 1000.0)
         out[f"tick_rate_{label}"] = rate
-        out[f"tick_rate_ratio_{label}"] = (
-            rate / baseline_rate if baseline_rate > 0 else np.nan
-        )
-
+        out[f"tick_rate_ratio_{label}"] = rate / baseline_rate if baseline_rate > 0 else np.nan
         j = _ref_idx(ms, t0 - window_ms)
         if j >= 0:
-            out[f"spread_delta_{label}_points"] = float(
-                (spread[i] - spread[j]) / point
-            )
+            out[f"spread_delta_{label}_points"] = float((spread[i] - spread[j]) / point)
             for name, arr in (("bid", bid), ("ask", ask), ("mid", mid)):
                 raw_points = float((arr[i] - arr[j]) / point)
                 out[f"{name}_impulse_{label}_points"] = raw_points
@@ -263,7 +258,6 @@ class CrossFinder:
         if hit >= 0:
             return hit
         pos = first_block_end
-
         full_end = (end // self.block) * self.block
         if pos < full_end:
             b0 = pos // self.block
@@ -276,7 +270,6 @@ class CrossFinder:
                 candidates = np.flatnonzero(self.block_min[b0:b1] < threshold)
             else:
                 candidates = np.flatnonzero(self.block_min[b0:b1] <= threshold)
-
             for off in candidates:
                 b = b0 + int(off)
                 lo = b * self.block
@@ -285,7 +278,6 @@ class CrossFinder:
                 if hit >= 0:
                     return hit
             pos = full_end
-
         if pos < end:
             return local(pos, end)
         return -1
@@ -334,7 +326,6 @@ class OverlapFinder:
         if hit >= 0:
             return hit
         pos = first_block_end
-
         full_end = (end // self.block) * self.block
         if pos < full_end:
             b0 = pos // self.block
@@ -352,10 +343,61 @@ class OverlapFinder:
                 if hit >= 0:
                     return hit
             pos = full_end
-
         if pos < end:
             return local(pos, end)
         return -1
+
+
+class FenwickActive:
+    """Monotone active-coordinate set with predecessor/successor in O(log n)."""
+
+    def __init__(self, n: int):
+        self.n = int(n)
+        self.bit = np.zeros(self.n + 1, dtype=np.int64)
+
+    def add(self, index: int, delta: int = 1) -> None:
+        i = int(index) + 1
+        while i <= self.n:
+            self.bit[i] += int(delta)
+            i += i & -i
+
+    def prefix(self, end_exclusive: int) -> int:
+        i = min(self.n, max(0, int(end_exclusive)))
+        total = 0
+        while i > 0:
+            total += int(self.bit[i])
+            i -= i & -i
+        return total
+
+    def total(self) -> int:
+        return self.prefix(self.n)
+
+    def kth(self, k: int) -> int:
+        if k <= 0 or k > self.total():
+            return -1
+        idx = 0
+        bitmask = 1 << (self.n.bit_length() - 1)
+        target = int(k)
+        while bitmask:
+            nxt = idx + bitmask
+            if nxt <= self.n and int(self.bit[nxt]) < target:
+                idx = nxt
+                target -= int(self.bit[nxt])
+            bitmask >>= 1
+        return idx
+
+    def predecessor(self, max_index: int) -> int:
+        if max_index < 0:
+            return -1
+        cnt = self.prefix(min(self.n, int(max_index) + 1))
+        return self.kth(cnt) if cnt > 0 else -1
+
+    def successor(self, min_index: int) -> int:
+        if min_index >= self.n:
+            return -1
+        before = self.prefix(max(0, int(min_index)))
+        total = self.total()
+        return self.kth(before + 1) if total > before else -1
 
 
 def _births_for_day(
@@ -368,7 +410,6 @@ def _births_for_day(
 ) -> list[dict]:
     mid = (bid + ask) / 2.0
     spread = ask - bid
-
     expanded = np.isfinite(baseline) & (baseline > 0) & (spread > baseline)
     prev_expanded = np.r_[False, expanded[:-1]]
     actual_widening = np.r_[False, spread[1:] > spread[:-1] + EPS]
@@ -380,15 +421,11 @@ def _births_for_day(
         j = _ref_idx(ms, int(ms[i]) - 1000)
         delta_mid = float(mid[i] - mid[j]) if j >= 0 else np.nan
         if np.isfinite(delta_mid) and delta_mid > EPS:
-            direction = 1
-            direction_name = "UP"
+            direction, direction_name = 1, "UP"
         elif np.isfinite(delta_mid) and delta_mid < -EPS:
-            direction = -1
-            direction_name = "DOWN"
+            direction, direction_name = -1, "DOWN"
         else:
-            direction = 0
-            direction_name = "NEUTRAL"
-
+            direction, direction_name = 0, "NEUTRAL"
         sig = _event_signature(ms, bid, ask, baseline, i, direction, point)
         birth_time = _ms_to_brt_naive(int(ms[i]))
         marks.append(
@@ -403,9 +440,7 @@ def _births_for_day(
                 "mark_mid": float(mid[i]),
                 "mark_ask": float(ask[i]),
                 "mark_width_points": float((ask[i] - bid[i]) / point),
-                "birth_delta_mid_1s_points": (
-                    float(delta_mid / point) if np.isfinite(delta_mid) else np.nan
-                ),
+                "birth_delta_mid_1s_points": float(delta_mid / point) if np.isfinite(delta_mid) else np.nan,
                 **{f"birth_{k}": v for k, v in sig.items()},
                 "departure_idx": -1,
                 "first_retest_idx": -1,
@@ -428,9 +463,7 @@ def _append_pass(
     baseline: np.ndarray,
     point: float,
 ) -> int:
-    sig = _event_signature(
-        ms, bid, ask, baseline, pass_idx, int(mark["direction"]), point
-    )
+    sig = _event_signature(ms, bid, ask, baseline, pass_idx, int(mark["direction"]), point)
     row = {
         "mark_id": mark["mark_id"],
         "birth_day": mark["birth_day"],
@@ -466,16 +499,14 @@ def _lifecycle_for_day(
         direction = int(mark["direction"])
         if direction == 0:
             continue
-
         birth = int(mark["birth_idx"])
         low = float(mark["mark_bid"])
         high = float(mark["mark_ask"])
-
-        if direction > 0:
-            dep = bid_find.first_gt(birth + 1, high, n)
-        else:
-            dep = ask_find.first_lt(birth + 1, low, n)
-
+        dep = (
+            bid_find.first_gt(birth + 1, high, n)
+            if direction > 0
+            else ask_find.first_lt(birth + 1, low, n)
+        )
         if dep < 0:
             mark["lifecycle_status"] = "DAY_END_NO_DEPARTURE"
             continue
@@ -484,26 +515,22 @@ def _lifecycle_for_day(
         mark["lifecycle_status"] = "DEPARTED"
         pass_no = 1
         mark["max_passes"] = 1
-        pass_row_idx = _append_pass(
-            passes, mark, pass_no, dep, ms, bid, ask, baseline, point
-        )
+        pass_row_idx = _append_pass(passes, mark, pass_no, dep, ms, bid, ask, baseline, point)
         current_pass_idx = dep
 
         while True:
-            if direction > 0:
-                ret = bid_find.first_le(current_pass_idx + 1, high, n)
-            else:
-                ret = ask_find.first_ge(current_pass_idx + 1, low, n)
-
+            ret = (
+                bid_find.first_le(current_pass_idx + 1, high, n)
+                if direction > 0
+                else ask_find.first_ge(current_pass_idx + 1, low, n)
+            )
             if ret < 0:
                 mark["lifecycle_status"] = "DAY_END_AFTER_DEPARTURE"
                 break
-
             passes[pass_row_idx]["next_retest_idx"] = ret
             if int(mark["first_retest_idx"]) < 0:
                 mark["first_retest_idx"] = ret
 
-            # A full loss can occur on the exact tick that first re-enters.
             if direction > 0 and ask[ret] < low:
                 mark["failure_idx"] = ret
                 mark["lifecycle_status"] = "FAILED"
@@ -524,16 +551,13 @@ def _lifecycle_for_day(
                 mark["failure_idx"] = failure
                 mark["lifecycle_status"] = "FAILED"
                 break
-
             if recross < 0:
                 mark["lifecycle_status"] = "DAY_END_IN_RETEST"
                 break
 
             pass_no += 1
             mark["max_passes"] = pass_no
-            pass_row_idx = _append_pass(
-                passes, mark, pass_no, recross, ms, bid, ask, baseline, point
-            )
+            pass_row_idx = _append_pass(passes, mark, pass_no, recross, ms, bid, ask, baseline, point)
             current_pass_idx = recross
 
         if int(mark["failure_idx"]) >= 0:
@@ -541,7 +565,6 @@ def _lifecycle_for_day(
             mark["failure_time"] = _ms_to_brt_naive(int(ms[fi]))
         else:
             mark["failure_time"] = pd.NaT
-
         if int(mark["departure_idx"]) >= 0:
             di = int(mark["departure_idx"])
             mark["departure_time"] = _ms_to_brt_naive(int(ms[di]))
@@ -549,13 +572,11 @@ def _lifecycle_for_day(
         else:
             mark["departure_time"] = pd.NaT
             mark["departure_delay_ms"] = np.nan
-
         if int(mark["first_retest_idx"]) >= 0:
             ri = int(mark["first_retest_idx"])
             mark["first_retest_time"] = _ms_to_brt_naive(int(ms[ri]))
         else:
             mark["first_retest_time"] = pd.NaT
-
     return passes
 
 
@@ -568,55 +589,37 @@ def _label_passes(
 ) -> None:
     mid = (bid + ask) / 2.0
     n = len(ms)
-
     for p in passes:
         i = int(p["pass_idx"])
         direction = int(p["direction"])
         t0 = int(ms[i])
         ret = int(p.get("next_retest_idx", -1))
         h_end = int(np.searchsorted(ms, t0 + 60_000, side="right"))
-
         if ret >= 0:
             end = min(h_end, ret)
             outcome_complete = True
         else:
             end = h_end
             outcome_complete = bool(h_end <= n and int(ms[-1]) >= t0 + 60_000)
-
         signed = direction * (mid[i:end] - mid[i]) / point
         p["outcome_complete_before_retest_60s"] = int(outcome_complete)
         if outcome_complete:
             p["mfe_60_points"] = float(np.max(signed)) if len(signed) else 0.0
-            p["mae_60_points"] = (
-                float(max(0.0, -np.min(signed))) if len(signed) else 0.0
-            )
+            p["mae_60_points"] = float(max(0.0, -np.min(signed))) if len(signed) else 0.0
         else:
             p["mfe_60_points"] = np.nan
             p["mae_60_points"] = np.nan
-
         for target in TARGET_POINTS:
-            if outcome_complete:
-                p[f"hit_{target}_before_retest"] = int(
-                    len(signed) > 0 and np.any(signed >= target)
-                )
-            else:
-                p[f"hit_{target}_before_retest"] = np.nan
-
+            p[f"hit_{target}_before_retest"] = (
+                int(len(signed) > 0 and np.any(signed >= target)) if outcome_complete else np.nan
+            )
         for h in PASS_HORIZONS_S:
             target_ms = t0 + h * 1000
             j = int(np.searchsorted(ms, target_ms, side="right") - 1)
-            if j < i:
+            if j < i or (ret >= 0 and j >= ret) or j >= n or int(ms[-1]) < target_ms:
                 p[f"return_{h}s_points"] = np.nan
-                continue
-            if ret >= 0 and j >= ret:
-                p[f"return_{h}s_points"] = np.nan
-                continue
-            if j >= n or int(ms[-1]) < target_ms:
-                p[f"return_{h}s_points"] = np.nan
-                continue
-            p[f"return_{h}s_points"] = float(
-                direction * (mid[j] - mid[i]) / point
-            )
+            else:
+                p[f"return_{h}s_points"] = float(direction * (mid[j] - mid[i]) / point)
 
 
 def _departure60_label(mark: dict, ms: np.ndarray) -> float:
@@ -628,6 +631,64 @@ def _departure60_label(mark: dict, ms: np.ndarray) -> float:
     if int(ms[-1]) >= deadline:
         return 0.0
     return np.nan
+
+
+def _failure_candidate_indexed(
+    failure_mark_indices: np.ndarray,
+    marks: list[dict],
+) -> dict[int, int]:
+    """Same frozen nearest-prior-zone rule as brute force, indexed by price/time."""
+    m = len(marks)
+    if m == 0 or len(failure_mark_indices) == 0:
+        return {}
+
+    birth_idx = np.array([int(x["birth_idx"]) for x in marks], dtype=np.int64)
+    lows = np.array([float(x["mark_bid"]) for x in marks], dtype=float)
+    highs = np.array([float(x["mark_ask"]) for x in marks], dtype=float)
+    directions = np.array([int(x["direction"]) for x in marks], dtype=np.int8)
+    failures = np.array([int(marks[k]["failure_idx"]) for k in failure_mark_indices], dtype=np.int64)
+    order_fail = failure_mark_indices[np.argsort(failures, kind="stable")]
+    order_birth = np.argsort(birth_idx, kind="stable")
+
+    high_values = np.unique(highs)
+    low_values = np.unique(lows)
+    high_coord = np.searchsorted(high_values, highs)
+    low_coord = np.searchsorted(low_values, lows)
+    high_tree = FenwickActive(len(high_values))
+    low_tree = FenwickActive(len(low_values))
+    latest_high = np.full(len(high_values), -1, dtype=np.int64)
+    latest_low = np.full(len(low_values), -1, dtype=np.int64)
+    active_high = np.zeros(len(high_values), dtype=bool)
+    active_low = np.zeros(len(low_values), dtype=bool)
+
+    result: dict[int, int] = {}
+    p = 0
+    for k_raw in order_fail:
+        k = int(k_raw)
+        fail = int(marks[k]["failure_idx"])
+        while p < m and int(birth_idx[order_birth[p]]) < fail:
+            idx = int(order_birth[p])
+            hc = int(high_coord[idx])
+            lc = int(low_coord[idx])
+            if not active_high[hc]:
+                high_tree.add(hc, 1)
+                active_high[hc] = True
+            if not active_low[lc]:
+                low_tree.add(lc, 1)
+                active_low[lc] = True
+            latest_high[hc] = idx
+            latest_low[lc] = idx
+            p += 1
+
+        if int(directions[k]) > 0:
+            pos = int(np.searchsorted(high_values, lows[k], side="left") - 1)
+            coord = high_tree.predecessor(pos)
+            result[k] = int(latest_high[coord]) if coord >= 0 else -1
+        else:
+            pos = int(np.searchsorted(low_values, highs[k], side="right"))
+            coord = low_tree.successor(pos)
+            result[k] = int(latest_low[coord]) if coord >= 0 else -1
+    return result
 
 
 def _failure_paths_for_day(
@@ -646,58 +707,40 @@ def _failure_paths_for_day(
     ids = np.array([str(m["mark_id"]) for m in marks], dtype=object)
     n = len(ms)
 
+    failed_indices = np.array(
+        [i for i, m in enumerate(marks) if int(m.get("failure_idx", -1)) >= 0 and int(m["direction"]) != 0],
+        dtype=int,
+    )
+    candidate_by_mark = _failure_candidate_indexed(failed_indices, marks)
+
     bid_find = CrossFinder(bid)
     ask_find = CrossFinder(ask)
     overlap_find = OverlapFinder(bid, ask)
     out: list[dict] = []
 
-    for k, mark in enumerate(marks):
-        fail = int(mark.get("failure_idx", -1))
+    for k_raw in failed_indices:
+        k = int(k_raw)
+        mark = marks[k]
+        fail = int(mark["failure_idx"])
         direction = int(mark["direction"])
-        if fail < 0 or direction == 0:
-            continue
-
         low = float(mark["mark_bid"])
         high = float(mark["mark_ask"])
-        prior = birth_idx < fail
-        prior[k] = False
-        candidate_idx = -1
+        candidate_idx = int(candidate_by_mark.get(k, -1))
 
         if direction > 0:
-            # UP mark failed; travel direction is DOWN.
-            mask = prior & (highs < low)
-            cand = np.flatnonzero(mask)
-            if len(cand):
-                best_price = np.max(highs[cand])
-                tied = cand[np.isclose(highs[cand], best_price, atol=EPS, rtol=0.0)]
-                candidate_idx = int(tied[np.argmax(birth_idx[tied])])
             reclaim = bid_find.first_gt(fail + 1, high, n)
             travel_direction = -1
         else:
-            # DOWN mark failed; travel direction is UP.
-            mask = prior & (lows > high)
-            cand = np.flatnonzero(mask)
-            if len(cand):
-                best_price = np.min(lows[cand])
-                tied = cand[np.isclose(lows[cand], best_price, atol=EPS, rtol=0.0)]
-                candidate_idx = int(tied[np.argmax(birth_idx[tied])])
             reclaim = ask_find.first_lt(fail + 1, low, n)
             travel_direction = 1
 
         next_birth_pos = int(np.searchsorted(birth_idx, fail, side="right"))
-        next_birth = (
-            int(birth_idx[next_birth_pos]) if next_birth_pos < len(birth_idx) else -1
-        )
-        next_birth_mark = (
-            int(next_birth_pos) if next_birth_pos < len(birth_idx) else -1
-        )
+        next_birth = int(birth_idx[next_birth_pos]) if next_birth_pos < len(birth_idx) else -1
+        next_birth_mark = int(next_birth_pos) if next_birth_pos < len(birth_idx) else -1
 
         if candidate_idx >= 0:
             target_hit = overlap_find.first_overlap(
-                fail + 1,
-                n,
-                float(lows[candidate_idx]),
-                float(highs[candidate_idx]),
+                fail + 1, n, float(lows[candidate_idx]), float(highs[candidate_idx])
             )
         else:
             target_hit = -1
@@ -709,7 +752,6 @@ def _failure_paths_for_day(
             events.append((reclaim, "FAILED_MARK_RECLAIM"))
         if next_birth >= 0:
             events.append((next_birth, "NEW_FLOW_MARK_BIRTH"))
-
         if events:
             first_idx = min(x[0] for x in events)
             names = sorted(x[1] for x in events if x[0] == first_idx)
@@ -721,11 +763,8 @@ def _failure_paths_for_day(
             first_time = pd.NaT
 
         eventually_prior_before_reclaim = (
-            candidate_idx >= 0
-            and target_hit >= 0
-            and (reclaim < 0 or target_hit < reclaim)
+            candidate_idx >= 0 and target_hit >= 0 and (reclaim < 0 or target_hit < reclaim)
         )
-
         new_dir = int(directions[next_birth_mark]) if next_birth_mark >= 0 else 0
         out.append(
             {
@@ -735,38 +774,22 @@ def _failure_paths_for_day(
                 "travel_direction_after_failure": travel_direction,
                 "failure_idx": fail,
                 "failure_time": _ms_to_brt_naive(int(ms[fail])),
-                "candidate_prior_mark_id": (
-                    ids[candidate_idx] if candidate_idx >= 0 else None
-                ),
-                "candidate_prior_mark_bid": (
-                    float(lows[candidate_idx]) if candidate_idx >= 0 else np.nan
-                ),
-                "candidate_prior_mark_ask": (
-                    float(highs[candidate_idx]) if candidate_idx >= 0 else np.nan
-                ),
+                "candidate_prior_mark_id": ids[candidate_idx] if candidate_idx >= 0 else None,
+                "candidate_prior_mark_bid": float(lows[candidate_idx]) if candidate_idx >= 0 else np.nan,
+                "candidate_prior_mark_ask": float(highs[candidate_idx]) if candidate_idx >= 0 else np.nan,
                 "candidate_distance_points": (
-                    float(
-                        (low - highs[candidate_idx]) / EXPECTED_POINT
-                        if direction > 0
-                        else (lows[candidate_idx] - high) / EXPECTED_POINT
-                    )
+                    float((low - highs[candidate_idx]) / EXPECTED_POINT)
+                    if candidate_idx >= 0 and direction > 0
+                    else float((lows[candidate_idx] - high) / EXPECTED_POINT)
                     if candidate_idx >= 0
                     else np.nan
                 ),
                 "prior_mark_hit_idx": target_hit,
-                "prior_mark_hit_time": (
-                    _ms_to_brt_naive(int(ms[target_hit]))
-                    if target_hit >= 0
-                    else pd.NaT
-                ),
+                "prior_mark_hit_time": _ms_to_brt_naive(int(ms[target_hit])) if target_hit >= 0 else pd.NaT,
                 "failed_mark_reclaim_idx": reclaim,
-                "failed_mark_reclaim_time": (
-                    _ms_to_brt_naive(int(ms[reclaim])) if reclaim >= 0 else pd.NaT
-                ),
+                "failed_mark_reclaim_time": _ms_to_brt_naive(int(ms[reclaim])) if reclaim >= 0 else pd.NaT,
                 "next_flow_mark_idx": next_birth,
-                "next_flow_mark_id": (
-                    ids[next_birth_mark] if next_birth_mark >= 0 else None
-                ),
+                "next_flow_mark_id": ids[next_birth_mark] if next_birth_mark >= 0 else None,
                 "next_flow_mark_direction": new_dir,
                 "new_mark_matches_travel_direction": (
                     int(new_dir == travel_direction)
@@ -776,9 +799,7 @@ def _failure_paths_for_day(
                 "first_competing_event": first_event,
                 "first_competing_event_idx": first_idx,
                 "first_competing_event_time": first_time,
-                "prior_mark_eventually_hit_before_reclaim": int(
-                    eventually_prior_before_reclaim
-                ),
+                "prior_mark_eventually_hit_before_reclaim": int(eventually_prior_before_reclaim),
             }
         )
     return out
@@ -799,22 +820,14 @@ def _add_chain_fields(marks: list[dict], point: float) -> None:
             run = run + 1 if int(m["direction"]) == int(prev["direction"]) else 1
             m["same_direction_run_length_at_birth"] = run
             m["prev_directional_mark_id"] = prev["mark_id"]
-            m["prev_mark_mid_distance_points"] = float(
-                (float(m["mark_mid"]) - float(prev["mark_mid"])) / point
-            )
+            m["prev_mark_mid_distance_points"] = float((float(m["mark_mid"]) - float(prev["mark_mid"])) / point)
             m["prev_mark_birth_delta_s"] = float(
-                (
-                    pd.Timestamp(m["birth_time"])
-                    - pd.Timestamp(prev["birth_time"])
-                ).total_seconds()
+                (pd.Timestamp(m["birth_time"]) - pd.Timestamp(prev["birth_time"])).total_seconds()
             )
         prev = m
 
 
-def _paired_bootstrap(
-    passes_df: pd.DataFrame,
-    outcome: str,
-) -> dict:
+def _paired_bootstrap(passes_df: pd.DataFrame, outcome: str) -> dict:
     p1 = passes_df.loc[
         passes_df["pass_no"].eq(1), ["mark_id", "birth_day", outcome]
     ].rename(columns={outcome: "p1"})
@@ -824,11 +837,8 @@ def _paired_bootstrap(
     q = p1.merge(p2, on="mark_id", how="inner").dropna(subset=["p1", "p2"])
     if q.empty:
         return {"n": 0, "days": 0, "p1": np.nan, "p2": np.nan, "diff": np.nan, "lo": np.nan, "hi": np.nan}
-
     q["diff"] = q["p2"].astype(float) - q["p1"].astype(float)
-    day_arrays = [
-        g["diff"].to_numpy(float) for _, g in q.groupby("birth_day", sort=True)
-    ]
+    day_arrays = [g["diff"].to_numpy(float) for _, g in q.groupby("birth_day", sort=True)]
     days = len(day_arrays)
     if days < 2:
         lo = hi = np.nan
@@ -838,31 +848,22 @@ def _paired_bootstrap(
         for b in range(BOOT_N):
             idx = rng.integers(0, days, size=days)
             total = 0.0
-            n = 0
+            nn = 0
             for j in idx:
                 a = day_arrays[int(j)]
                 total += float(a.sum())
-                n += int(len(a))
-            boot[b] = total / n
+                nn += int(len(a))
+            boot[b] = total / nn
         lo, hi = np.quantile(boot, [0.025, 0.975])
-
     return {
-        "n": int(len(q)),
-        "days": int(days),
-        "p1": float(q["p1"].mean()),
-        "p2": float(q["p2"].mean()),
-        "diff": float(q["diff"].mean()),
+        "n": int(len(q)), "days": int(days), "p1": float(q["p1"].mean()),
+        "p2": float(q["p2"].mean()), "diff": float(q["diff"].mean()),
         "lo": float(lo) if np.isfinite(lo) else np.nan,
         "hi": float(hi) if np.isfinite(hi) else np.nan,
     }
 
 
-def _quintile_map(
-    df: pd.DataFrame,
-    feature: str,
-    outcome: str,
-    stage: str,
-) -> pd.DataFrame:
+def _quintile_map(df: pd.DataFrame, feature: str, outcome: str, stage: str) -> pd.DataFrame:
     q = df.dropna(subset=[feature, outcome]).copy()
     if len(q) < 10 or q[feature].nunique() < 5:
         return pd.DataFrame()
@@ -870,33 +871,16 @@ def _quintile_map(
         q["bucket"] = pd.qcut(q[feature], 5, duplicates="drop")
     except ValueError:
         return pd.DataFrame()
-
     out = (
         q.groupby("bucket", observed=True)
-        .agg(
-            n=(outcome, "size"),
-            rate=(outcome, "mean"),
-            feature_mean=(feature, "mean"),
-            feature_median=(feature, "median"),
-        )
+        .agg(n=(outcome, "size"), rate=(outcome, "mean"), feature_mean=(feature, "mean"), feature_median=(feature, "median"))
         .reset_index()
     )
     out["stage"] = stage
     out["feature"] = feature
     out["outcome"] = outcome
     out["bucket"] = out["bucket"].astype(str)
-    return out[
-        [
-            "stage",
-            "feature",
-            "outcome",
-            "bucket",
-            "n",
-            "rate",
-            "feature_mean",
-            "feature_median",
-        ]
-    ]
+    return out[["stage", "feature", "outcome", "bucket", "n", "rate", "feature_mean", "feature_median"]]
 
 
 def _print_pass_rates(passes: pd.DataFrame) -> None:
@@ -910,9 +894,7 @@ def _print_pass_rates(passes: pd.DataFrame) -> None:
     for name, z0 in groups:
         z = z0.loc[z0["outcome_complete_before_retest_60s"].eq(1)].copy()
         rates = " ".join(
-            f"+{t}={100*z[f'hit_{t}_before_retest'].mean():6.2f}%"
-            if len(z)
-            else f"+{t}=NA"
+            f"+{t}={100*z[f'hit_{t}_before_retest'].mean():6.2f}%" if len(z) else f"+{t}=NA"
             for t in TARGET_POINTS
         )
         mfe = float(z["mfe_60_points"].mean()) if len(z) else np.nan
@@ -940,6 +922,7 @@ def main() -> int:
     print("Mark geometry      = BID/ASK birth zone")
     print("Primary lifecycle  = BIRTH -> PASS1 -> RETEST -> PASS2+ / FAILURE")
     print("Failure path       = nearest earlier same-day mark vs reclaim vs new mark")
+    print("Failure lookup     = INDEXED IMPLEMENTATION; frozen nearest-price rule unchanged")
     print("M5/M15 levels      = NOT USED")
     print("Candle color       = NOT USED")
     print("Threshold fitting  = NONE")
@@ -964,30 +947,20 @@ def main() -> int:
         point = float(info.point)
         print(f"MT5 SYMBOL GUARD digits={info.digits} point={point:.8f}")
         if not math.isclose(point, EXPECTED_POINT, rel_tol=0.0, abs_tol=1e-12):
-            raise RuntimeError(
-                f"FLOWMARK01 point guard failed: expected {EXPECTED_POINT}, got {point}"
-            )
+            raise RuntimeError(f"FLOWMARK01 point guard failed: expected {EXPECTED_POINT}, got {point}")
 
         days = pd.date_range(start_day, end_day, freq="D")
         total_days = len(days)
-
         for day_no, dts in enumerate(days, start=1):
             d = dts.date()
             q_start = _brt_local(d, time(0, 0, 0))
-            q_end = _brt_local(d + timedelta(days=1), time(0, 0, 0)) - timedelta(
-                milliseconds=1
-            )
-            raw = mt5.copy_ticks_range(
-                symbol, _to_utc(q_start), _to_utc(q_end), mt5.COPY_TICKS_ALL
-            )
+            q_end = _brt_local(d + timedelta(days=1), time(0, 0, 0)) - timedelta(milliseconds=1)
+            _phase(day_no, total_days, d, "FETCH ticks")
+            raw = mt5.copy_ticks_range(symbol, _to_utc(q_start), _to_utc(q_end), mt5.COPY_TICKS_ALL)
             ticks = _valid_ticks(raw)
             if len(ticks) < 2:
                 coverage["NO_TICK_DAY"] += 1
-                if day_no == 1 or day_no % 10 == 0 or day_no == total_days:
-                    print(
-                        f"SCAN {day_no:>3}/{total_days} {d} ticks={len(ticks):>7} "
-                        f"marks={len(all_marks):>7} passes={len(all_passes):>7}"
-                    )
+                _phase(day_no, total_days, d, f"DONE no ticks ({len(ticks)})")
                 continue
 
             coverage["DAYS_WITH_TICKS"] += 1
@@ -995,32 +968,32 @@ def main() -> int:
             ms = ticks["time_msc"].astype(np.int64)
             bid = ticks["bid"].astype(float)
             ask = ticks["ask"].astype(float)
-            baseline = _spread_baseline_by_tick(ms, ask - bid)
 
+            _phase(day_no, total_days, d, f"BASELINE ticks={len(ticks)}")
+            baseline = _spread_baseline_by_tick(ms, ask - bid)
+            _phase(day_no, total_days, d, "BIRTHS")
             marks = _births_for_day(ms, bid, ask, baseline, point, d)
             _add_chain_fields(marks, point)
+            _phase(day_no, total_days, d, f"LIFECYCLE marks={len(marks)}")
             passes = _lifecycle_for_day(marks, ms, bid, ask, baseline, point)
+            _phase(day_no, total_days, d, f"PASS LABELS passes={len(passes)}")
             _label_passes(passes, ms, bid, ask, point)
-
             for m in marks:
                 m["departure_within_60s"] = _departure60_label(m, ms)
-
+            failed_n = sum(int(m.get("failure_idx", -1)) >= 0 for m in marks)
+            _phase(day_no, total_days, d, f"FAILURE PATHS failures={failed_n} [indexed]")
             failures = _failure_paths_for_day(marks, ms, bid, ask)
 
             all_marks.extend(marks)
             all_passes.extend(passes)
             all_failures.extend(failures)
-
             coverage["BIRTHS"] += len(marks)
             coverage["PASSES"] += len(passes)
             coverage["FAILURES"] += len(failures)
-
-            if day_no == 1 or day_no % 10 == 0 or day_no == total_days:
-                print(
-                    f"SCAN {day_no:>3}/{total_days} {d} ticks={len(ticks):>7} "
-                    f"day_marks={len(marks):>6} day_passes={len(passes):>6} "
-                    f"total_marks={len(all_marks):>7}"
-                )
+            _phase(
+                day_no, total_days, d,
+                f"DONE marks={len(marks)} passes={len(passes)} failures={len(failures)} total_marks={len(all_marks)}",
+            )
     finally:
         mt5.shutdown()
 
@@ -1034,13 +1007,11 @@ def main() -> int:
     marks = pd.DataFrame(all_marks).sort_values("birth_time").reset_index(drop=True)
     passes = (
         pd.DataFrame(all_passes).sort_values("pass_time").reset_index(drop=True)
-        if all_passes
-        else pd.DataFrame()
+        if all_passes else pd.DataFrame()
     )
     failures = (
         pd.DataFrame(all_failures).sort_values("failure_time").reset_index(drop=True)
-        if all_failures
-        else pd.DataFrame()
+        if all_failures else pd.DataFrame()
     )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1048,7 +1019,6 @@ def main() -> int:
     passes_path = OUT_DIR / "FLOWMARK_map01_passes.csv"
     failures_path = OUT_DIR / "FLOWMARK_map01_failures.csv"
     quintiles_path = OUT_DIR / "FLOWMARK_map01_feature_quintiles.csv"
-
     marks.to_csv(marks_path, index=False)
     passes.to_csv(passes_path, index=False)
     failures.to_csv(failures_path, index=False)
@@ -1078,10 +1048,7 @@ def main() -> int:
     print(f"  retested          = {int(ret.sum())} ({100*ret.mean():.2f}%)")
     print(f"  failed            = {int(fail.sum())} ({100*fail.mean():.2f}%)")
     d60 = directional["departure_within_60s"].dropna()
-    print(
-        f"  PASS1 <=60s      = {100*d60.mean():.2f}% "
-        f"(n_complete={len(d60)})"
-    )
+    print(f"  PASS1 <=60s      = {100*d60.mean():.2f}% (n_complete={len(d60)})")
 
     if not passes.empty:
         print()
@@ -1100,16 +1067,12 @@ def main() -> int:
             print(
                 f"  +{target:<3} n={r['n']:>5} days={r['days']:>3} "
                 f"PASS1={100*r['p1']:6.2f}% PASS2={100*r['p2']:6.2f}% "
-                f"diff={100*r['diff']:+6.2f}pp "
-                f"CI95=[{100*r['lo']:+6.2f},{100*r['hi']:+6.2f}]pp"
+                f"diff={100*r['diff']:+6.2f}pp CI95=[{100*r['lo']:+6.2f},{100*r['hi']:+6.2f}]pp"
             )
-
         r = _paired_bootstrap(passes, "mfe_60_points")
         print(
-            f"  MFE60 n={r['n']:>5} days={r['days']:>3} "
-            f"PASS1={r['p1']:.2f} PASS2={r['p2']:.2f} "
-            f"diff={r['diff']:+.2f} points "
-            f"CI95=[{r['lo']:+.2f},{r['hi']:+.2f}]"
+            f"  MFE60 n={r['n']:>5} days={r['days']:>3} PASS1={r['p1']:.2f} PASS2={r['p2']:.2f} "
+            f"diff={r['diff']:+.2f} points CI95=[{r['lo']:+.2f},{r['hi']:+.2f}]"
         )
 
     if not failures.empty:
@@ -1120,9 +1083,7 @@ def main() -> int:
         cand = failures["candidate_prior_mark_id"].notna()
         if cand.any():
             z = failures.loc[cand]
-            print(
-                f"  has prior mark candidate = {int(cand.sum())}/{len(failures)}"
-            )
+            print(f"  has prior mark candidate = {int(cand.sum())}/{len(failures)}")
             print(
                 "  prior mark eventually hit before failed-mark reclaim = "
                 f"{100*z['prior_mark_eventually_hit_before_reclaim'].mean():.2f}%"
@@ -1140,24 +1101,17 @@ def main() -> int:
     for feat in MAP_FEATURES:
         birth_col = f"birth_{feat}"
         if birth_col in marks.columns:
-            m = _quintile_map(
-                directional,
-                birth_col,
-                "departure_within_60s",
-                "BIRTH_TO_PASS1_60S",
-            )
-            if not m.empty:
-                maps.append(m)
+            mm = _quintile_map(directional, birth_col, "departure_within_60s", "BIRTH_TO_PASS1_60S")
+            if not mm.empty:
+                maps.append(mm)
         pass_col = f"pass_{feat}"
         if not passes.empty and pass_col in passes.columns:
-            m = _quintile_map(
+            mm = _quintile_map(
                 passes.loc[passes["outcome_complete_before_retest_60s"].eq(1)],
-                pass_col,
-                "hit_200_before_retest",
-                "PASS_TO_HIT200_BEFORE_RETEST",
+                pass_col, "hit_200_before_retest", "PASS_TO_HIT200_BEFORE_RETEST"
             )
-            if not m.empty:
-                maps.append(m)
+            if not mm.empty:
+                maps.append(mm)
 
     if maps:
         qmap = pd.concat(maps, ignore_index=True)
@@ -1167,24 +1121,16 @@ def main() -> int:
         for (stage, feature), g in qmap.groupby(["stage", "feature"], sort=False):
             print()
             print(f"{stage} | {feature}")
-            print(
-                g[["bucket", "n", "rate", "feature_mean"]].to_string(
-                    index=False, float_format=lambda x: f"{x:.5f}"
-                )
-            )
+            print(g[["bucket", "n", "rate", "feature_mean"]].to_string(index=False, float_format=lambda x: f"{x:.5f}"))
 
     print()
     print("CHAIN DESCRIPTIVES")
     dr = directional["same_direction_run_length_at_birth"].dropna()
-    print(
-        f"  same-direction run length mean={dr.mean():.3f} "
-        f"median={dr.median():.3f} max={dr.max():.0f}"
-    )
+    print(f"  same-direction run length mean={dr.mean():.3f} median={dr.median():.3f} max={dr.max():.0f}")
     dist = directional["prev_mark_mid_distance_points"].dropna()
     if len(dist):
         print(
-            f"  consecutive directional mark distance points "
-            f"mean={dist.mean():+.2f} median={dist.median():+.2f}"
+            f"  consecutive directional mark distance points mean={dist.mean():+.2f} median={dist.median():+.2f}"
         )
 
     print()
@@ -1194,7 +1140,6 @@ def main() -> int:
     print(f"  failures = {failures_path}")
     if maps:
         print(f"  quintiles= {quintiles_path}")
-
     print()
     print("MICROSTRUCTURE_FLOW_MARK_MAP01 = COMPLETE_EXPLORATORY_MAP")
     print("NO THRESHOLD / BEST-BUCKET / PASS-NUMBER PROMOTION IS AUTHORIZED BY MAP01")
