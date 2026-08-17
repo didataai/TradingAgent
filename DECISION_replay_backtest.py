@@ -18,6 +18,14 @@ Replay02 (frozen before first run):
           q_cal_60 < q_BE_entry => RECAPTURE; equality => WAIT.
 - No fitted margin, threshold search, horizon search or sign inversion.
 
+Replay02 robustness/cost-capacity audit (frozen after gross PASS, before audit run):
+- Does not alter the Replay02 signal or trade-set logic.
+- Whole-BRT-entry-day bootstrap of mean PnL_R, N=10000, seed=2026081703.
+- Robust gross audit passes only if CI95 lower(mean PnL_R) > 0 in BOTH
+  VALIDATION and TEST; this stricter audit does not rewrite the prior point PASS.
+- Fixed-lot point metrics are reported separately from 1R-normalized metrics.
+- Cost capacity is derived algebraically; no broker spread/slippage is invented.
+
 Shared frozen engine:
 - Historical engineering only; VALIDATION + TEST are repeatedly inspected and exploratory.
 - Exact Track-D / Exp41 / calibration guards must pass first.
@@ -55,6 +63,9 @@ SIGNAL_THRESHOLD = 0.50
 SPLIT_B = pd.Timestamp("2026-04-29 10:40:00")
 PERIODS = ("VALIDATION", "TEST")
 POLICIES = ("replay01", "replay02")
+AUDITS = ("none", "robustness-cost")
+AUDIT_BOOT_N = 10000
+AUDIT_BOOT_SEED = 2026081703
 
 
 def _historical_operability(m: pd.DataFrame, rules: dict, thresholds: dict) -> pd.DataFrame:
@@ -484,6 +495,153 @@ def _print_metrics(name: str, m: dict) -> None:
     )
 
 
+def _point_metrics(z: pd.DataFrame) -> dict:
+    if z.empty:
+        return {"trades": 0}
+    x = z["pnl_points"].to_numpy(float)
+    pos = x[x > 0]
+    neg = x[x < 0]
+    gp = float(pos.sum()) if len(pos) else 0.0
+    gl = float(-neg.sum()) if len(neg) else 0.0
+    pf = gp / gl if gl > 0 else (float("inf") if gp > 0 else np.nan)
+    equity = np.cumsum(x)
+    running_peak = np.maximum.accumulate(np.r_[0.0, equity])
+    dd = np.r_[0.0, equity] - running_peak
+    return {
+        "trades": int(len(z)),
+        "mean": float(np.mean(x)),
+        "median": float(np.median(x)),
+        "pf": pf,
+        "cum": float(equity[-1]),
+        "max_dd": float(-np.min(dd)),
+        "avg_win": float(np.mean(pos)) if len(pos) else np.nan,
+        "avg_loss": float(np.mean(neg)) if len(neg) else np.nan,
+    }
+
+
+def _day_cluster_bootstrap_mean_r(z: pd.DataFrame, seed: int) -> dict:
+    if z.empty:
+        return {"days": 0, "point": np.nan, "lo": np.nan, "hi": np.nan}
+    q = z.copy()
+    q["entry_day"] = pd.to_datetime(q["entry_time"]).dt.date
+    day_arrays = [g["pnl_R"].to_numpy(float) for _, g in q.groupby("entry_day", sort=True)]
+    n_days = len(day_arrays)
+    if n_days < 2:
+        raise RuntimeError("AUDIT ABORT: fewer than two BRT entry days")
+    rng = np.random.default_rng(seed)
+    boot = np.empty(AUDIT_BOOT_N, dtype=float)
+    for b in range(AUDIT_BOOT_N):
+        idx = rng.integers(0, n_days, size=n_days)
+        total = 0.0
+        n = 0
+        for j in idx:
+            a = day_arrays[int(j)]
+            total += float(a.sum())
+            n += int(len(a))
+        boot[b] = total / n
+    lo, hi = np.quantile(boot, [0.025, 0.975])
+    return {
+        "days": n_days,
+        "point": float(q["pnl_R"].mean()),
+        "lo": float(lo),
+        "hi": float(hi),
+    }
+
+
+def _cost_capacity(z: pd.DataFrame) -> dict:
+    if z.empty:
+        return {}
+    r = z["pnl_R"].to_numpy(float)
+    risk = z["risk_points"].to_numpy(float)
+    if np.any(~np.isfinite(risk)) or np.any(risk <= 0):
+        raise RuntimeError("AUDIT ABORT: invalid risk_points in Replay02 trades")
+    denom = float(np.sum(1.0 / risk))
+    if denom <= 0:
+        raise RuntimeError("AUDIT ABORT: invalid fixed-point cost denominator")
+    cost_points_be = float(np.sum(r) / denom)
+    width = z["d_back_entry"].to_numpy(float) + z["d_forward_entry"].to_numpy(float)
+    edge_budget = width * np.abs(z["q_minus_threshold"].to_numpy(float))
+    if np.any(~np.isfinite(edge_budget)) or np.any(edge_budget < 0):
+        raise RuntimeError("AUDIT ABORT: invalid model edge budget")
+    return {
+        "cost_r_be": float(np.mean(r)),
+        "cost_points_be": cost_points_be,
+        "risk_mean": float(np.mean(risk)),
+        "risk_median": float(np.median(risk)),
+        "edge_mean": float(np.mean(edge_budget)),
+        "edge_median": float(np.median(edge_budget)),
+        "edge_p10": float(np.quantile(edge_budget, 0.10)),
+        "edge_p25": float(np.quantile(edge_budget, 0.25)),
+        "edge_p75": float(np.quantile(edge_budget, 0.75)),
+        "edge_p90": float(np.quantile(edge_budget, 0.90)),
+    }
+
+
+def _run_replay02_robustness_cost_audit(trades: pd.DataFrame) -> None:
+    print()
+    print("=" * 132)
+    print("REPLAY02 ROBUSTNESS / COST-CAPACITY AUDIT — SIGNAL AND TRADE LOGIC UNCHANGED")
+    print("=" * 132)
+    print(f"Whole-BRT-entry-day bootstrap = N={AUDIT_BOOT_N} seed={AUDIT_BOOT_SEED}")
+    print("Robust gate = CI95 lower(mean PnL_R) > 0 in BOTH VALIDATION and TEST")
+    print("Broker costs = NOT INVENTED; cost capacity only")
+    print()
+
+    boot = {}
+    for offset, period in enumerate(PERIODS):
+        z = trades.loc[trades["period"].eq(period)].copy()
+        boot[period] = _day_cluster_bootstrap_mean_r(z, AUDIT_BOOT_SEED + offset)
+        b = boot[period]
+        print(
+            f"{period:<12} E[R]={b['point']:+.6f} "
+            f"CI95=[{b['lo']:+.6f},{b['hi']:+.6f}] entry_days={b['days']}"
+        )
+    robust_pass = all(boot[p]["lo"] > 0 for p in PERIODS)
+
+    print()
+    print("FIXED-LOT / RAW-POINT SIZING DIAGNOSTIC")
+    for name, z in [
+        ("VALIDATION", trades.loc[trades["period"].eq("VALIDATION")]),
+        ("TEST", trades.loc[trades["period"].eq("TEST")]),
+        ("POOLED", trades),
+    ]:
+        m = _point_metrics(z)
+        pf_text = "inf" if math.isinf(m["pf"]) else f"{m['pf']:.4f}"
+        print(
+            f"{name:<12} trades={m['trades']:>3} E[points]={m['mean']:+.5f} "
+            f"PF_points={pf_text:>8} CumPoints={m['cum']:+.3f} MaxDD_points={m['max_dd']:.3f} "
+            f"avgWinPts={m['avg_win']:+.3f} avgLossPts={m['avg_loss']:+.3f}"
+        )
+
+    print()
+    print("ZERO-EXPECTANCY COST CAPACITY — DIAGNOSTIC ONLY")
+    for name, z in [
+        ("VALIDATION", trades.loc[trades["period"].eq("VALIDATION")]),
+        ("TEST", trades.loc[trades["period"].eq("TEST")]),
+        ("POOLED", trades),
+    ]:
+        c = _cost_capacity(z)
+        print(
+            f"{name:<12} max_constant_cost_R/trade={c['cost_r_be']:+.6f}R "
+            f"max_constant_all_in_cost_points={c['cost_points_be']:+.6f} "
+            f"risk_points mean/median={c['risk_mean']:.3f}/{c['risk_median']:.3f}"
+        )
+        print(
+            f"{'':12} model_edge_budget_points mean={c['edge_mean']:.5f} median={c['edge_median']:.5f} "
+            f"P10={c['edge_p10']:.5f} P25={c['edge_p25']:.5f} "
+            f"P75={c['edge_p75']:.5f} P90={c['edge_p90']:.5f}"
+        )
+
+    print()
+    print(f"REPLAY02_ROBUST_GROSS_AUDIT = {'PASS' if robust_pass else 'FAIL'}")
+    print("REPLAY02_POINT_ESTIMATE_GROSS_PASS = PRESERVED")
+    print("REPLAY02_COST_ROBUSTNESS = UNRESOLVED_UNTIL_EXTERNAL_BROKER_COST_EVIDENCE")
+    print("NO COST-DERIVED WAIT BAND HAS BEEN ACTIVATED")
+    print("EXP27 = UNTOUCHED / SCORES SEALED")
+    print("CALIBRATION_SHADOW = UNTOUCHED / SCORES SEALED")
+    print("RUNTIME_PROMOTION = NONE")
+
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Frozen Decision Replay execution backtest")
     p.add_argument(
@@ -492,12 +650,22 @@ def _parse_args() -> argparse.Namespace:
         default="replay01",
         help="replay01 reproduces q_cal vs 0.50; replay02 uses entry-price economic break-even",
     )
+    p.add_argument(
+        "--audit",
+        choices=AUDITS,
+        default="none",
+        help="robustness-cost is frozen for Replay02 only and does not alter its trade policy",
+    )
     return p.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
     policy = str(args.policy)
+    audit_mode = str(args.audit)
+    if audit_mode != "none" and policy != "replay02":
+        raise SystemExit("--audit robustness-cost is allowed only with --policy replay02")
+
     replay_no = "01" if policy == "replay01" else "02"
     signal_text = (
         "TRADEABLE + q_cal_60 vs 0.50"
@@ -518,6 +686,8 @@ def main() -> int:
     print("Formal fresh-forward  = NOT REPLACED")
     print("Exp27/Calibration     = UNTOUCHED / SCORES SEALED")
     print("Runtime promotion     = NONE")
+    if audit_mode != "none":
+        print(f"Audit                 = {audit_mode} / SIGNAL UNCHANGED")
     print()
 
     source = e27.decode_source(e27.LAUNCHER)
@@ -628,6 +798,10 @@ def main() -> int:
         print("NO HORIZON/THRESHOLD/SIGN RESCUE IS AUTHORIZED BY THIS RUN")
     else:
         print("NO EDGE-MARGIN/HORIZON/TARGET-STOP/SIGN RESCUE IS AUTHORIZED BY THIS RUN")
+
+    if audit_mode == "robustness-cost":
+        _run_replay02_robustness_cost_audit(trades)
+
     print("EXP27 = UNTOUCHED / SCORES SEALED")
     print("CALIBRATION_SHADOW = UNTOUCHED / SCORES SEALED")
     print("RUNTIME_PROMOTION = NONE")
