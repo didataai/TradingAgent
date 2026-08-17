@@ -306,6 +306,79 @@ CALIBRATION_SHADOW = UNTOUCHED / SCORES_SEALED
 RUNTIME_PROMOTION = NONE
 ```
 
+## Decision Replay 02 — entry-price economic break-even policy frozen before run
+
+This is a new **exploratory execution-engineering** hypothesis motivated by the mechanical failure mode of Replay01. It is not a retrospective rescue of Replay01 and cannot be treated as fresh OOS evidence because Historical Validation/Test have already been inspected.
+
+The horizon, Operability gate, model, calibrator, episode rule, next-M5 entry, fixed boundaries, timeout, overlap rule, split protection, ambiguity rule and gross-cost exclusion remain identical to Replay01.
+
+The only changed decision rule is economically derived from the actual executable entry price.
+
+For an entry strictly inside the frozen corridor:
+
+```text
+d_back_entry    = abs(entry_open - back)
+d_forward_entry = abs(forward - entry_open)
+q_BE_entry      = d_back_entry / (d_back_entry + d_forward_entry)
+```
+
+`q_BE_entry` is the binary boundary-resolution break-even probability for an ADVANCE trade at the actual next-M5 open. The same threshold separates the RECAPTURE side:
+
+```text
+if OPERABILITY != TRADEABLE:
+    WAIT
+elif q_cal_60 > q_BE_entry:
+    STRUCTURAL_SIDE = ADVANCE
+elif q_cal_60 < q_BE_entry:
+    STRUCTURAL_SIDE = RECAPTURE
+else:
+    WAIT
+```
+
+There is **no fitted margin** around `q_BE_entry`, no minimum edge threshold, no horizon search, no sign inversion, no target/stop modification and no subset selection.
+
+Important interpretation:
+
+- Replay01 used `0.50`, which answers “which side is more likely?” but ignores asymmetric reward/risk.
+- Replay02 asks whether the frozen calibrated side probability exceeds the **actual entry-time economic break-even** implied by the unchanged structural boundaries.
+- This is related to the DL01 geometry identity but is not identical: DL01 used state-time geometry; Replay02 uses the next executable M5 open and a non-overlapping trade engine.
+- Timeout remains part of realized execution. The boundary break-even rule does not model a separate timeout expectation; therefore the replay outcome still decides whether this execution policy has value.
+
+Primary gross gate remains unchanged:
+
+```text
+VALIDATION: expectancy_R > 0 AND PF_R > 1
+TEST:       expectancy_R > 0 AND PF_R > 1
+PASS only if BOTH pass
+```
+
+Anti-rescue after Replay02 result:
+
+- do not add `q_cal - q_BE_entry > margin`;
+- do not choose another horizon;
+- do not alter stop/target/timeout;
+- do not invert the rule;
+- do not select only a direction/era/day/time/volatility bucket;
+- do not use costs to rescue a gross failure.
+
+Status before Replay02:
+
+```text
+DECISION_REPLAY_02 = FROZEN_BEFORE_RUN
+PRIMARY_HORIZON = 60m
+SIGNAL = q_cal_60 vs q_BE_entry_at_next_M5_open
+EDGE_MARGIN = NONE
+ENTRY = NEXT_CONTIGUOUS_M5_OPEN
+BOUNDARIES = FROZEN_STATE_BACK_FORWARD
+OVERLAP = NONE / ONE_TRADE_PER_EPISODE
+AMBIGUOUS_SAME_BAR = STOP_FIRST
+COSTS = EXCLUDED_FROM_GROSS_REPLAY
+FORMAL_FRESH_FORWARD = NOT_REPLACED
+EXP27 = UNTOUCHED / SCORES_SEALED
+CALIBRATION_SHADOW = UNTOUCHED / SCORES_SEALED
+RUNTIME_PROMOTION = NONE
+```
+
 ## Governança permanente
 
 ```text
