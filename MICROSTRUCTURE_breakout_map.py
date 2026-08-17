@@ -45,8 +45,6 @@ EXPECTED_POINT = 0.01
 
 EVENT_START = time(9, 0, 0)
 EVENT_END = time(18, 0, 0)  # exclusive
-QUERY_START = time(8, 59, 0)
-QUERY_END = time(18, 2, 0)
 PRE_BASELINE_MS = 30_000
 BREAK_HORIZONS_S = (1, 2, 5, 15, 30, 60)
 RETURN_HORIZONS_S = (1, 2, 5, 10, 15, 30, 60)
@@ -92,6 +90,14 @@ def _resolve_tf_path(tf: str) -> Path:
     if len(cands) == 1:
         return cands[0]
     raise RuntimeError(f"Could not resolve unique GOLD {tf} parquet: {[p.name for p in cands]}")
+
+
+def _brt_naive_to_epoch_ms(series: pd.Series) -> np.ndarray:
+    ts = pd.to_datetime(series, errors="coerce")
+    if ts.isna().any():
+        raise RuntimeError("Invalid BRT confirmation timestamp in structural levels")
+    aware = ts.dt.tz_localize(BRT, ambiguous="infer", nonexistent="shift_forward")
+    return (aware.dt.tz_convert("UTC").astype("int64") // 1_000_000).to_numpy(np.int64)
 
 
 def _build_levels(start_ts: pd.Timestamp, end_exclusive: pd.Timestamp) -> pd.DataFrame:
@@ -147,10 +153,8 @@ def _build_levels(start_ts: pd.Timestamp, end_exclusive: pd.Timestamp) -> pd.Dat
         .drop_duplicates(["tf", "level_type", "confirm_time", "level_price"], keep="first")
         .reset_index(drop=True)
     )
-    levels["confirm_ms"] = (
-        levels["confirm_time"].astype("int64") // 1_000_000
-    ).astype(np.int64)
-    return levels
+    levels["confirm_ms"] = _brt_naive_to_epoch_ms(levels["confirm_time"])
+    return levels.sort_values(["confirm_ms", "tf", "level_type", "level_price"]).reset_index(drop=True)
 
 
 def _brt_local(d: date, t: time) -> datetime:
@@ -173,12 +177,14 @@ def _valid_ticks(raw: np.ndarray | None) -> np.ndarray:
     missing = sorted(need - names)
     if missing:
         raise RuntimeError(f"MT5 ticks missing fields: {missing}")
+    bid = raw["bid"].astype(float)
+    ask = raw["ask"].astype(float)
     good = (
-        np.isfinite(raw["bid"].astype(float))
-        & np.isfinite(raw["ask"].astype(float))
-        & (raw["bid"].astype(float) > 0)
-        & (raw["ask"].astype(float) > 0)
-        & (raw["ask"].astype(float) >= raw["bid"].astype(float))
+        np.isfinite(bid)
+        & np.isfinite(ask)
+        & (bid > 0)
+        & (ask > 0)
+        & (ask >= bid)
     )
     return raw[good]
 
@@ -265,21 +271,20 @@ def _pre_features(ticks: np.ndarray, i: int, direction: int, point: float) -> di
     return out
 
 
-def _future_labels(ticks: np.ndarray, attack_i: int, direction: int, level: float, point: float) -> dict:
+def _future_labels(ticks: np.ndarray, attack_i: int, direction: int, level: float, point: float) -> dict | None:
     ms = ticks["time_msc"].astype(np.int64)
     bid = ticks["bid"].astype(float)
     ask = ticks["ask"].astype(float)
     mid = (bid + ask) / 2.0
     t0 = int(ms[attack_i])
+    if int(ms[-1]) < t0 + 60_000:
+        return None
+
     end_i = int(np.searchsorted(ms, t0 + 60_000, side="right"))
     sl = slice(attack_i, end_i)
-
-    if direction > 0:
-        cond = bid[sl] > level
-    else:
-        cond = ask[sl] < level
+    cond = (bid[sl] > level) if direction > 0 else (ask[sl] < level)
     hit = np.flatnonzero(cond)
-    out: dict[str, float | int] = {}
+    out: dict[str, object] = {}
     if len(hit):
         break_i = attack_i + int(hit[0])
         break_delay = int(ms[break_i] - t0)
@@ -309,6 +314,8 @@ def _future_labels(ticks: np.ndarray, attack_i: int, direction: int, level: floa
         return out
 
     break_ms = int(ms[break_i])
+    if int(ms[-1]) < break_ms + 60_000:
+        return None
     break_mid = float(mid[break_i])
     post_end = int(np.searchsorted(ms, break_ms + 60_000, side="right"))
     signed = direction * (mid[break_i:post_end] - break_mid) / point
@@ -319,23 +326,16 @@ def _future_labels(ticks: np.ndarray, attack_i: int, direction: int, level: floa
     out["mfe_60_points"] = float(np.max(signed)) if len(signed) else 0.0
     out["mae_60_points"] = float(max(0.0, -np.min(signed))) if len(signed) else 0.0
 
-    post_idx = np.arange(break_i, post_end)
-    if direction > 0:
-        rec_cond = ask[break_i:post_end] < level
-    else:
-        rec_cond = bid[break_i:post_end] > level
+    rec_cond = (ask[break_i:post_end] < level) if direction > 0 else (bid[break_i:post_end] > level)
     rec_hits = np.flatnonzero(rec_cond)
     rec_i = break_i + int(rec_hits[0]) if len(rec_hits) else -1
-    out["time_to_recapture_ms"] = (
-        int(ms[rec_i] - break_ms) if rec_i >= 0 else np.nan
-    )
+    out["time_to_recapture_ms"] = int(ms[rec_i] - break_ms) if rec_i >= 0 else np.nan
 
     for h in RETURN_HORIZONS_S:
         j = int(np.searchsorted(ms, break_ms + h * 1000, side="right") - 1)
-        if j < break_i:
-            out[f"return_{h}s_points"] = np.nan
-        else:
-            out[f"return_{h}s_points"] = float(direction * (mid[j] - break_mid) / point)
+        out[f"return_{h}s_points"] = (
+            float(direction * (mid[j] - break_mid) / point) if j >= break_i else np.nan
+        )
 
     for target in TARGET_POINTS:
         target_hits = np.flatnonzero(signed >= target)
@@ -360,29 +360,24 @@ def _bootstrap_day_diff(df: pd.DataFrame, outcome: str) -> dict:
         .reset_index()
     )
     days = sorted(q["attack_day"].unique())
-    pos_sum = {d: 0.0 for d in days}
-    pos_n = {d: 0.0 for d in days}
-    neg_sum = {d: 0.0 for d in days}
-    neg_n = {d: 0.0 for d in days}
+    pos_sum = {d: 0.0 for d in days}; pos_n = {d: 0.0 for d in days}
+    neg_sum = {d: 0.0 for d in days}; neg_n = {d: 0.0 for d in days}
     for _, r in daily.iterrows():
         d = r["attack_day"]
         if bool(r["spread_expanded"]):
             pos_sum[d], pos_n[d] = float(r["sum"]), float(r["count"])
         else:
             neg_sum[d], neg_n[d] = float(r["sum"]), float(r["count"])
-    ps = np.array([pos_sum[d] for d in days])
-    pn = np.array([pos_n[d] for d in days])
-    ns = np.array([neg_sum[d] for d in days])
-    nn = np.array([neg_n[d] for d in days])
+    ps = np.array([pos_sum[d] for d in days]); pn = np.array([pos_n[d] for d in days])
+    ns = np.array([neg_sum[d] for d in days]); nn = np.array([neg_n[d] for d in days])
     point = float(q.loc[q["spread_expanded"], outcome].mean() - q.loc[~q["spread_expanded"], outcome].mean())
     rng = np.random.default_rng(BOOT_SEED)
     boot: list[float] = []
     for _ in range(BOOT_N):
         idx = rng.integers(0, len(days), size=len(days))
         pnn, nnn = float(pn[idx].sum()), float(nn[idx].sum())
-        if pnn <= 0 or nnn <= 0:
-            continue
-        boot.append(float(ps[idx].sum() / pnn - ns[idx].sum() / nnn))
+        if pnn > 0 and nnn > 0:
+            boot.append(float(ps[idx].sum() / pnn - ns[idx].sum() / nnn))
     if not boot:
         return {"point": point, "lo": np.nan, "hi": np.nan, "days": len(days)}
     lo, hi = np.quantile(np.asarray(boot), [0.025, 0.975])
@@ -402,9 +397,7 @@ def _quintile_map(df: pd.DataFrame, feature: str, outcome: str, stage: str) -> p
         .agg(n=(outcome, "size"), rate=(outcome, "mean"), feature_mean=(feature, "mean"), feature_median=(feature, "median"))
         .reset_index()
     )
-    out["stage"] = stage
-    out["feature"] = feature
-    out["outcome"] = outcome
+    out["stage"] = stage; out["feature"] = feature; out["outcome"] = outcome
     out["bucket"] = out["bucket"].astype(str)
     return out[["stage", "feature", "outcome", "bucket", "n", "rate", "feature_mean", "feature_median"]]
 
@@ -423,16 +416,13 @@ def _two_dim_map(df: pd.DataFrame, outcome: str, stage: str) -> pd.DataFrame:
         .agg(n=(outcome, "size"), rate=(outcome, "mean"))
         .reset_index()
     )
-    out["stage"] = stage
-    out["outcome"] = outcome
-    out["spread_q"] = out["spread_q"].astype(str)
-    out["tick_q"] = out["tick_q"].astype(str)
+    out["stage"] = stage; out["outcome"] = outcome
+    out["spread_q"] = out["spread_q"].astype(str); out["tick_q"] = out["tick_q"].astype(str)
     return out[["stage", "outcome", "spread_q", "tick_q", "n", "rate"]]
 
 
 def _print_rate_table(df: pd.DataFrame, outcomes: tuple[str, ...], title: str) -> None:
-    print()
-    print(title)
+    print(); print(title)
     for expanded in (False, True):
         z = df.loc[df["spread_expanded"].eq(expanded)]
         label = "SPREAD<=BASE" if not expanded else "SPREAD>BASE"
@@ -458,9 +448,9 @@ def main() -> int:
     print("Status             = HISTORICAL EXPLORATORY MAP / NO FORMAL PASS-FAIL")
     print(f"Symbol             = {symbol}")
     print(f"Historical window  = {start_ts} <= BRT < {end_exclusive}")
-    print("Event window       = 09:00 <= attack BRT < 18:00")
+    print("Tick chronology    = FULL-DAY QUOTE STREAM; attacks recorded only 09:00-18:00")
     print("Levels             = M5/M15 existing causal 2-left/2-right confirmed swings")
-    print("Level usage        = FIRST OBSERVED ATTACK ONLY")
+    print("Level usage        = FIRST OBSERVED ATTACK ONLY, including off-window consumption")
     print("Candle color       = NOT USED")
     print("Tick tape          = BID/ASK + time_msc; Last/Volume/BUY/SELL NOT USED")
     print("Question A         = ATTACK -> FULL-QUOTE BREAK 1/2/5/15/30/60s")
@@ -484,12 +474,9 @@ def main() -> int:
         if not info.visible and not mt5.symbol_select(symbol, True):
             raise RuntimeError(f"symbol_select({symbol}) failed: {mt5.last_error()}")
         point = float(info.point)
-        print()
-        print(f"MT5 SYMBOL GUARD digits={info.digits} point={point:.8f}")
+        print(); print(f"MT5 SYMBOL GUARD digits={info.digits} point={point:.8f}")
         if not math.isclose(point, EXPECTED_POINT, rel_tol=0.0, abs_tol=1e-12):
-            raise RuntimeError(
-                f"MAP01 frozen point guard failed: expected {EXPECTED_POINT}, got {point}"
-            )
+            raise RuntimeError(f"MAP01 frozen point guard failed: expected {EXPECTED_POINT}, got {point}")
 
         pending = levels.to_dict("records")
         pending_i = 0
@@ -505,10 +492,8 @@ def main() -> int:
         days = pd.date_range(start_ts.normalize(), end_day.normalize(), freq="D")
         for dts in days:
             d = dts.date()
-            if d.weekday() >= 5:
-                continue
-            q_start = _brt_local(d, QUERY_START)
-            q_end = _brt_local(d, QUERY_END)
+            q_start = _brt_local(d, time(0, 0, 0))
+            q_end = _brt_local(d + timedelta(days=1), time(0, 0, 0)) - timedelta(milliseconds=1)
             raw = mt5.copy_ticks_range(symbol, _to_utc(q_start), _to_utc(q_end), mt5.COPY_TICKS_ALL)
             ticks = _valid_ticks(raw)
             if len(ticks) == 0:
@@ -520,40 +505,11 @@ def main() -> int:
             ms = ticks["time_msc"].astype(np.int64)
             bid = ticks["bid"].astype(float)
             ask = ticks["ask"].astype(float)
-            first_ms = int(ms[0])
-
-            # Levels already known before today's first quote are activated only if
-            # the market is still on the causal side of the level. Otherwise the
-            # first attack may have happened outside the observed 09-18 window.
-            while pending_i < len(pending) and int(pending[pending_i]["confirm_ms"]) <= first_ms:
-                lv = pending[pending_i]
-                pending_i += 1
-                if int(lv["direction"]) > 0:
-                    if ask[0] >= float(lv["level_price"]):
-                        status["STALE_AT_DAY_START"] += 1
-                    else:
-                        heapq.heappush(res_heap, (float(lv["level_price"]), seq, lv)); seq += 1
-                else:
-                    if bid[0] <= float(lv["level_price"]):
-                        status["STALE_AT_DAY_START"] += 1
-                    else:
-                        heapq.heappush(sup_heap, (-float(lv["level_price"]), seq, lv)); seq += 1
-
-            # Active levels carried from a prior day may also have been crossed
-            # outside the observed session. Remove them before today's events.
-            while res_heap and res_heap[0][0] <= ask[0]:
-                heapq.heappop(res_heap); status["STALE_AT_DAY_START"] += 1
-            while sup_heap and -sup_heap[0][0] >= bid[0]:
-                heapq.heappop(sup_heap); status["STALE_AT_DAY_START"] += 1
-
             event_start_ms = int(_brt_local(d, EVENT_START).timestamp() * 1000)
             event_end_ms = int(_brt_local(d, EVENT_END).timestamp() * 1000)
 
             for i in range(len(ticks)):
                 tms = int(ms[i])
-
-                # Levels becoming known during the continuously observed day can
-                # be attacked on the first quote after their confirmation time.
                 while pending_i < len(pending) and int(pending[pending_i]["confirm_ms"]) <= tms:
                     lv = pending[pending_i]
                     pending_i += 1
@@ -564,14 +520,12 @@ def main() -> int:
 
                 attacked: list[dict] = []
                 while res_heap and res_heap[0][0] <= ask[i]:
-                    _, _, lv = heapq.heappop(res_heap)
-                    attacked.append(lv)
+                    _, _, lv = heapq.heappop(res_heap); attacked.append(lv)
                 while sup_heap and -sup_heap[0][0] >= bid[i]:
-                    _, _, lv = heapq.heappop(sup_heap)
-                    attacked.append(lv)
-
+                    _, _, lv = heapq.heappop(sup_heap); attacked.append(lv)
                 if not attacked:
                     continue
+
                 in_event_window = event_start_ms <= tms < event_end_ms
                 for lv in attacked:
                     if not in_event_window:
@@ -581,35 +535,24 @@ def main() -> int:
                     if feat is None:
                         status["INSUFFICIENT_PRE_TICKS"] += 1
                         continue
-                    future = _future_labels(
-                        ticks=ticks,
-                        attack_i=i,
-                        direction=int(lv["direction"]),
-                        level=float(lv["level_price"]),
-                        point=point,
-                    )
+                    future = _future_labels(ticks, i, int(lv["direction"]), float(lv["level_price"]), point)
+                    if future is None:
+                        status["INSUFFICIENT_POST_TICKS"] += 1
+                        continue
                     attack_time = _ms_to_brt_naive(tms)
                     events.append({
-                        "level_id": lv["level_id"],
-                        "tf": lv["tf"],
-                        "level_type": lv["level_type"],
-                        "direction": int(lv["direction"]),
-                        "level_price": float(lv["level_price"]),
-                        "confirm_time": pd.Timestamp(lv["confirm_time"]),
-                        "attack_time": attack_time,
-                        "attack_day": attack_time.date(),
-                        **feat,
-                        **future,
+                        "level_id": lv["level_id"], "tf": lv["tf"], "level_type": lv["level_type"],
+                        "direction": int(lv["direction"]), "level_price": float(lv["level_price"]),
+                        "confirm_time": pd.Timestamp(lv["confirm_time"]), "attack_time": attack_time,
+                        "attack_day": attack_time.date(), **feat, **future,
                     })
                     status["RECORDED_ATTACK"] += 1
 
         if not events:
-            print()
-            print("No Map01 events produced.")
+            print(); print("No Map01 events produced.")
             print(f"days_with_ticks={days_with_ticks} days_no_ticks={days_no_ticks} valid_ticks={total_valid_ticks}")
             print("LEVEL STATUS")
-            for k, v in sorted(status.items()):
-                print(f"  {k:<30} {v}")
+            for k, v in sorted(status.items()): print(f"  {k:<30} {v}")
             print("MICROSTRUCTURE_BREAKOUT_MAP01 = COMPLETE_EXPLORATORY_MAP_EMPTY")
             return 0
 
@@ -619,95 +562,60 @@ def main() -> int:
         events_path = OUT_DIR / "MICROSTRUCTURE_breakout_map01_events.csv"
         e.to_csv(events_path, index=False)
 
-        print()
-        print("=" * 132)
-        print("MAP01 EVENT UNIVERSE")
-        print("=" * 132)
+        print(); print("=" * 132); print("MAP01 EVENT UNIVERSE"); print("=" * 132)
         print(f"days_with_ticks = {days_with_ticks}")
         print(f"days_no_ticks   = {days_no_ticks}")
         print(f"valid_ticks     = {total_valid_ticks}")
         print(f"recorded_attacks= {len(e)}")
         print(e.groupby(["tf", "level_type"]).size().to_string())
-        print()
-        print("LEVEL / COVERAGE AUDIT")
-        for k, v in sorted(status.items()):
-            print(f"  {k:<30} {v}")
+        print(); print("LEVEL / COVERAGE AUDIT")
+        for k, v in sorted(status.items()): print(f"  {k:<30} {v}")
 
-        _print_rate_table(
-            e,
-            tuple(f"break_{h}s" for h in BREAK_HORIZONS_S),
-            "QUESTION A — ATTACK -> FULL-QUOTE BREAK",
-        )
+        _print_rate_table(e, tuple(f"break_{h}s" for h in BREAK_HORIZONS_S), "QUESTION A — ATTACK -> FULL-QUOTE BREAK")
         broken = e.loc[e["break_60s"].eq(1)].copy()
-        _print_rate_table(
-            broken,
-            tuple(f"hit_{t}_before_recapture" for t in TARGET_POINTS),
-            "QUESTION B — BREAK -> CONTINUATION BEFORE FULL-QUOTE RECAPTURE",
-        )
+        _print_rate_table(broken, tuple(f"hit_{t}_before_recapture" for t in TARGET_POINTS), "QUESTION B — BREAK -> CONTINUATION BEFORE FULL-QUOTE RECAPTURE")
 
-        print()
-        print("PRIMARY COARSE CONTRASTS — DIAGNOSTIC, NOT PROMOTION GATES")
+        print(); print("PRIMARY COARSE CONTRASTS — DIAGNOSTIC, NOT PROMOTION GATES")
         a = _bootstrap_day_diff(e, "break_60s")
         b = _bootstrap_day_diff(broken, "hit_200_before_recapture")
-        print(
-            f"Attack->Break60 spread>base minus <=base = {a['point']:+.5f} "
-            f"CI95=[{a['lo']:+.5f},{a['hi']:+.5f}] days={a['days']}"
-        )
-        print(
-            f"Break->Hit200 spread>base minus <=base    = {b['point']:+.5f} "
-            f"CI95=[{b['lo']:+.5f},{b['hi']:+.5f}] days={b['days']}"
-        )
+        print(f"Attack->Break60 spread>base minus <=base = {a['point']:+.5f} CI95=[{a['lo']:+.5f},{a['hi']:+.5f}] days={a['days']}")
+        print(f"Break->Hit200 spread>base minus <=base    = {b['point']:+.5f} CI95=[{b['lo']:+.5f},{b['hi']:+.5f}] days={b['days']}")
 
         maps: list[pd.DataFrame] = []
         for feat_name in MAP_FEATURES:
             m = _quintile_map(e, feat_name, "break_60s", "ATTACK_TO_BREAK60")
-            if not m.empty:
-                maps.append(m)
+            if not m.empty: maps.append(m)
             m2 = _quintile_map(broken, feat_name, "hit_200_before_recapture", "BREAK_TO_HIT200")
-            if not m2.empty:
-                maps.append(m2)
+            if not m2.empty: maps.append(m2)
         map_path = OUT_DIR / "MICROSTRUCTURE_breakout_map01_quintiles.csv"
-        if maps:
-            pd.concat(maps, ignore_index=True).to_csv(map_path, index=False)
+        if maps: pd.concat(maps, ignore_index=True).to_csv(map_path, index=False)
 
         grid_a = _two_dim_map(e, "break_60s", "ATTACK_TO_BREAK60")
         grid_b = _two_dim_map(broken, "hit_200_before_recapture", "BREAK_TO_HIT200")
         grid = pd.concat([x for x in (grid_a, grid_b) if not x.empty], ignore_index=True) if (not grid_a.empty or not grid_b.empty) else pd.DataFrame()
         grid_path = OUT_DIR / "MICROSTRUCTURE_breakout_map01_spread_tick_grid.csv"
-        if not grid.empty:
-            grid.to_csv(grid_path, index=False)
+        if not grid.empty: grid.to_csv(grid_path, index=False)
 
-        print()
-        print("DESCRIPTIVE FEATURE QUINTILES — BREAK<=60s")
+        print(); print("DESCRIPTIVE FEATURE QUINTILES — BREAK<=60s")
         for feat_name in MAP_FEATURES:
             m = _quintile_map(e, feat_name, "break_60s", "ATTACK_TO_BREAK60")
-            if m.empty:
-                continue
-            print()
-            print(feat_name)
+            if m.empty: continue
+            print(); print(feat_name)
             print(m[["bucket", "n", "rate", "feature_mean"]].to_string(index=False, float_format=lambda x: f"{x:.5f}"))
 
-        print()
-        print("DESCRIPTIVE 2D MAP — spread_ratio x tick_rate_ratio_1s")
+        print(); print("DESCRIPTIVE 2D MAP — spread_ratio x tick_rate_ratio_1s")
         if not grid_a.empty:
             p = grid_a.pivot(index="spread_q", columns="tick_q", values="rate")
-            print("ATTACK -> BREAK60 rate")
-            print(p.to_string(float_format=lambda x: f"{x:.3f}"))
+            print("ATTACK -> BREAK60 rate"); print(p.to_string(float_format=lambda x: f"{x:.3f}"))
         if not grid_b.empty:
             p = grid_b.pivot(index="spread_q", columns="tick_q", values="rate")
-            print()
-            print("BREAK -> HIT200 before recapture rate")
-            print(p.to_string(float_format=lambda x: f"{x:.3f}"))
+            print(); print("BREAK -> HIT200 before recapture rate"); print(p.to_string(float_format=lambda x: f"{x:.3f}"))
 
-        print()
-        print("OUTPUTS")
+        print(); print("OUTPUTS")
         print(f"  events   = {events_path}")
-        if maps:
-            print(f"  quintiles= {map_path}")
-        if not grid.empty:
-            print(f"  2d_grid  = {grid_path}")
-        print()
-        print("MICROSTRUCTURE_BREAKOUT_MAP01 = COMPLETE_EXPLORATORY_MAP")
+        if maps: print(f"  quintiles= {map_path}")
+        if not grid.empty: print(f"  2d_grid  = {grid_path}")
+        print(); print("MICROSTRUCTURE_BREAKOUT_MAP01 = COMPLETE_EXPLORATORY_MAP")
         print("NO THRESHOLD / BEST-BUCKET PROMOTION IS AUTHORIZED BY MAP01")
         print("NEXT STEP = FREEZE ONE CANDIDATE FINGERPRINT AS MAP02 ONLY AFTER MAP01 INSPECTION")
         print("EXP27 = UNTOUCHED / SCORES SEALED")
