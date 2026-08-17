@@ -4,6 +4,11 @@
 Uses the TRAIN-only Platt calibrator frozen on 2026-08-17. Historical
 Validation/Test scores are not computed. Exp27 is untouched. The local ledger
 is append-only evidence; console output exposes readiness counts only.
+
+Important separation:
+- the historical-only execution MUST reproduce every frozen historical guard;
+- the combined historical+live execution reuses the same state/cell machine but
+  MUST NOT re-assert fixed historical split counts after fresh rows are appended.
 """
 from __future__ import annotations
 
@@ -46,8 +51,39 @@ def _compile(node: ast.AST, filename: str):
     return compile(mod, filename, "exec")
 
 
+def _is_fixed_historical_reproduction_guard(node: ast.AST) -> bool:
+    """Identify only frozen-count guards that cannot hold after fresh append.
+
+    The embedded historical runner contains top-level RuntimeError checks whose
+    messages explicitly say REPRODUCTION ... FAILED. Those are correct in the
+    historical-only guard and are executed there before this function is ever
+    used. In the combined hist+live build their fixed TEST counts are expected
+    to grow, so only these explicit reproduction guards are skipped.
+
+    Structural construction, mapping, causal denominator checks and all other
+    RuntimeErrors remain active.
+    """
+    has_runtime_raise = False
+    messages: list[str] = []
+    for child in ast.walk(node):
+        if isinstance(child, ast.Raise) and isinstance(child.exc, ast.Call):
+            fn = child.exc.func
+            if isinstance(fn, ast.Name) and fn.id == "RuntimeError":
+                has_runtime_raise = True
+        if isinstance(child, ast.Constant) and isinstance(child.value, str):
+            messages.append(child.value.upper())
+    return has_runtime_raise and any(
+        "REPRODUCTION" in msg and "FAILED" in msg for msg in messages
+    )
+
+
 def _execute_combined(source: str) -> dict:
-    """Execute frozen EXP49 only through cells, replacing loader with hist+live."""
+    """Execute frozen EXP49 through cells with hist+live data.
+
+    Fixed historical reproduction-count guards are intentionally skipped here
+    because fresh rows extend the historical TEST bucket. The exact historical
+    universe is reproduced separately before this function is called.
+    """
     tree = ast.parse(source, filename="<DECISION_CAL_SHADOW>")
     nodes = [
         n for n in tree.body
@@ -58,6 +94,7 @@ def _execute_combined(source: str) -> dict:
         raise RuntimeError("ABORT: structural load_tf call not found")
 
     ns = {"__name__": "__decision_cal_shadow__", "__file__": str(e27.LAUNCHER)}
+    skipped_reproduction_guards = 0
     sink = io.StringIO()
     with contextlib.redirect_stdout(sink):
         for node in nodes[:first_load]:
@@ -73,6 +110,9 @@ def _execute_combined(source: str) -> dict:
             ns["assert_close"] = lambda *args, **kwargs: None
 
         for node in nodes[first_load:]:
+            if _is_fixed_historical_reproduction_guard(node):
+                skipped_reproduction_guards += 1
+                continue
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 bad = e27.call_names(node) & e27.FORBIDDEN_CALLS
                 if bad:
@@ -84,6 +124,7 @@ def _execute_combined(source: str) -> dict:
     for name in ("dyn", "cells", "softmax_baseline"):
         if name not in ns:
             raise RuntimeError(f"ABORT: combined source did not produce {name}")
+    ns["_combined_reproduction_guards_skipped"] = skipped_reproduction_guards
     return ns
 
 
@@ -222,7 +263,6 @@ def _fresh_rows(source: str, B_base: np.ndarray, B_pos: np.ndarray) -> pd.DataFr
     q["q_raw"] = q_raw
     q["q_cal"] = _calibrate(q_raw)
 
-    # Readiness counts only cells whose exit side is already resolved by H.
     q = q.loc[q["label"].isin([ns["ADVANCE"], ns["RECAPTURE"]])].copy()
     if q.empty:
         return pd.DataFrame(columns=LEDGER_COLUMNS)
@@ -293,7 +333,7 @@ def main() -> int:
         print(f"  last_state_time     = {st.max()}")
     print()
     print(f"DECISION_CALIBRATION_MATURITY_STATUS = {'READY_FOR_ONE_SHOT_SCORE' if ready else 'ACCUMULATING'}")
-    print("DECISION_CALIBRATION_SCORES = SEALED" if not ready else "DECISION_CALIBRATION_SCORES = MAY_BE_OPENED ONCE UNDER FROZEN CONTRACT")
+    print("DECISION_CALIBRATION_SCORES = SEALED" if not ready else "DECISION_CALIBRATION_SCORES = MAY_BE OPENED ONCE UNDER FROZEN CONTRACT")
     print("EXP27 = UNTOUCHED / SCORES SEALED")
     print("RUNTIME_PROMOTION = NONE")
     return 0
