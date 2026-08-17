@@ -53,25 +53,40 @@ Interpretação preservada:
 - Não procurar `EDGE>x`, top-decile/quartile, horizonte favorito, direção, horário, sexta, notícia ou exclusão de ambiente para resgatar DL01.
 - Custos/slippage não são adicionados para tentar salvar uma edge bruta que já falhou.
 
-## Decision Calibration Shadow — congelado antes de score prospectivo
+## Decision Calibration Shadow — hard-freeze antes do score prospectivo
 
 Objetivo: testar se o `q_ADV` preservado do `POSITION_SURV` é um bom **ranking** mas necessita calibração absoluta antes de entrar numa equação econômica.
 
-Calibrador pré-declarado e único:
+Calibrador único e congelado:
 
 ```text
 q_raw = q_ADV_POSITION_SURV
 q_cal = sigmoid(alpha + beta * logit(q_raw))
+
+alpha = +0.012014589920
+beta  = +1.094032434562
 ```
 
-Contrato de fit:
+O freeze foi produzido em 2026-08-17 sem imprimir qualquer score histórico OOS ou fresh-forward.
 
-- `alpha` e `beta` são ajustados **somente em TRAIN histórico**.
+Fingerprint TRAIN-only do calibrador:
+
+```text
+resolved EXIT state-horizon cells = 10152
+ADVANCE / RECAPTURE               = 4179 / 5973
+H15 / H30 / H60 / H120            = 1342 / 2085 / 2970 / 3755
+optimizer iterations              = 7
+fingerprint_sha256                = 940acfb845707487f6de889aa0cf77ec6a2b58d4e1f78761eef17fc4fffa8824
+```
+
+Contrato de fit preservado:
+
+- `alpha` e `beta` foram ajustados **somente em TRAIN histórico**.
 - Amostra de fit = realized EXIT `state x horizon` cells, pooled em `15/30/60/120m`, mesmo estimand `SIDE_STATE_HORIZON_WEIGHTED` do Exp45.
 - Target = `ADVANCE=1`, `RECAPTURE=0`; `NO_EXIT` é excluído por definição da calibração condicional de lado.
 - Sem horizon-specific coefficient, direção, era, interação, spline, isotonic, threshold ou nova feature.
 - Validation/Test históricos não podem escolher calibrador, coeficientes, threshold ou interpretação formal futura.
-- A execução de freeze dos coeficientes não imprime Brier, LogLoss, AUC, PnL ou payoff.
+- O fingerprint e os coeficientes devem ser reproduzidos exatamente antes de qualquer append prospectivo; mismatch => ABORT.
 
 Prospective shadow:
 
@@ -81,7 +96,15 @@ MATURITY = eligible BRT days >= 60
            AND resolved EXIT state-horizon cells >= 1000
 ```
 
-Até a maturidade podem ser vistos somente contadores de readiness. Scores permanecem selados.
+Definição operacional congelada de `eligible BRT day`: data BRT pós-start que já contribuiu com pelo menos uma resolved EXIT state-horizon cell para o ledger prospectivo. É uma regra conservadora e verificável pelo próprio ledger.
+
+O ledger é append-only, local e não versionado:
+
+```text
+data/market_chronos/decision/DECISION_calibration_shadow.csv
+```
+
+Ele preserva identidade da célula, previsão congelada e outcome necessário para o one-shot futuro. Antes da maturidade, seu conteúdo é tratado como **SEALED EVIDENCE**: não usar para inspeção de classe, score, payoff, edge, threshold, subset ou diagnóstico. O console pode mostrar somente contadores de readiness, primeira/última data e status de maturidade.
 
 One-shot após maturidade, sem retuning:
 
