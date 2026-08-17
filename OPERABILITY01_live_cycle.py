@@ -7,10 +7,14 @@ OPERABILITY01 live cycle.
 3) Run the frozen OPERABILITY01 shadow classifier.
 4) Run the descriptive shadow monitor (no outcomes, no Exp27 scores).
 5) Update the sealed Exp27 maturity ledger after exact historical state guards.
+6) Update the sealed Decision Calibration shadow readiness ledger.
 
-This wrapper never computes Exp27 scores and never promotes the operability gate
-or Track-D models to runtime enforcement. Exp27 work here is maturity counting
-only; score opening remains governed by the frozen 60-day AND 1500-state gate.
+This wrapper never computes Exp27 or Decision Calibration scores and never
+promotes the operability gate or Track-D models to runtime enforcement.
+Exp27 work here is maturity counting only; score opening remains governed by
+the frozen 60-day AND 1500-state gate. Decision Calibration work is also
+readiness-only; score opening remains governed by the frozen 60-day AND
+1000-resolved-EXIT-cell gate starting 2026-08-18 00:00 BRT.
 """
 from __future__ import annotations
 
@@ -94,8 +98,16 @@ def main() -> int:
         print("OPERABILITY01_LIVE_CYCLE = ABORTED_EXP27_READINESS_FAILED")
         return rc
 
+    calibration = [sys.executable, str(ROOT / "DECISION_calibration_shadow.py")]
+    rc = run(calibration)
+    if rc != 0:
+        print("OPERABILITY01_LIVE_CYCLE = ABORTED_DECISION_CALIBRATION_FAILED")
+        return rc
+
     print("OPERABILITY01_LIVE_CYCLE = PASS")
     print("EXP27_SCORE_OPENING = GOVERNED_BY_FROZEN_MATURITY_GATE")
+    print("DECISION_CALIBRATION_SCORE_OPENING = GOVERNED_BY_FROZEN_MATURITY_GATE")
+    print("RUNTIME_PROMOTION = NONE")
     return 0
 
 
