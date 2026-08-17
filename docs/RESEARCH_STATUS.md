@@ -228,16 +228,79 @@ Depois do primeiro resultado não:
 
 Se falhar, registrar FAIL da política específica; o resultado não apaga Exp47 nem o Calibration Shadow. Se mostrar valor, o próximo passo é um contrato separado para custos e depois uma implementação live/shadow do mesmo execution engine.
 
-Status antes do primeiro replay:
+### Decision Replay 01 — resultado do primeiro backtest congelado
+
+Todos os guards históricos, Exp41, calibrador TRAIN-only e Operability replay passaram antes das métricas de trade.
+
+Universo:
 
 ```text
-DECISION_REPLAY_01 = FROZEN_BEFORE_FIRST_BACKTEST
+VALIDATION states = 1959
+TEST states       = 2096
+Episodes          = 416
+Horizon           = 60m only
+```
+
+Resultado gross:
+
+```text
+VALIDATION
+trades=84 | BUY=36 SELL=48 | TP=59 STOP=15 TIMEOUT=10 | AMBIG=2
+win=73.81% | PF=1.0395 | E[R]=+0.00804 | medianR=+0.12556
+avgWin=+0.28661R | avgLoss=-0.77700R
+CumR=+0.67558 | MaxDD=6.52059R | sumPoints=+144.160 | meanPnL_ATR=+0.13414
+GATE=PASS
+
+TEST
+trades=86 | BUY=54 SELL=32 | TP=60 STOP=20 TIMEOUT=6 | AMBIG=1
+win=72.09% | PF=0.8141 | E[R]=-0.04719 | medianR=+0.13304
+avgWin=+0.28666R | avgLoss=-0.90966R
+CumR=-4.05868 | MaxDD=8.46487R | sumPoints=-57.630 | meanPnL_ATR=-0.03107
+GATE=FAIL
+
+VAL+TEST POOLED
+trades=170 | BUY=90 SELL=80 | TP=119 STOP=35 TIMEOUT=16 | AMBIG=3
+win=72.94% | PF=0.9131 | E[R]=-0.01990 | medianR=+0.13022
+avgWin=+0.28663R | avgLoss=-0.84621R
+CumR=-3.38310 | MaxDD=8.46487R | sumPoints=+86.530 | meanPnL_ATR=+0.05056
+```
+
+Execution audit:
+
+```text
+ENTRY_OUTSIDE_CORRIDOR = 1 episode / 1 state occurrence
+INCOMPLETE_END         = 2 episodes / 13 state occurrences
+INCOMPLETE_SPLIT       = 1 episode / 1 state occurrence
+OPERABILITY_CAUTION    = 4 episodes / 8 state occurrences
+OPERABILITY_NO_TRADE   = 260 episodes / 2343 state occurrences
+OVERLAP                = 11 episodes / 45 state occurrences
+TRADED_EPISODES        = 170
+```
+
+Formal result of the frozen execution policy:
+
+```text
+DECISION_REPLAY_01_VALIDATION_GATE = PASS
+DECISION_REPLAY_01_TEST_GATE       = FAIL
+DECISION_REPLAY_01_GROSS_STATUS    = FAIL
+```
+
+Interpretation preserved:
+
+- The structural side signal produced a high hit rate, but the trade payoff distribution was unfavorable enough to remove the edge.
+- Pooled average win was only `+0.28663R` versus average loss `-0.84621R`; the observed payoff therefore requires roughly a `74.7%` win rate to break even, above the realized `72.94%`.
+- Validation was only marginally positive (`PF=1.0395`, `E[R]=+0.00804`) and Test reversed negative (`PF=0.8141`, `E[R]=-0.04719`).
+- This is consistent with the distinction already exposed by DL01: **which-side discrimination is not the same thing as economic edge**.
+- `q_cal vs 0.50` is therefore rejected as a universal execution decision rule for this target/stop geometry.
+- The failure does not erase Exp47, does not open Exp27/Calibration scores, and does not authorize threshold, horizon, sign, subset or cost rescue.
+
+Status after first replay:
+
+```text
+DECISION_REPLAY_01 = COMPLETE_FAIL
 PRIMARY_HORIZON = 60m
 SIGNAL_THRESHOLD = q_cal_60 vs 0.50
-OVERLAP = NONE / ONE_TRADE_PER_EPISODE
-ENTRY = NEXT_CONTIGUOUS_M5_OPEN
-AMBIGUOUS_SAME_BAR = STOP_FIRST
-COSTS = EXCLUDED_FROM_FIRST_GROSS_REPLAY
+NO_HORIZON_THRESHOLD_SIGN_RESCUE = YES
 EXP27 = UNTOUCHED / SCORES_SEALED
 CALIBRATION_SHADOW = UNTOUCHED / SCORES_SEALED
 RUNTIME_PROMOTION = NONE
