@@ -134,6 +134,115 @@ One-shot após maturidade, sem retuning:
 
 A falha do calibration shadow não pode ser resgatada com outro calibrador no mesmo shadow. Um modelo alternativo exigirá novo freeze e novo bloco prospectivo.
 
+## Decision Replay 01 — política de execução histórica congelada antes do primeiro backtest
+
+Objetivo: desenvolver a tradução prática `estrutura -> BUY / SELL / WAIT` por replay causal M5, sem esperar o fresh-forward para aprender mecânica de execução. Este replay é **engenharia histórica exploratória**: não substitui Exp27, não substitui o Calibration Shadow, não promove runtime e não transforma Historical Validation/Test repetidamente inspecionado em novo OOS formal.
+
+### Universo e modelos
+
+- Usar somente estados históricos `VALIDATION + TEST`; `TRAIN` não entra em métricas de trade porque foi usado para ajustar os modelos/calibrador.
+- Reproduzir antes do replay todos os guards históricos Track-D e Exp41.
+- Reproduzir exatamente o calibrador TRAIN-only congelado (`alpha`, `beta`, fingerprint) antes de simular trades.
+- Usar o Operability v1 congelado com os mesmos thresholds TRAIN-only e regras de janela/Friday/shock; scheduled-event feed histórico fica **inativo**, pois eventos não podem ser retroativamente adicionados.
+- O Operability histórico aqui é apenas uma regra fixa de participação para engenharia; não pode ser usado para reescrever falhas anteriores.
+
+### Horizonte e sinal primário
+
+A primeira política testa **somente H=60m**. Não executar 15/30/120 e depois escolher o melhor como rescue.
+
+```text
+q_raw_60 = P(ADVANCE | EXIT by 60m, POSITION_SURV)
+q_cal_60 = frozen Platt(q_raw_60)
+
+if OPERABILITY != TRADEABLE:
+    WAIT
+elif q_cal_60 > 0.50:
+    STRUCTURAL_SIDE = ADVANCE
+elif q_cal_60 < 0.50:
+    STRUCTURAL_SIDE = RECAPTURE
+else:
+    WAIT
+```
+
+O limiar `0.50` é maioria condicional de lado, **não** o break-even geométrico rejeitado pelo DL01. Não procurar threshold alternativo após o resultado desta rodada.
+
+Mapeamento estrutural para direção de trade:
+
+```text
+             FULL_UP     FULL_DOWN
+ADVANCE      BUY         SELL
+RECAPTURE    SELL        BUY
+```
+
+### Política de entrada e sobreposição
+
+- No máximo **1 trade por episódio estrutural**.
+- Dentro de cada episódio, considerar o primeiro estado causal que seja `TRADEABLE`, possua previsão válida e encontre entrada válida.
+- Se já houver trade aberto, candidatos até o fechamento são ignorados; não há stacking/portfolio overlap.
+- Entrada = `open` do próximo M5 estritamente contíguo após `state_time`; diferença obrigatória de 5 minutos.
+- Se o próximo open já estiver fora do corredor fixo `[back, forward]`, não entrar (`ENTRY_OUTSIDE_CORRIDOR`).
+- Boundaries são congeladas no estado que gerou o sinal e não trailing/recalculadas durante o trade.
+
+### Target, stop e saída
+
+Para `ADVANCE`, target = `forward` e stop = `back`. Para `RECAPTURE`, target = `back` e stop = `forward`. BUY/SELL apenas traduz a orientação do bias.
+
+O replay de execução usa OHLC M5 para detectar toque intrabar:
+
+- BUY: target se `high >= target`, stop se `low <= stop`.
+- SELL: target se `low <= target`, stop se `high >= stop`.
+- Se target e stop forem tocados no mesmo candle M5, assumir **STOP primeiro** (regra conservadora; sem dados intrabar não há ordem observável).
+- Timeout = 60 minutos após a entrada; se nenhum boundary for tocado, fechar no `close` do último M5 disponível até o deadline.
+- Gap/data discontinuity durante a janela do trade encerra a simulação como `DATA_GAP` e o trade não entra nas métricas primárias.
+
+### Métricas congeladas
+
+Primeiro replay = gross, sem spread/slippage/commission/swap. Custos serão camada separada se a política gross mostrar valor; não serão escolhidos para salvar resultado.
+
+Reportar por `VALIDATION`, `TEST` e pooled `VALIDATION+TEST`:
+
+- trades, BUY/SELL;
+- TP / STOP / TIMEOUT / ambiguous-stop count;
+- win rate (`PnL_R > 0`);
+- gross profit factor em R;
+- expectancy média/mediana em R;
+- average win / average loss em R;
+- cumulative R e max drawdown em R;
+- payoff também em pontos e ATR quando disponível;
+- contagem de episódios bloqueados por Operability, overlap, invalid entry e data gap.
+
+`PnL_R` usa risco de entrada até stop como 1R. TP pode valer mais ou menos de 1R conforme a geometria real na entrada. TIMEOUT é marcado a mercado no close de timeout e normalizado pelo risco inicial.
+
+### Anti-rescue
+
+Depois do primeiro resultado não:
+
+- trocar H=60 por outro horizonte para declarar sucesso;
+- procurar `q_cal > x`;
+- inverter sinal;
+- remover direção, era, sexta, volatilidade ou ambiente ruim;
+- escolher somente TP/STOP e apagar timeouts;
+- permitir múltiplas entradas do mesmo episódio;
+- alterar same-bar ambiguity depois de ver PnL;
+- adicionar custos favoráveis ou stop/target alternativo para resgatar.
+
+Se falhar, registrar FAIL da política específica; o resultado não apaga Exp47 nem o Calibration Shadow. Se mostrar valor, o próximo passo é um contrato separado para custos e depois uma implementação live/shadow do mesmo execution engine.
+
+Status antes do primeiro replay:
+
+```text
+DECISION_REPLAY_01 = FROZEN_BEFORE_FIRST_BACKTEST
+PRIMARY_HORIZON = 60m
+SIGNAL_THRESHOLD = q_cal_60 vs 0.50
+OVERLAP = NONE / ONE_TRADE_PER_EPISODE
+ENTRY = NEXT_CONTIGUOUS_M5_OPEN
+AMBIGUOUS_SAME_BAR = STOP_FIRST
+COSTS = EXCLUDED_FROM_FIRST_GROSS_REPLAY
+EXP27 = UNTOUCHED / SCORES_SEALED
+CALIBRATION_SHADOW = UNTOUCHED / SCORES_SEALED
+RUNTIME_PROMOTION = NONE
+```
+
 ## Governança permanente
 
 ```text
