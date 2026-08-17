@@ -106,6 +106,26 @@ data/market_chronos/decision/DECISION_calibration_shadow.csv
 
 Ele preserva identidade da célula, previsão congelada e outcome necessário para o one-shot futuro. Antes da maturidade, seu conteúdo é tratado como **SEALED EVIDENCE**: não usar para inspeção de classe, score, payoff, edge, threshold, subset ou diagnóstico. O console pode mostrar somente contadores de readiness, primeira/última data e status de maturidade.
 
+### Audit de implementação do combined build — 2026-08-17
+
+A primeira execução manual do shadow passou integralmente os guards históricos e o fingerprint do calibrador, mas abortou ao iniciar o build `historical + live`: o runner embedded do EXP49 ainda continha um guard top-level de reprodução histórica que exigia `TEST=2096`, enquanto o universo combined já possuía `2187` rows no bucket TEST por incluir candles posteriores ao cutoff histórico.
+
+Nenhum score de calibração foi aberto, nenhum resultado fresh-forward foi inspecionado e o start prospectivo permaneceu `2026-08-18 00:00 BRT`.
+
+A correção preserva duas execuções separadas:
+
+```text
+HISTORICAL-ONLY
+  -> todos os guards exatos continuam obrigatórios
+  -> 9667 / 5612 / 1959 / 2096
+
+HISTORICAL + LIVE
+  -> mesma state/cell machine causal
+  -> fixed historical count guards não podem exigir TEST=2096 após append fresh
+```
+
+No combined build são ignorados **somente** top-level guards que contêm explicitamente `REPRODUCTION ... FAILED`. Construção estrutural, mapping, denominadores, timestamps, campos, coeficientes e fingerprint continuam protegidos. A correção não altera feature, modelo, `alpha`, `beta`, fingerprint, start, maturidade ou contrato do one-shot.
+
 One-shot após maturidade, sem retuning:
 
 1. `q_cal` vs `q_raw` em fresh-forward EXIT cells: Brier + LogLoss, STATE_HORIZON_WEIGHTED, whole-BRT-day bootstrap.
