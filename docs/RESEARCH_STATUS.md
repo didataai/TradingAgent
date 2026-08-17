@@ -379,6 +379,128 @@ CALIBRATION_SHADOW = UNTOUCHED / SCORES_SEALED
 RUNTIME_PROMOTION = NONE
 ```
 
+### Decision Replay 02 — resultado gross congelado
+
+Todos os guards históricos, Exp41, calibrador TRAIN-only e Operability replay passaram antes das métricas.
+
+```text
+VALIDATION
+trades=84 | BUY=41 SELL=43 | TP=48 STOP=26 TIMEOUT=10 | AMBIG=2
+win=64.29% | PF=1.1065 | E[R]=+0.03504 | medianR=+0.07216
+avgWin=+0.56649R | avgLoss=-0.92157R
+CumR=+2.94330 | MaxDD=8.55812R | sumPoints=-40.320 | meanPnL_ATR=+0.00244
+GATE=PASS
+
+TEST
+trades=86 | BUY=41 SELL=45 | TP=38 STOP=42 TIMEOUT=6 | AMBIG=1
+win=48.84% | PF=1.0775 | E[R]=+0.03848 | medianR=-0.35933
+avgWin=+1.09590R | avgLoss=-0.97088R
+CumR=+3.30915 | MaxDD=15.85658R | sumPoints=+15.930 | meanPnL_ATR=-0.03141
+GATE=PASS
+
+VAL+TEST POOLED
+trades=170 | BUY=82 SELL=88 | TP=86 STOP=68 TIMEOUT=16 | AMBIG=3
+win=56.47% | PF=1.0889 | E[R]=+0.03678 | medianR=+0.04798
+avgWin=+0.79811R | avgLoss=-0.95089R
+CumR=+6.25245 | MaxDD=15.85658R | sumPoints=-24.390 | meanPnL_ATR=-0.01469
+```
+
+Entry break-even diagnostics:
+
+```text
+q_BE_entry mean   = 0.38737
+q_BE_entry median = 0.32455
+q_BE_entry min    = 0.00244
+q_BE_entry max    = 0.98567
+|q_cal-q_BE| mean = 0.00983
+|q_cal-q_BE| med  = 0.00936
+```
+
+Formal result under the pre-frozen gross gate:
+
+```text
+DECISION_REPLAY_02_VALIDATION_GATE = PASS
+DECISION_REPLAY_02_TEST_GATE       = PASS
+DECISION_REPLAY_02_GROSS_STATUS    = PASS
+```
+
+Interpretation preserved:
+
+- Replay02 changes the result by respecting the actual asymmetric risk/reward at executable entry instead of using a universal 0.50 side threshold.
+- Test is especially informative mechanically: win rate fell below 50%, yet average win exceeded average loss enough to retain positive R expectancy and PF > 1.
+- Pooled observed payoff (`avgWin=0.79811R`, `avgLoss=0.95089R`) implies an approximate break-even win rate of 54.37%, below the realized 56.47%.
+- The gross R edge is nevertheless small: only `+0.03678R/trade` pooled, while maximum historical drawdown reached `15.85658R`.
+- Positive R and negative pooled raw points (`-24.390`) show that Replay02 depends on **risk-normalized sizing**. It is not a fixed-lot edge under this replay.
+- `|q_cal-q_BE|` is typically small (~0.01), so transaction costs, calibration error and execution slippage can plausibly erase the gross edge.
+- This PASS is historical exploratory engineering only. It does not become fresh OOS evidence and does not authorize runtime promotion.
+
+Status after Replay02:
+
+```text
+DECISION_REPLAY_02 = COMPLETE_GROSS_PASS_EXPLORATORY
+SIGNAL = q_cal_60 vs q_BE_entry_at_next_M5_open
+EDGE_MARGIN = NONE
+RISK_NORMALIZED_SIZING_REQUIRED_BY_OBSERVED_RESULT = YES
+COST_ROBUSTNESS = UNTESTED
+FORMAL_FRESH_FORWARD = NOT_REPLACED
+EXP27 = UNTOUCHED / SCORES_SEALED
+CALIBRATION_SHADOW = UNTOUCHED / SCORES_SEALED
+RUNTIME_PROMOTION = NONE
+```
+
+### Replay02 Robustness / Cost-Capacity Audit — frozen before run
+
+This audit does **not** change the Replay02 signal, trade set, horizon, target, stop, timeout, Operability, overlap or entry rule. It is a stricter diagnostic of the already frozen 170-trade Replay02 engine.
+
+Frozen uncertainty audit:
+
+- cluster bootstrap by whole BRT trade-entry day;
+- `10,000` resamples, fixed seed `2026081703`;
+- run separately for VALIDATION and TEST;
+- primary statistic = mean `PnL_R` per trade;
+- report point estimate and percentile CI95;
+- `ROBUST_GROSS_AUDIT=PASS` only if CI95 lower bound of mean `PnL_R` is `>0` in BOTH VALIDATION and TEST;
+- failure of this stricter audit does not rewrite the already recorded Replay02 point-estimate PASS.
+
+Frozen sizing audit:
+
+1. **Risk-normalized / constant 1R basis**: preserve existing `PnL_R` results.
+2. **Fixed-lot / constant point exposure**: report expectancy, PF, cumulative PnL and drawdown in raw points for the same trades.
+3. No sizing rule is optimized from Validation/Test.
+
+Frozen cost-capacity diagnostics, with no invented broker spread:
+
+- constant cost in R per trade: break-even capacity equals gross mean `PnL_R` for each period;
+- constant all-in cost in price points under risk-normalized sizing: solve
+  `sum(PnL_R - cost_points/risk_points)=0` for `cost_points`;
+- report the resulting maximum zero-expectancy cost capacity for VALIDATION, TEST and pooled;
+- report model-implied gross edge budget in points per entry:
+  `edge_budget_points = corridor_width_points * abs(q_cal_60 - q_BE_entry)`;
+- do not choose a favorable cost assumption and do not convert this audit into a new signal margin.
+
+Actual broker spread/slippage remains **external evidence**. A cost-aware WAIT band may only be frozen later from externally measured/declared transaction cost, because for the selected side:
+
+```text
+gross_EV_points = corridor_width * abs(q_cal - q_BE)
+trade only if gross_EV_points > all_in_cost_points
+```
+
+That future inequality is an economic consequence of costs, not a tunable historical margin.
+
+Status before audit:
+
+```text
+REPLAY02_ROBUSTNESS_COST_AUDIT = FROZEN_BEFORE_RUN
+BOOTSTRAP = WHOLE_BRT_ENTRY_DAY / N=10000 / SEED=2026081703
+SIGNAL_POLICY = UNCHANGED_REPLAY02
+TRADE_SET_LOGIC = UNCHANGED
+FIXED_LOT_DIAGNOSTIC = REQUIRED
+COST_CAPACITY_ONLY = YES / NO BROKER COST INVENTED
+EXP27 = UNTOUCHED / SCORES_SEALED
+CALIBRATION_SHADOW = UNTOUCHED / SCORES_SEALED
+RUNTIME_PROMOTION = NONE
+```
+
 ## Governança permanente
 
 ```text
