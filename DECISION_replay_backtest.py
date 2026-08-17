@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
-"""Decision Replay 01 — causal historical execution backtest.
+"""Decision Replay — causal historical execution backtest.
 
-Frozen before first result:
+Two frozen exploratory execution policies share the same causal engine.
+
+Replay01 (already completed):
+- H=60m only.
+- Signal: TRADEABLE and q_cal_60 > 0.50 => ADVANCE; <0.50 => RECAPTURE.
+
+Replay02 (frozen before first run):
+- H=60m only.
+- Entry is still the next contiguous M5 open.
+- At that executable entry price:
+      d_back_entry    = abs(entry - back)
+      d_forward_entry = abs(forward - entry)
+      q_BE_entry      = d_back_entry / (d_back_entry + d_forward_entry)
+- Signal: TRADEABLE and q_cal_60 > q_BE_entry => ADVANCE;
+          q_cal_60 < q_BE_entry => RECAPTURE; equality => WAIT.
+- No fitted margin, threshold search, horizon search or sign inversion.
+
+Shared frozen engine:
 - Historical engineering only; VALIDATION + TEST are repeatedly inspected and exploratory.
 - Exact Track-D / Exp41 / calibration guards must pass first.
-- Primary horizon H=60m only.
-- Signal: TRADEABLE and q_cal_60 > 0.50 => ADVANCE; <0.50 => RECAPTURE.
 - Mapping: UP ADV=BUY, UP REC=SELL, DOWN ADV=SELL, DOWN REC=BUY.
 - Maximum one trade per structural episode; no overlapping positions.
 - Entry = next contiguous M5 open after state_time.
@@ -15,13 +30,13 @@ Frozen before first result:
 - Validation trades may not cross Split B; TEST trades require complete data to deadline.
 - Gross replay only: no spread/slippage/commission/swap.
 - Gross PASS gate: expectancy_R > 0 and profit_factor_R > 1 in BOTH VALIDATION and TEST.
-  Otherwise this specific execution policy is FAIL. No threshold/horizon rescue.
 
 This runner does not touch or score Exp27/Decision Calibration fresh-forward ledgers.
 Runtime promotion is NONE.
 """
 from __future__ import annotations
 
+import argparse
 from collections import Counter, defaultdict
 from pathlib import Path
 import math
@@ -39,6 +54,7 @@ PRIMARY_H = 60
 SIGNAL_THRESHOLD = 0.50
 SPLIT_B = pd.Timestamp("2026-04-29 10:40:00")
 PERIODS = ("VALIDATION", "TEST")
+POLICIES = ("replay01", "replay02")
 
 
 def _historical_operability(m: pd.DataFrame, rules: dict, thresholds: dict) -> pd.DataFrame:
@@ -157,6 +173,24 @@ def _planned_deadline(entry_time: pd.Timestamp) -> pd.Timestamp:
     return entry_time + pd.Timedelta(minutes=PRIMARY_H)
 
 
+def _entry_break_even(entry: float, back: float, forward: float) -> tuple[float, float, float]:
+    d_back = abs(entry - back)
+    d_forward = abs(forward - entry)
+    width = d_back + d_forward
+    corridor_width = abs(forward - back)
+    if not np.isfinite(width) or width <= 0:
+        raise RuntimeError("ABORT BEFORE BACKTEST: invalid entry break-even width")
+    if not np.isclose(width, corridor_width, atol=1e-8, rtol=1e-10):
+        raise RuntimeError(
+            "ABORT BEFORE BACKTEST: entry break-even geometry identity failed "
+            f"width={width} corridor={corridor_width}"
+        )
+    q_be = d_back / width
+    if not (0.0 < q_be < 1.0):
+        raise RuntimeError(f"ABORT BEFORE BACKTEST: invalid q_BE_entry={q_be}")
+    return float(q_be), float(d_back), float(d_forward)
+
+
 def _simulate_trade(
     m5: pd.DataFrame,
     entry_idx: int,
@@ -171,7 +205,6 @@ def _simulate_trade(
     entry = float(entry_row["open"])
     deadline = _planned_deadline(entry_time)
 
-    # No split leakage and no incomplete end-of-data replay.
     if period == "VALIDATION" and deadline >= SPLIT_B:
         return {"status": "INCOMPLETE_SPLIT"}
     if period == "TEST" and deadline > pd.Timestamp(m5["available_at_brt"].max()):
@@ -268,7 +301,10 @@ def _simulate_trade(
     }
 
 
-def _replay(candidates: pd.DataFrame, m5: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+def _replay(candidates: pd.DataFrame, m5: pd.DataFrame, policy: str) -> tuple[pd.DataFrame, dict]:
+    if policy not in POLICIES:
+        raise ValueError(policy)
+
     time_to_idx = {
         pd.Timestamp(t): int(i)
         for i, t in enumerate(m5["available_at_brt"])
@@ -296,14 +332,6 @@ def _replay(candidates: pd.DataFrame, m5: pd.DataFrame) -> tuple[pd.DataFrame, d
             state_counts[f"OPERABILITY_{s['OPERABILITY_BT']}"] += 1
             continue
 
-        qc = float(s["q_cal_60"])
-        if math.isclose(qc, SIGNAL_THRESHOLD, rel_tol=0.0, abs_tol=1e-15):
-            blocked_sets["Q_EQUAL_050"].add(episode_key)
-            state_counts["Q_EQUAL_050"] += 1
-            continue
-        structural_side = "ADVANCE" if qc > SIGNAL_THRESHOLD else "RECAPTURE"
-        direction = _trade_direction(float(s["bias_sign"]), structural_side)
-
         idx = time_to_idx.get(state_time)
         if idx is None or idx + 1 >= len(m5):
             blocked_sets["NO_NEXT_M5"].add(episode_key)
@@ -330,6 +358,23 @@ def _replay(candidates: pd.DataFrame, m5: pd.DataFrame) -> tuple[pd.DataFrame, d
             state_counts["ENTRY_OUTSIDE_CORRIDOR"] += 1
             continue
 
+        qc = float(s["q_cal_60"])
+        if policy == "replay01":
+            decision_threshold = SIGNAL_THRESHOLD
+            q_be_entry, d_back_entry, d_forward_entry = _entry_break_even(entry, back, forward)
+            equal_key = "Q_EQUAL_050"
+        else:
+            q_be_entry, d_back_entry, d_forward_entry = _entry_break_even(entry, back, forward)
+            decision_threshold = q_be_entry
+            equal_key = "Q_EQUAL_ENTRY_BE"
+
+        if math.isclose(qc, decision_threshold, rel_tol=0.0, abs_tol=1e-15):
+            blocked_sets[equal_key].add(episode_key)
+            state_counts[equal_key] += 1
+            continue
+
+        structural_side = "ADVANCE" if qc > decision_threshold else "RECAPTURE"
+        direction = _trade_direction(float(s["bias_sign"]), structural_side)
         target = forward if structural_side == "ADVANCE" else back
         stop = back if structural_side == "ADVANCE" else forward
 
@@ -354,6 +399,7 @@ def _replay(candidates: pd.DataFrame, m5: pd.DataFrame) -> tuple[pd.DataFrame, d
         used_episodes.add(episode_key)
         busy_until = pd.Timestamp(sim["exit_time"])
         trades.append({
+            "policy": policy,
             "period": period,
             "episode_id": s["episode_id"],
             "state_key": s["state_key"],
@@ -361,6 +407,11 @@ def _replay(candidates: pd.DataFrame, m5: pd.DataFrame) -> tuple[pd.DataFrame, d
             "bias_sign": float(s["bias_sign"]),
             "q_raw_60": float(s["q_raw_60"]),
             "q_cal_60": qc,
+            "q_be_entry": q_be_entry,
+            "decision_threshold": float(decision_threshold),
+            "q_minus_threshold": float(qc - decision_threshold),
+            "d_back_entry": d_back_entry,
+            "d_forward_entry": d_forward_entry,
             "structural_side": structural_side,
             "direction": direction,
             "back": back,
@@ -433,13 +484,33 @@ def _print_metrics(name: str, m: dict) -> None:
     )
 
 
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Frozen Decision Replay execution backtest")
+    p.add_argument(
+        "--policy",
+        choices=POLICIES,
+        default="replay01",
+        help="replay01 reproduces q_cal vs 0.50; replay02 uses entry-price economic break-even",
+    )
+    return p.parse_args()
+
+
 def main() -> int:
+    args = _parse_args()
+    policy = str(args.policy)
+    replay_no = "01" if policy == "replay01" else "02"
+    signal_text = (
+        "TRADEABLE + q_cal_60 vs 0.50"
+        if policy == "replay01"
+        else "TRADEABLE + q_cal_60 vs q_BE_entry(next M5 open)"
+    )
+
     print("=" * 132)
-    print("DECISION REPLAY 01 — CAUSAL BUY / SELL / WAIT EXECUTION BACKTEST")
+    print(f"DECISION REPLAY {replay_no} — CAUSAL BUY / SELL / WAIT EXECUTION BACKTEST")
     print("=" * 132)
     print("Historical status     = REPEATEDLY INSPECTED / EXPLORATORY ENGINEERING")
     print("Primary horizon       = 60m ONLY")
-    print("Signal                = TRADEABLE + q_cal_60 vs 0.50")
+    print(f"Signal                = {signal_text}")
     print("Entry                 = next contiguous M5 open")
     print("Overlap               = none; max one trade per structural episode")
     print("Same-bar ambiguity    = STOP FIRST")
@@ -477,13 +548,18 @@ def main() -> int:
     print(f"  states VALIDATION = {int(candidates['period'].eq('VALIDATION').sum())}")
     print(f"  states TEST       = {int(candidates['period'].eq('TEST').sum())}")
     print(f"  episodes          = {candidates[['period','episode_id']].drop_duplicates().shape[0]}")
-    print(f"  H60 threshold     = q_cal_60 vs {SIGNAL_THRESHOLD:.2f}")
+    if policy == "replay01":
+        print(f"  H60 threshold     = q_cal_60 vs {SIGNAL_THRESHOLD:.2f}")
+    else:
+        print("  H60 threshold     = q_cal_60 vs q_BE_entry at actual next-M5 open")
+        print("  edge margin       = NONE")
 
-    trades, audit = _replay(candidates, m5)
+    trades, audit = _replay(candidates, m5, policy)
+    gate_prefix = f"DECISION_REPLAY_{replay_no}"
     if trades.empty:
         print()
         print("No valid trades were produced under the frozen policy.")
-        print("DECISION_REPLAY_01_GROSS_STATUS = FAIL")
+        print(f"{gate_prefix}_GROSS_STATUS = FAIL")
         print("EXP27 = UNTOUCHED / SCORES SEALED")
         print("CALIBRATION_SHADOW = UNTOUCHED / SCORES SEALED")
         print("RUNTIME_PROMOTION = NONE")
@@ -500,6 +576,19 @@ def main() -> int:
     res["POOLED"] = _metrics(trades)
     _print_metrics("VAL+TEST POOLED", res["POOLED"])
 
+    if policy == "replay02":
+        print()
+        print("ENTRY BREAK-EVEN DIAGNOSTICS — descriptive only")
+        print(
+            f"  q_BE_entry mean={trades['q_be_entry'].mean():.5f} "
+            f"median={trades['q_be_entry'].median():.5f} "
+            f"min={trades['q_be_entry'].min():.5f} max={trades['q_be_entry'].max():.5f}"
+        )
+        print(
+            f"  |q_cal-q_BE| mean={trades['q_minus_threshold'].abs().mean():.5f} "
+            f"median={trades['q_minus_threshold'].abs().median():.5f}"
+        )
+
     print()
     print("EXECUTION AUDIT — episode flags may overlap before a trade is eventually taken")
     blocked_sets = audit["blocked_episode_sets"]
@@ -514,7 +603,8 @@ def main() -> int:
     print("LAST 15 TRADES — descriptive")
     cols = [
         "period", "state_time", "entry_time", "exit_time", "direction",
-        "structural_side", "q_cal_60", "outcome", "pnl_R", "pnl_points",
+        "structural_side", "q_cal_60", "decision_threshold", "q_minus_threshold",
+        "outcome", "pnl_R", "pnl_points",
     ]
     print(trades[cols].tail(15).to_string(index=False, float_format=lambda x: f"{x:.5f}"))
 
@@ -531,10 +621,13 @@ def main() -> int:
     gross_pass = bool(val_pass and test_pass)
 
     print()
-    print(f"DECISION_REPLAY_01_VALIDATION_GATE = {'PASS' if val_pass else 'FAIL'}")
-    print(f"DECISION_REPLAY_01_TEST_GATE       = {'PASS' if test_pass else 'FAIL'}")
-    print(f"DECISION_REPLAY_01_GROSS_STATUS    = {'PASS' if gross_pass else 'FAIL'}")
-    print("NO HORIZON/THRESHOLD/SIGN RESCUE IS AUTHORIZED BY THIS RUN")
+    print(f"{gate_prefix}_VALIDATION_GATE = {'PASS' if val_pass else 'FAIL'}")
+    print(f"{gate_prefix}_TEST_GATE       = {'PASS' if test_pass else 'FAIL'}")
+    print(f"{gate_prefix}_GROSS_STATUS    = {'PASS' if gross_pass else 'FAIL'}")
+    if policy == "replay01":
+        print("NO HORIZON/THRESHOLD/SIGN RESCUE IS AUTHORIZED BY THIS RUN")
+    else:
+        print("NO EDGE-MARGIN/HORIZON/TARGET-STOP/SIGN RESCUE IS AUTHORIZED BY THIS RUN")
     print("EXP27 = UNTOUCHED / SCORES SEALED")
     print("CALIBRATION_SHADOW = UNTOUCHED / SCORES SEALED")
     print("RUNTIME_PROMOTION = NONE")
