@@ -1,5 +1,5 @@
 #property strict
-#property version   "1.00"
+#property version   "1.01"
 #property description "Book5 Microstructure Live View - observational only"
 #property description "No orders, no entry thresholds, no runtime promotion."
 
@@ -21,6 +21,11 @@
 // Direction shown on screen is only the sign of the CURRENT net MID migration.
 // It is descriptive and is NOT the frozen PASS direction used by the research
 // scorers. The prospective Map02/Map04 ledgers remain completely independent.
+//
+// IMPORTANT IMPLEMENTATION DETAIL
+//   OnTick events can be coalesced by MT5 while an event is already being handled.
+//   Therefore the observer synchronizes the actual tick sequence with CopyTicksRange
+//   instead of assuming one OnTick callback == one market tick.
 // ============================================================================
 
 input group "Live window"
@@ -110,13 +115,8 @@ string Signed1(const double value)
 
 string Pct1(const double value)
 {
-   if(!MathIsValidNumber(value)) return "n/a";
+   if(!MathIsValidNumber(value) || value < 0.0 || value > 1.0000001) return "n/a";
    return DoubleToString(100.0 * value, 1) + "%";
-}
-
-bool IsUpperCorner()
-{
-   return (InpPanelCorner == CORNER_LEFT_UPPER || InpPanelCorner == CORNER_RIGHT_UPPER);
 }
 
 ENUM_ANCHOR_POINT PanelAnchor()
@@ -149,6 +149,15 @@ void CompactBuffer()
    g_count = keep;
 }
 
+bool SameQuote(const long ms, const double bid, const double ask, const MqlTick &tick)
+{
+   return (
+      ms == tick.time_msc &&
+      MathAbs(bid - tick.bid) <= EPS_MSLIVE &&
+      MathAbs(ask - tick.ask) <= EPS_MSLIVE
+   );
+}
+
 void AppendTick(const MqlTick &tick)
 {
    if(tick.bid <= 0.0 || tick.ask <= 0.0 || tick.time_msc <= 0)
@@ -157,9 +166,7 @@ void AppendTick(const MqlTick &tick)
    if(g_count > 0)
    {
       int last = g_count - 1;
-      if(g_ms[last] == tick.time_msc &&
-         MathAbs(g_bid[last] - tick.bid) <= EPS_MSLIVE &&
-         MathAbs(g_ask[last] - tick.ask) <= EPS_MSLIVE)
+      if(SameQuote(g_ms[last], g_bid[last], g_ask[last], tick))
          return;
    }
 
@@ -192,6 +199,60 @@ void SeedHistory()
 
    if(copied <= 0) return;
    for(int i = 0; i < copied; ++i)
+      AppendTick(ticks[i]);
+}
+
+// Recover the complete tick sequence since the last stored quote. We request
+// again from the last millisecond so quote updates sharing the same millisecond
+// are not silently skipped. Exact repeated quote states are harmless and are
+// collapsed when they meet the already stored tail.
+void SyncTicks()
+{
+   MqlTick now_tick;
+   if(!SymbolInfoTick(_Symbol, now_tick)) return;
+
+   if(g_count <= 0)
+   {
+      SeedHistory();
+      return;
+   }
+
+   int last_idx = g_count - 1;
+   long last_ms = g_ms[last_idx];
+   double last_bid = g_bid[last_idx];
+   double last_ask = g_ask[last_idx];
+
+   if(now_tick.time_msc < last_ms) return;
+
+   MqlTick ticks[];
+   int copied = CopyTicksRange(
+      _Symbol,
+      ticks,
+      COPY_TICKS_ALL,
+      (ulong)last_ms,
+      (ulong)now_tick.time_msc
+   );
+   if(copied <= 0) return;
+
+   int start = 0;
+   int last_match = -1;
+   for(int i = 0; i < copied; ++i)
+   {
+      if(SameQuote(last_ms, last_bid, last_ask, ticks[i]))
+         last_match = i;
+   }
+
+   if(last_match >= 0)
+      start = last_match + 1;
+   else
+   {
+      // Conservative fallback: only append strictly newer milliseconds if the
+      // previous tail state cannot be found in the returned slice.
+      while(start < copied && ticks[start].time_msc <= last_ms)
+         ++start;
+   }
+
+   for(int i = start; i < copied; ++i)
       AppendTick(ticks[i]);
 }
 
@@ -229,8 +290,8 @@ MicroSnapshot Measure()
    s.supporting_path_points = 0.0;
    s.opposing_path_points = 0.0;
    s.efficiency = 0.0;
-   s.directional_update_fraction = 0.0;
-   s.both_quote_change_fraction = 0.0;
+   s.directional_update_fraction = -1.0;
+   s.both_quote_change_fraction = -1.0;
    s.ticks_in_window = 0;
    s.direction = 0;
 
@@ -287,11 +348,11 @@ MicroSnapshot Measure()
       efficiency = net_abs / total;
    }
 
-   double directional_fraction = EMPTY_VALUE;
+   double directional_fraction = -1.0;
    if(direction != 0 && changed_mid > 0)
       directional_fraction = (double)favorable_mid / (double)changed_mid;
 
-   double both_fraction = EMPTY_VALUE;
+   double both_fraction = -1.0;
    if(transitions > 0)
       both_fraction = (double)both_quotes / (double)transitions;
 
@@ -466,12 +527,11 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-   MqlTick tick;
-   if(SymbolInfoTick(_Symbol, tick))
-      AppendTick(tick);
+   SyncTicks();
 }
 
 void OnTimer()
 {
+   SyncTicks();
    RefreshPanel();
 }
