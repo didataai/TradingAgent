@@ -246,14 +246,15 @@ def collect_day(symbol: str, day: date, retries: int, guards: dict[date, tuple[i
 
     eligible = 0
     if not compact.empty:
-        eligible = int(
+        eligible_mask = (
             compact["outcome_complete_before_retest_60s"].eq(1)
             & compact["hit_200_before_retest"].isin([0, 1])
             & np.isfinite(compact["signed_mid_impulse_1s_points"])
             & np.isfinite(compact["opposing_mid_path_1s_points"])
             & compact["opposing_mid_path_1s_points"].gt(0)
             & np.isfinite(compact["counterflow_sequence_contrast"])
-        ).sum()
+        )
+        eligible = int(eligible_mask.sum())
 
     append_coverage(
         {
